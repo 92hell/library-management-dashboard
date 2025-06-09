@@ -17,8 +17,7 @@ public class AuthorService {
     AuthorDAO authorDAO;
 
     public Author findAuthorById(Long id) {
-        Optional<Author> author = authorDAO.findById(id);
-        return author.orElse(null);
+        return authorDAO.findById(id).orElse(null);
     }
 
     public List<Author> findAllAuthors() {
@@ -26,11 +25,12 @@ public class AuthorService {
     }
 
     public List<Author> searchAuthors(Author author) {
-        return authorDAO.findAll(Example.of(author,
-                ExampleMatcher.matching()
-                        .withIgnoreCase()
-                        .withStringMatcher(ExampleMatcher.StringMatcher.CONTAINING)
-        ), Sort.by(Sort.Order.desc("createdAt")));
+        author.setIsDeleted(false);
+        ExampleMatcher matcher = ExampleMatcher.matching()
+                .withIgnoreCase()
+                .withStringMatcher(ExampleMatcher.StringMatcher.CONTAINING);
+        return authorDAO.findAll(Example.of(author, matcher),
+                Sort.by(Sort.Order.desc("createdAt")));
     }
 
     public Author saveAuthor(Author author) {
@@ -38,10 +38,9 @@ public class AuthorService {
     }
 
     public void deleteAuthorById(Long id) {
-        Author author = findAuthorById(id);
-        if(author != null) {
+        authorDAO.findById(id).ifPresent(author -> {
             author.setIsDeleted(true);
             authorDAO.save(author);
-        }
+        });
     }
 }

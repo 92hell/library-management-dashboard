@@ -5,6 +5,7 @@ import lombok.Getter;
 import lombok.Setter;
 import org.hibernate.annotations.ColumnDefault;
 
+import java.sql.Timestamp;
 import java.time.LocalDate;
 
 @Entity
@@ -35,4 +36,6 @@ public class BorrowedBook {
     @Column(name = "is_deleted", nullable = false)
     private Boolean isDeleted = false;
 
+    @Column(name = "created_at")
+    private Timestamp createdAt;
 }

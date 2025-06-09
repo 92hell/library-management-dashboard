@@ -1,6 +1,6 @@
 import React, { Component } from 'react';
 import { Link, withRouter } from 'react-router-dom';
-import { Button, Container, Form, FormGroup, Input, Label } from 'reactstrap';
+import { Button, Container, Form, FormGroup, Input, Label, ListGroup, ListGroupItem } from 'reactstrap';
 import AppNavbar from '../fragments/AppNavbar';
 
 class AuthorEdit extends Component {
@@ -13,16 +13,44 @@ class AuthorEdit extends Component {
     constructor(props) {
         super(props);
         this.state = {
-            item: this.emptyItem
+            item: this.emptyItem,
+            authoredBooks: []
         };
         this.handleChange = this.handleChange.bind(this);
         this.handleSubmit = this.handleSubmit.bind(this);
     }
 
     async componentDidMount() {
-        if (this.props.match.params.id !== 'new') {
+        const { id } = this.props.match.params;
+        if (id !== 'new') {
             const author = await (await fetch(`/authors/${this.props.match.params.id}`)).json();
+
+            if (author.dateOfBirth) {
+                const date = new Date(author.dateOfBirth);
+                if (!isNaN(date.getTime())) {
+                    const year = date.getFullYear();
+                    const month = String(date.getMonth() + 1).padStart(2, '0');
+                    const day = String(date.getDate()).padStart(2, '0');
+                    author.dateOfBirth = `${year}-${month}-${day}`;
+                } else {
+                    console.warn("Received invalid dateOfBirth from backend:", author.dateOfBirth);
+                    author.dateOfBirth = '';
+                }
+            }
+
             this.setState({item: author});
+
+            try {
+                const booksResponse = await fetch(`/books/authoredBy/${id}`);
+                if (booksResponse.ok) {
+                    const booksData = await booksResponse.json();
+                    this.setState({ authoredBooks: booksData });
+                } else {
+                    console.error("Failed to fetch books for author:", booksResponse.status);
+                }
+            } catch (error) {
+                console.error("Error fetching books:", error);
+            }
         }
     }
 
@@ -39,43 +67,62 @@ class AuthorEdit extends Component {
         event.preventDefault();
         const {item} = this.state;
 
-        await fetch('/authors' + (item.id ? '/' + item.id : ''), {
-            method: (item.id) ? 'PUT' : 'POST',
-            headers: {
-                'Accept': 'application/json',
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify(item),
-        });
-        this.props.history.push('/authors');
+        try {
+            await fetch('/authors' + (item.id ? '/' + item.id : ''), {
+                method: (item.id) ? 'PUT' : 'POST',
+                headers: {
+                    'Accept': 'application/json',
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(item),
+            });
+            this.props.history.push('/authors');
+        } catch (error) {
+            console.error("Error saving author:", error);
+        }
     }
 
     render() {
-        const {item} = this.state;
+        const { item, authoredBooks } = this.state;
         const title = <h2>{item.id ? 'Edit Author' : 'Add Author'}</h2>;
-        console.log("item:", item);
 
         return (
             <div>
                 <AppNavbar/>
-                <Container>
+                <Container className="my-4">
                     {title}
-                    <Form onSubmit={this.handleSubmit}>
+                    <Form onSubmit={this.handleSubmit} className="p-4 border rounded shadow-sm">
                         <FormGroup>
                             <Label for="name">Name</Label>
                             <Input type="text" name="name" id="name" value={item.name || ''}
-                                   onChange={this.handleChange} autoComplete="name"/>
+                                   onChange={this.handleChange} autoComplete="name" required />
                         </FormGroup>
                         <FormGroup>
                             <Label for="dateOfBirth">Date of Birth</Label>
                             <Input type="date" name="dateOfBirth" id="dateOfBirth" value={item.dateOfBirth || ''}
-                                   onChange={this.handleChange} autoComplete="dateOfBirth"/>
+                                   onChange={this.handleChange} />
                         </FormGroup>
-                        <FormGroup>
+                        <FormGroup className="mt-4">
                             <Button color="primary" type="submit">Save</Button>{' '}
                             <Button color="secondary" tag={Link} to="/authors">Cancel</Button>
                         </FormGroup>
                     </Form>
+                    {item.id && (
+                        <div className="mt-5">
+                            <h4>Authored Books</h4>
+                            {authoredBooks.length > 0 ? (
+                                <ListGroup>
+                                    {authoredBooks.map(book => (
+                                        <ListGroupItem key={book.id}>
+                                            {book.title} (Published: {new Date(book.publishedDate).toLocaleDateString()})
+                                        </ListGroupItem>
+                                    ))}
+                                </ListGroup>
+                            ) : (
+                                <p className="text-muted">No books found for this author.</p>
+                            )}
+                        </div>
+                    )}
                 </Container>
             </div>
         );

@@ -17,9 +17,22 @@ public class BookController {
     BookService bookService;
 
     @GetMapping
-    public List<Book> getBooks() {
-        Book book = new Book();
-        return bookService.searchBooks(book);
+    public List<Book> getBooks(@RequestParam(required = false) String searchTerm) {
+        if (searchTerm != null && !searchTerm.trim().isEmpty()) {
+            return bookService.searchBooks(searchTerm);
+        } else {
+            return bookService.findAllBooks();
+        }
+    }
+
+    @GetMapping("/authoredBy/{authorId}")
+    public List<Book> getAuthoredBy(@PathVariable long authorId) {
+        return bookService.findAllAuthoredBooks(authorId);
+    }
+
+    @GetMapping("/categories")
+    public List<String> getBookCategories() {
+        return bookService.getBookCategories();
     }
 
     @GetMapping("/{id}")
@@ -30,7 +43,7 @@ public class BookController {
     @PostMapping
     public ResponseEntity<Book> createBook(@RequestBody Book book) throws URISyntaxException {
         Book saved = bookService.saveBook(book);
-        return ResponseEntity.created(new URI("/clients/" + saved.getId())).body(saved);
+        return ResponseEntity.created(new URI("/books/" + saved.getId())).body(saved);
     }
 
     @PutMapping("/{id}")

@@ -1,5 +1,6 @@
 package com.helmifr.library.controller;
 
+import com.helmifr.library.entity.Book; // Import Book for borrowed books endpoint
 import com.helmifr.library.entity.Member;
 import com.helmifr.library.service.MemberService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -17,9 +18,12 @@ public class MemberController {
     MemberService memberService;
 
     @GetMapping
-    public List<Member> getMembers() {
-        Member member = new Member();
-        return memberService.searchMembers(member);
+    public List<Member> getMembers(@RequestParam(required = false) String searchTerm) {
+        if (searchTerm != null && !searchTerm.trim().isEmpty()) {
+            return memberService.searchMembers(searchTerm);
+        } else {
+            return memberService.findAllNonDeletedMembers();
+        }
     }
 
     @GetMapping("/{id}")
@@ -27,10 +31,19 @@ public class MemberController {
         return memberService.findMemberById(id);
     }
 
+    @GetMapping("/{memberId}/borrowedBooks")
+    public ResponseEntity<List<Book>> getBorrowedBooksByMember(@PathVariable Long memberId) {
+        List<Book> books = memberService.getNonDeletedBorrowedBooksByMemberId(memberId);
+        if (books.isEmpty()) {
+            return ResponseEntity.noContent().build();
+        }
+        return ResponseEntity.ok(books);
+    }
+
     @PostMapping
     public ResponseEntity<Member> createMember(@RequestBody Member member) throws URISyntaxException {
         Member saved = memberService.saveMember(member);
-        return ResponseEntity.created(new URI("/clients/" + saved.getId())).body(saved);
+        return ResponseEntity.created(new URI("/members/" + saved.getId())).body(saved);
     }
 
     @PutMapping("/{id}")

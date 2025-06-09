@@ -8,6 +8,7 @@ import org.springframework.data.domain.ExampleMatcher;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 
+import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 
@@ -25,12 +26,13 @@ public class BookService {
         return bookDAO.findAllByIsDeletedFalse();
     }
 
-    public List<Book> searchBooks(Book book) {
-        return bookDAO.findAll(Example.of(book,
-                ExampleMatcher.matching()
-                        .withIgnoreCase()
-                        .withStringMatcher(ExampleMatcher.StringMatcher.CONTAINING)
-        ), Sort.by(Sort.Order.desc("created_at")));
+    public List<Book> findAllAuthoredBooks(Long authorId) {
+        return bookDAO.findAllByAuthorIdAndIsDeletedFalse(authorId);
+    }
+
+    public List<Book> searchBooks(String searchTerm) {
+        String actualSearchTerm = (searchTerm != null && !searchTerm.trim().isEmpty()) ? searchTerm.trim() : null;
+        return bookDAO.searchBooksByCriteria(actualSearchTerm);
     }
 
     public Book saveBook(Book book) {
@@ -43,5 +45,39 @@ public class BookService {
             book.setIsDeleted(true);
             bookDAO.save(book);
         }
+    }
+
+    public List<String> getBookCategories() {
+        return Arrays.asList(
+                "Fiction",
+                "Non-Fiction",
+                "Mystery",
+                "Thriller",
+                "Fantasy",
+                "Science Fiction",
+                "Romance",
+                "Historical Fiction",
+                "Horror",
+                "Biography & Autobiography",
+                "History",
+                "Self-Help",
+                "Cookbooks",
+                "Travel",
+                "Art & Photography",
+                "Science & Technology",
+                "Business & Economics",
+                "Health & Fitness",
+                "Religion & Spirituality",
+                "Philosophy",
+                "Poetry",
+                "Comics & Graphic Novels",
+                "Young Adult",
+                "Children's Books",
+                "Education",
+                "True Crime",
+                "Memoir",
+                "Classics",
+                "Dystopian"
+        );
     }
 }

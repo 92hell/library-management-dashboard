@@ -41,7 +41,17 @@ class AppNavbar extends Component {
                             </NavLink>
                         </NavItem>
                         <NavItem>
-                            <NavLink href="https://github.com/helmifr" target="_blank" rel="noopener noreferrer">
+                            <NavLink tag={Link} to="/members">
+                                Members
+                            </NavLink>
+                        </NavItem>
+                        <NavItem>
+                            <NavLink tag={Link} to="/books">
+                                Books
+                            </NavLink>
+                        </NavItem>
+                        <NavItem>
+                            <NavLink href="https://github.com/92hell" target="_blank" rel="noopener noreferrer">
                                 GitHub
                             </NavLink>
                         </NavItem>

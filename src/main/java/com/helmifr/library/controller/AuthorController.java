@@ -18,10 +18,15 @@ public class AuthorController {
     AuthorService authorService;
 
     @GetMapping
-    public List<Author> getAuthors() {
-        Author author = new Author();
-        author.setName("");
-        return authorService.searchAuthors(author);
+    public List<Author> getAuthors(@RequestParam(required = false) String name) {
+        Author authorFilter = new Author();
+        authorFilter.setName(name);
+        return authorService.searchAuthors(authorFilter);
+    }
+
+    @GetMapping("/active")
+    public List<Author> getAuthorsActive() {
+        return authorService.findAllAuthors();
     }
 
     @GetMapping("/{id}")

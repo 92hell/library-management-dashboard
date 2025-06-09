@@ -1,10 +1,12 @@
 package com.helmifr.library.entity;
 
+import com.helmifr.library.converter.StringListConverter;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
 import org.hibernate.annotations.ColumnDefault;
 
+import java.sql.Timestamp;
 import java.time.LocalDate;
 import java.util.List;
 
@@ -31,8 +33,9 @@ public class Book {
     @JoinColumn(name = "author_id", nullable = false)
     private Author author;
 
+    @Convert(converter = StringListConverter.class)
     @Column(name = "categories")
-    private String categories;
+    private List<String> categories;
 
     @ColumnDefault("0")
     @Column(name = "is_deleted", nullable = false)
@@ -40,4 +43,7 @@ public class Book {
 
     @ManyToMany(mappedBy = "borrowedBooks")
     private List<Member> borrowedBy;
+
+    @Column(name = "created_at")
+    private Timestamp createdAt;
 }

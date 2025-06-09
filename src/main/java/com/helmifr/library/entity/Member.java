@@ -5,6 +5,7 @@ import lombok.Getter;
 import lombok.Setter;
 import org.hibernate.annotations.ColumnDefault;
 
+import java.sql.Timestamp;
 import java.time.LocalDate;
 import java.util.List;
 
@@ -40,10 +41,12 @@ public class Member {
 
     @ManyToMany
     @JoinTable(
-            name = "borrowed_book",
+            name = "borrowed_books",
             joinColumns = @JoinColumn(name = "member_id"),
             inverseJoinColumns = @JoinColumn(name = "book_id")
     )
     private List<Book> borrowedBooks;
 
+    @Column(name = "created_at")
+    private Timestamp createdAt;
 }

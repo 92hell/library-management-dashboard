@@ -7,4 +7,5 @@ import java.util.List;
 
 public interface AuthorDAO extends JpaRepository<Author, Long> {
     List<Author> findAllByIsDeleted(boolean isDeleted);
+    List<Author> findAllByIsDeletedFalseOrderByCreatedAtDesc();
 }

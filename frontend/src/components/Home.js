@@ -20,9 +20,6 @@ class Home extends Component {
                     <p className="mb-4">
                         This is my first time working with React, and I've put a lot of effort into it. I hope you like it! 😊
                     </p>
-                    <Button color="primary" size="lg" tag={Link} to="/authors">
-                        Explore Authors
-                    </Button>
                 </Container>
             </div>
         );
