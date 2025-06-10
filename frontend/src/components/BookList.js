@@ -45,6 +45,7 @@ class BookList extends Component {
                 throw new Error(`HTTP error! status: ${response.status}`);
             }
             const data = await response.json();
+            console.log("data:", data);
             this.setState({ books: data, isLoading: false });
             if (this.searchInputRef.current) {
                 this.searchInputRef.focus();
@@ -68,7 +69,7 @@ class BookList extends Component {
 
         this.searchTimeout = setTimeout(() => {
             this.fetchBooks(newSearchTerm);
-        }, 300);
+        }, 1000);
     }
 
     handleKeyPress(event) {
@@ -115,6 +116,7 @@ class BookList extends Component {
                     <AppNavbar />
                     <Container fluid className="text-center py-5">
                         <p className="display-4">Loading Books...</p>
+
                     </Container>
                 </div>
             );
@@ -136,9 +138,7 @@ class BookList extends Component {
                 }
             }
 
-            const displayCategories = Array.isArray(book.categories)
-                ? book.categories.join(', ')
-                : 'N/A';
+            const displayCategories = book.categories || 'N/A';
 
             return (
                 <tr key={book.id}>

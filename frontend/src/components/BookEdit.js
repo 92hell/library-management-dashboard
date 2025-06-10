@@ -17,7 +17,7 @@ class BookEdit extends Component {
         publishedDate: '',
         publisherName: '',
         author: null,
-        categories: []
+        categories: ''
     };
 
     constructor(props) {
@@ -74,6 +74,7 @@ class BookEdit extends Component {
                     throw new Error(`Failed to fetch book: ${bookResponse.status}`);
                 }
                 const bookData = await bookResponse.json();
+                console.log("bookData:", bookData);
 
                 if (bookData.publishedDate) {
                     const date = new Date(bookData.publishedDate);
@@ -89,7 +90,7 @@ class BookEdit extends Component {
                 }
 
                 if (!bookData.categories) {
-                    bookData.categories = [];
+                    bookData.categories = '';
                 }
 
                 this.setState({ item: bookData });
@@ -119,12 +120,9 @@ class BookEdit extends Component {
     }
 
     handleCategorySelectChange(event) {
-        const selectedOptions = Array.from(event.target.options)
-            .filter(option => option.selected)
-            .map(option => option.value);
-
+        const selectedCategory = event.target.value;
         let item = { ...this.state.item };
-        item.categories = selectedOptions;
+        item.categories = selectedCategory;
         this.setState({ item });
     }
 
@@ -155,8 +153,6 @@ class BookEdit extends Component {
     render() {
         const { item, availableAuthors, availableCategories, isLoadingAuthors, isLoadingCategories } = this.state;
         const title = <h2>{item.id ? 'Edit Book' : 'Add Book'}</h2>;
-
-        const selectedCategories = item.categories || [];
 
         return (
             <div>
@@ -195,13 +191,15 @@ class BookEdit extends Component {
                             )}
                         </FormGroup>
                         <FormGroup>
-                            <Label for="categories">Categories</Label>
+                            <Label for="categories">Category</Label>
                             {isLoadingCategories ? (
                                 <p className="text-muted">Loading categories...</p>
                             ) : (
-                                <Input type="select" name="categories" id="categories" multiple
-                                       value={selectedCategories}
-                                       onChange={this.handleCategorySelectChange}>
+                                <Input type="select" name="categories" id="categories"
+                                       value={item.categories || ''}
+                                       onChange={this.handleCategorySelectChange}
+                                       required>
+                                    <option value="">Select a Category</option>
                                     {availableCategories.map(category => (
                                         <option key={category} value={category}>{category}</option>
                                     ))}

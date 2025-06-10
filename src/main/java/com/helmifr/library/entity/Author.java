@@ -1,5 +1,6 @@
 package com.helmifr.library.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
@@ -35,5 +36,6 @@ public class Author {
     private Timestamp createdAt;
 
     @OneToMany(mappedBy = "author")
+    @JsonIgnoreProperties("author")
     List<Book> authoredBooks;
 }

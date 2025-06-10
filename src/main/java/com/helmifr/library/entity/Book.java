@@ -1,6 +1,5 @@
 package com.helmifr.library.entity;
 
-import com.helmifr.library.converter.StringListConverter;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
@@ -29,13 +28,12 @@ public class Book {
     @Column(name = "publisher_name")
     private String publisherName;
 
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @ManyToOne(fetch = FetchType.EAGER, optional = false)
     @JoinColumn(name = "author_id", nullable = false)
     private Author author;
 
-    @Convert(converter = StringListConverter.class)
     @Column(name = "categories")
-    private List<String> categories;
+    private String categories;
 
     @ColumnDefault("0")
     @Column(name = "is_deleted", nullable = false)
