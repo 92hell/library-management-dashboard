@@ -17,8 +17,8 @@ public class MemberService {
         return memberDAO.findByIdAndIsDeletedFalse(id).orElse(null);
     }
 
-    public List<Member> findAllNonDeletedMembers() {
-        return memberDAO.findAllByIsDeletedFalseOrderByCreatedAtDesc();
+    public List<Member> findAllMembers() {
+        return memberDAO.findAllByIsDeletedFalse();
     }
 
     public List<Member> searchMembers(String searchTerm) {

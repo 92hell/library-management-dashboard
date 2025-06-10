@@ -74,7 +74,6 @@ class BookEdit extends Component {
                     throw new Error(`Failed to fetch book: ${bookResponse.status}`);
                 }
                 const bookData = await bookResponse.json();
-                console.log("bookData:", bookData);
 
                 if (bookData.publishedDate) {
                     const date = new Date(bookData.publishedDate);

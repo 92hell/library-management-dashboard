@@ -22,7 +22,7 @@ public class MemberController {
         if (searchTerm != null && !searchTerm.trim().isEmpty()) {
             return memberService.searchMembers(searchTerm);
         } else {
-            return memberService.findAllNonDeletedMembers();
+            return memberService.findAllMembers();
         }
     }
 

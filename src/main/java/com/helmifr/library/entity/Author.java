@@ -5,8 +5,6 @@ import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
 import org.hibernate.annotations.ColumnDefault;
-import org.hibernate.annotations.DialectOverride;
-import org.hibernate.annotations.Where;
 
 import java.sql.Timestamp;
 import java.util.Date;

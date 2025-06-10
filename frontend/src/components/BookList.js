@@ -45,7 +45,7 @@ class BookList extends Component {
                 throw new Error(`HTTP error! status: ${response.status}`);
             }
             const data = await response.json();
-            console.log("data:", data);
+
             this.setState({ books: data, isLoading: false });
             if (this.searchInputRef.current) {
                 this.searchInputRef.focus();

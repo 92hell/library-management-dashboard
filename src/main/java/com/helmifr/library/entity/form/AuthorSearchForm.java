@@ -1,4 +1,4 @@
-package com.helmifr.library.form;
+package com.helmifr.library.entity.form;
 
 import lombok.Getter;
 import lombok.Setter;

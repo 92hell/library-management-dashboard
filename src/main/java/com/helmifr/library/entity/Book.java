@@ -1,7 +1,10 @@
 package com.helmifr.library.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
+import lombok.AllArgsConstructor;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 import lombok.Setter;
 import org.hibernate.annotations.ColumnDefault;
 
@@ -12,6 +15,8 @@ import java.util.List;
 @Entity
 @Getter
 @Setter
+@NoArgsConstructor
+@AllArgsConstructor
 @Table(name = "books")
 public class Book {
     @Id
@@ -40,6 +45,7 @@ public class Book {
     private Boolean isDeleted = false;
 
     @ManyToMany(mappedBy = "borrowedBooks")
+    @JsonIgnore
     private List<Member> borrowedBy;
 
     @Column(name = "created_at")
