@@ -3,6 +3,7 @@ import { Link, useSearchParams } from 'react-router-dom';
 import { Button, ButtonGroup, Col, Input, Label, Row } from 'reactstrap';
 import { api } from '../api';
 import { ErrorAlert } from '../components/Feedback';
+import BookCover from '../components/BookCover';
 import LoanStatus from '../components/LoanStatus';
 import PagedTable from '../components/PagedTable';
 import PageHeader from '../components/PageHeader';
@@ -102,8 +103,13 @@ export default function BorrowedBookList() {
         renderRow={(loan) => (
           <tr key={loan.id}>
             <td>
-              <span className="fw-semibold">{loan.book.title}</span>
-              <span className="d-block small text-muted">{loan.book.authorName}</span>
+              <div className="d-flex align-items-center gap-3">
+                <BookCover title={loan.book.title} />
+                <div>
+                  <span className="fw-semibold">{loan.book.title}</span>
+                  <span className="d-block small text-muted">{loan.book.authorName}</span>
+                </div>
+              </div>
             </td>
             <td>{loan.member.name}</td>
             <td className="text-nowrap">{loan.status === 'PENDING' ? 'Requested' : formatDate(loan.borrowDate)}</td>

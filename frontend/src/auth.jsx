@@ -6,6 +6,9 @@ const AuthContext = createContext(null);
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
+  // True after an explicit logout: the next sign-in starts on the home page instead of returning
+  // to the page the previous user was on (a 401 / expired session still returns you there).
+  const [loggedOut, setLoggedOut] = useState(false);
 
   useEffect(() => {
     let ignore = false;
@@ -27,6 +30,7 @@ export function AuthProvider({ children }) {
 
   const login = useCallback(async (username, password) => {
     const me = await api.post('/api/auth/login', { username, password });
+    setLoggedOut(false);
     setUser(me);
     return me;
   }, []);
@@ -35,6 +39,7 @@ export function AuthProvider({ children }) {
     try {
       await api.post('/api/auth/logout');
     } finally {
+      setLoggedOut(true);
       setUser(null);
     }
   }, []);
@@ -43,12 +48,13 @@ export function AuthProvider({ children }) {
     () => ({
       user,
       loading,
+      loggedOut,
       isLibrarian: user?.role === 'LIBRARIAN',
       isCustomer: user?.role === 'CUSTOMER',
       login,
       logout,
     }),
-    [user, loading, login, logout],
+    [user, loading, loggedOut, login, logout],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

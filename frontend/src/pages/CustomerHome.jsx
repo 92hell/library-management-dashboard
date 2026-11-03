@@ -14,7 +14,7 @@ export default function CustomerHome() {
   return (
     <>
       <h1 className="h3 mb-1">Welcome, {user.displayName}</h1>
-      <p className="text-muted mb-4">Browse the catalogue, request books and keep track of what you have borrowed.</p>
+      <p className="page-subtitle mb-4">Good to see you at the library. Find your next read, or check on the ones you have.</p>
       {overdue.length > 0 && (
         <Alert color="danger">
           You have {overdue.length} overdue {overdue.length === 1 ? 'book' : 'books'}. Please return{' '}
@@ -23,7 +23,7 @@ export default function CustomerHome() {
       )}
       <Row xs="1" md="3" className="g-3 mb-4">
         <Col>
-          <Card className="h-100 shadow-sm">
+          <Card className="h-100 shadow-sm tile">
             <CardBody>
               <span className="d-block display-6 fw-semibold">{active.length}</span>
               <span className="small">Books with you</span>
@@ -31,7 +31,7 @@ export default function CustomerHome() {
           </Card>
         </Col>
         <Col>
-          <Card className="h-100 shadow-sm">
+          <Card className="h-100 shadow-sm tile">
             <CardBody>
               <span className="d-block display-6 fw-semibold">{pending.length}</span>
               <span className="small">Requests waiting for a librarian</span>
@@ -39,7 +39,7 @@ export default function CustomerHome() {
           </Card>
         </Col>
         <Col>
-          <Card className="h-100 shadow-sm">
+          <Card className="h-100 shadow-sm tile">
             <CardBody>
               <span className="d-block fw-semibold">Next due</span>
               <span className="small">

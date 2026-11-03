@@ -3,6 +3,7 @@ import { Link, NavLink as RouterNavLink } from 'react-router-dom';
 import { Badge, Button, Collapse, Nav, Navbar, NavbarBrand, NavbarToggler, NavItem, NavLink } from 'reactstrap';
 import { useAuth } from '../auth';
 import { useNotifications } from '../notifications';
+import BrandMark from './BrandMark';
 
 const SECTIONS = {
   LIBRARIAN: [
@@ -25,8 +26,9 @@ export default function AppNavbar() {
   const close = () => setIsOpen(false);
 
   return (
-    <Navbar color="dark" dark expand="md" className="px-3">
+    <Navbar dark expand="md" className="px-3 library-nav">
       <NavbarBrand tag={Link} to="/">
+        <BrandMark />
         Library
       </NavbarBrand>
       <NavbarToggler onClick={() => setIsOpen((open) => !open)} aria-label="Toggle navigation" />
@@ -60,7 +62,7 @@ export default function AppNavbar() {
             <NavItem>
               <NavLink tag={RouterNavLink} to="/profile" onClick={close}>
                 {user.displayName}{' '}
-                <Badge color={isLibrarian ? 'success' : 'info'} pill>
+                <Badge color={isLibrarian ? 'warning' : 'light'} pill className="text-dark">
                   {isLibrarian ? 'Librarian' : 'Member'}
                 </Badge>
               </NavLink>

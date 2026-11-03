@@ -1,6 +1,7 @@
 import { useState } from 'react';
-import { Badge, Button } from 'reactstrap';
+import { Button } from 'reactstrap';
 import { api } from '../api';
+import BookCover from '../components/BookCover';
 import { ErrorAlert } from '../components/Feedback';
 import PagedTable from '../components/PagedTable';
 import SearchBox from '../components/SearchBox';
@@ -21,7 +22,8 @@ export default function Catalogue() {
 
   return (
     <>
-      <h1 className="h3 mb-3">Catalogue</h1>
+      <h1 className="h3 mb-1 page-title">Catalogue</h1>
+      <p className="page-subtitle mb-3">Find a book and request it; we&apos;ll let you know when it&apos;s ready.</p>
       <div className="mb-3">
         <SearchBox
           id="catalogue-search"
@@ -44,14 +46,19 @@ export default function Catalogue() {
         emptyMessage="No books match your search."
         renderRow={(book) => (
           <tr key={book.id}>
-            <td className="fw-semibold">{book.title}</td>
+            <td>
+              <div className="d-flex align-items-center gap-3">
+                <BookCover title={book.title} />
+                <span className="fw-semibold">{book.title}</span>
+              </div>
+            </td>
             <td>{book.author.name}</td>
             <td className="small text-muted">{book.categories.join(', ') || '—'}</td>
             <td>
               {book.onLoan ? (
-                <Badge color="warning" className="text-dark">On loan</Badge>
+                <span className="stamp stamp-overdue">On loan</span>
               ) : (
-                <Badge color="success">Available</Badge>
+                <span className="stamp stamp-active">On shelf</span>
               )}
             </td>
             <td className="text-end">

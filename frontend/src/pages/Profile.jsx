@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Alert, Button, Card, CardBody, CardTitle, Col, Form, Row } from 'reactstrap';
+import { Alert, Button, Col, Form, Row } from 'reactstrap';
 import { api } from '../api';
 import { useAuth } from '../auth';
 import { ErrorAlert, Loading } from '../components/Feedback';
@@ -20,24 +20,26 @@ function ProfileView({ profile, onSaved }) {
 
   return (
     <>
-      <h1 className="h3 mb-3">My profile</h1>
+      <h1 className="h3 mb-3 page-title">My profile</h1>
       <Row className="g-4">
         <Col lg={6}>
           <DetailsForm profile={profile} showPhone={isCustomer} onSaved={onSaved} />
         </Col>
         <Col lg={6}>
           {card && (
-            <Card className="shadow-sm mb-4">
-              <CardBody>
-                <CardTitle tag="h2" className="h5">
-                  Library card
-                </CardTitle>
-                <p className="display-6 font-monospace mb-1">{card.libraryCardId}</p>
+            <section className="library-card mb-4" aria-label="Library card">
+              <div className="library-card-header">
+                <span>Library card</span>
+                <span aria-hidden="true">📚</span>
+              </div>
+              <div className="library-card-body">
+                <p className="library-card-id mb-1">{card.libraryCardId}</p>
+                <p className="mb-1 fw-semibold">{card.name}</p>
                 <p className="small text-muted mb-0">
-                  Show this number at the desk. Member since your registration · born {formatDate(card.dateOfBirth)}
+                  Born {formatDate(card.dateOfBirth)} · Show this card ID at the desk to borrow in person.
                 </p>
-              </CardBody>
-            </Card>
+              </div>
+            </section>
           )}
           <PasswordForm />
         </Col>

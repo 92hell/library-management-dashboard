@@ -1,0 +1,197 @@
+/*
+ * Library theme on top of Bootstrap 5: cream "paper", reading-room green, burgundy and brass,
+ * serif headings. Fonts are bundled (the Content-Security-Policy only allows same-origin fonts).
+ */
+@import '@fontsource/lora/500.css';
+@import '@fontsource/lora/600.css';
+@import '@fontsource/source-sans-3/400.css';
+@import '@fontsource/source-sans-3/600.css';
+
+:root {
+  --lib-paper: #f6f0e3;
+  --lib-card: #fffcf5;
+  --lib-ink: #2e2a24;
+  --lib-muted: #6e665a;
+  --lib-rule: #e2d6bf;
+  --lib-green: #2f5d50;
+  --lib-green-dark: #1f3d34;
+  --lib-burgundy: #8b2e2e;
+  --lib-brass: #b08d57;
+
+  --bs-body-bg: var(--lib-paper);
+  --bs-body-color: var(--lib-ink);
+  --bs-body-font-family: 'Source Sans 3', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --bs-body-font-size: 1.02rem;
+  --bs-secondary-color: var(--lib-muted);
+  --bs-border-color: var(--lib-rule);
+  --bs-tertiary-bg: #efe6d3;
+  --bs-primary: var(--lib-green);
+  --bs-primary-rgb: 47, 93, 80;
+  --bs-success: #3f6b4a;
+  --bs-success-rgb: 63, 107, 74;
+  --bs-danger: var(--lib-burgundy);
+  --bs-danger-rgb: 139, 46, 46;
+  --bs-warning-rgb: 176, 141, 87;
+  --bs-info-rgb: 43, 74, 111;
+  --bs-link-color: var(--lib-green);
+  --bs-link-color-rgb: 47, 93, 80;
+  --bs-link-hover-color: var(--lib-burgundy);
+  --bs-link-hover-color-rgb: 139, 46, 46;
+  --bs-border-radius: 0.5rem;
+  --bs-focus-ring-color: rgba(47, 93, 80, 0.25);
+}
+
+h1, h2, h3, .h1, .h2, .h3, .h4, .h5, .display-6, .navbar-brand {
+  font-family: 'Lora', Georgia, 'Times New Roman', serif;
+  font-weight: 600;
+  letter-spacing: 0.005em;
+}
+.display-6 { font-weight: 500; }
+
+/* ---- Buttons ---------------------------------------------------------------------------- */
+.btn-primary {
+  --bs-btn-bg: var(--lib-green); --bs-btn-border-color: var(--lib-green);
+  --bs-btn-hover-bg: var(--lib-green-dark); --bs-btn-hover-border-color: var(--lib-green-dark);
+  --bs-btn-active-bg: var(--lib-green-dark); --bs-btn-active-border-color: var(--lib-green-dark);
+  --bs-btn-disabled-bg: var(--lib-green); --bs-btn-disabled-border-color: var(--lib-green);
+}
+.btn-outline-primary {
+  --bs-btn-color: var(--lib-green); --bs-btn-border-color: var(--lib-green);
+  --bs-btn-hover-bg: var(--lib-green); --bs-btn-hover-border-color: var(--lib-green);
+  --bs-btn-active-bg: var(--lib-green-dark); --bs-btn-active-border-color: var(--lib-green-dark);
+}
+.btn-success {
+  --bs-btn-bg: #3f6b4a; --bs-btn-border-color: #3f6b4a;
+  --bs-btn-hover-bg: #2f5438; --bs-btn-hover-border-color: #2f5438;
+  --bs-btn-active-bg: #2f5438; --bs-btn-active-border-color: #2f5438;
+}
+.btn-danger, .btn-outline-danger {
+  --bs-btn-border-color: var(--lib-burgundy);
+  --bs-btn-hover-bg: #6f2222; --bs-btn-hover-border-color: #6f2222;
+  --bs-btn-active-bg: #6f2222;
+}
+.btn-danger { --bs-btn-bg: var(--lib-burgundy); }
+.btn-outline-danger { --bs-btn-color: var(--lib-burgundy); }
+.btn-outline-secondary, .btn-secondary.btn-outline {
+  --bs-btn-color: var(--lib-muted); --bs-btn-border-color: #cbbd9f;
+  --bs-btn-hover-bg: #efe6d3; --bs-btn-hover-color: var(--lib-ink); --bs-btn-hover-border-color: #cbbd9f;
+}
+.btn-secondary {
+  --bs-btn-bg: #8a7f6c; --bs-btn-border-color: #8a7f6c;
+  --bs-btn-hover-bg: #6f6656; --bs-btn-hover-border-color: #6f6656;
+}
+
+/* ---- Navbar ----------------------------------------------------------------------------- */
+.navbar.library-nav {
+  background: linear-gradient(180deg, var(--lib-green-dark), #183129);
+  border-bottom: 3px solid var(--lib-brass);
+}
+.library-nav .navbar-brand { color: #f3e9d2; display: inline-flex; align-items: center; gap: 0.5rem; font-size: 1.35rem; }
+.library-nav .navbar-brand svg { color: #f3e9d2; }
+.library-nav .nav-link { color: rgba(243, 233, 210, 0.8); }
+.library-nav .nav-link:hover, .library-nav .nav-link:focus { color: #fff; }
+.library-nav .nav-link.active { color: #fff; box-shadow: inset 0 -2px 0 var(--lib-brass); }
+
+/* ---- Cards, tables, forms ------------------------------------------------------------------ */
+.card, .list-group-item, .form-control, .form-select { background-color: var(--lib-card); }
+.card { border-color: var(--lib-rule); }
+.shadow-sm { box-shadow: 0 1px 2px rgba(60, 45, 20, 0.08), 0 2px 8px rgba(60, 45, 20, 0.05) !important; }
+main form.border, main .border.rounded { background-color: var(--lib-card); border-color: var(--lib-rule) !important; }
+
+.table { --bs-table-bg: var(--lib-card); --bs-table-hover-bg: #f3ead7; border-color: var(--lib-rule); }
+.table thead.table-library th {
+  background-color: var(--lib-green-dark); color: #f3e9d2; border-color: var(--lib-green-dark);
+  font-family: 'Lora', Georgia, serif; font-weight: 500;
+}
+.table > :not(caption) > * > * { border-bottom-color: var(--lib-rule); }
+
+.page-title { border-bottom: 1px solid var(--lib-rule); padding-bottom: 0.5rem; }
+.page-subtitle { color: var(--lib-muted); font-style: italic; }
+
+/* ---- Date-due stamps (loan status) --------------------------------------------------------- */
+.stamp {
+  display: inline-block;
+  padding: 0.1rem 0.5rem;
+  border: 2px solid currentColor;
+  border-radius: 0.3rem;
+  font-family: 'Courier New', ui-monospace, monospace;
+  font-weight: 700;
+  font-size: 0.78rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  transform: rotate(-2deg);
+  opacity: 0.9;
+  white-space: nowrap;
+}
+.stamp-pending { color: #6b6253; }
+.stamp-active { color: var(--lib-green); }
+.stamp-overdue { color: var(--lib-burgundy); transform: rotate(-4deg); }
+.stamp-returned { color: #2b4a6f; }
+.stamp-declined { color: #4a4036; }
+.stamp-cancelled { color: #9a907f; }
+
+/* ---- Book covers --------------------------------------------------------------------------- */
+.book-cover {
+  display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0;
+  border-radius: 2px 4px 4px 2px;
+  color: #f3e9d2; font-family: 'Lora', Georgia, serif; font-weight: 600;
+  box-shadow: inset 4px 0 0 rgba(0, 0, 0, 0.18), inset -1px 0 0 rgba(255, 255, 255, 0.15), 1px 1px 3px rgba(0, 0, 0, 0.2);
+  position: relative;
+}
+.book-cover::after {
+  content: ''; position: absolute; left: 22%; right: 12%; top: 18%; height: 2px; background: var(--lib-brass); opacity: 0.8;
+}
+.book-cover-sm { width: 2.1rem; height: 2.9rem; font-size: 0.8rem; }
+.book-cover-md { width: 3rem; height: 4.2rem; font-size: 1.05rem; }
+
+/* ---- Library card (profile) ---------------------------------------------------------------- */
+.library-card {
+  background: repeating-linear-gradient(180deg, var(--lib-card) 0, var(--lib-card) 1.9rem, #e8dcc4 1.9rem, #e8dcc4 calc(1.9rem + 1px));
+  border: 1px solid var(--lib-rule);
+  border-radius: 0.6rem;
+  overflow: hidden;
+  box-shadow: 0 2px 10px rgba(60, 45, 20, 0.12);
+}
+.library-card-header {
+  background: var(--lib-burgundy); color: #f3e9d2; padding: 0.6rem 1.1rem;
+  font-family: 'Lora', Georgia, serif; letter-spacing: 0.18em; text-transform: uppercase; font-size: 0.85rem;
+  display: flex; justify-content: space-between; align-items: center;
+}
+.library-card-body { padding: 1rem 1.25rem 1.25rem; }
+.library-card-id { font-family: 'Courier New', ui-monospace, monospace; font-size: 1.8rem; font-weight: 700; letter-spacing: 0.08em; color: var(--lib-ink); }
+
+/* ---- Sign-in pages --------------------------------------------------------------------------- */
+.reading-room {
+  min-height: 100vh;
+  background:
+    radial-gradient(ellipse at top, rgba(255, 236, 190, 0.55), transparent 60%),
+    var(--lib-paper);
+}
+.reading-room-title { color: var(--lib-green-dark); }
+.bookshelf {
+  display: flex; align-items: flex-end; gap: 4px; height: 92px; padding: 0 12px;
+  border-bottom: 10px solid #6b4e2e; border-radius: 2px; margin: 0 auto 1.5rem; max-width: 22rem;
+}
+.spine {
+  flex: 1; border-radius: 2px 2px 0 0;
+  box-shadow: inset 3px 0 0 rgba(0, 0, 0, 0.15), inset 0 8px 0 rgba(255, 255, 255, 0.08);
+  background-image: linear-gradient(180deg, transparent 22%, rgba(176, 141, 87, 0.9) 22%, rgba(176, 141, 87, 0.9) 25%, transparent 25%);
+}
+.reading-room .card { border-top: 4px solid var(--lib-green); }
+
+/* ---- Dashboard tiles ----------------------------------------------------------------------- */
+.tile { border-left: 4px solid var(--lib-rule); }
+.tile-attention { border-left-color: var(--lib-burgundy); }
+.tile-attention .display-6 { color: var(--lib-burgundy); }
+.tile-info { border-left-color: var(--lib-green); }
+.tile-info .display-6 { color: var(--lib-green); }
+
+.empty-state { text-align: center; color: var(--lib-muted); padding: 2.5rem 1rem; font-style: italic; }
+.empty-state::before { content: '📖'; display: block; font-size: 2rem; font-style: normal; margin-bottom: 0.5rem; }
+
+/* ---- Focus rings in the library green ------------------------------------------------------ */
+.form-control:focus, .form-select:focus, .form-check-input:focus {
+  border-color: #7fa596;
+  box-shadow: 0 0 0 0.2rem rgba(47, 93, 80, 0.2);
+}
+.form-check-input:checked { background-color: var(--lib-green); border-color: var(--lib-green); }

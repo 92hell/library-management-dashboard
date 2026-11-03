@@ -6,7 +6,7 @@ import { useAuth } from '../auth';
 export default function PageHeader({ title, addLabel, addTo }) {
   const { isLibrarian } = useAuth();
   return (
-    <div className="d-flex justify-content-between align-items-center mb-3">
+    <div className="d-flex justify-content-between align-items-center mb-3 page-title">
       <h1 className="h3 mb-0">{title}</h1>
       {isLibrarian && addTo && (
         <Button color="success" tag={Link} to={addTo}>

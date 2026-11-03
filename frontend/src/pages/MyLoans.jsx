@@ -1,6 +1,7 @@
 import { Button, Table } from 'reactstrap';
 import { api } from '../api';
 import { ErrorAlert, Loading } from '../components/Feedback';
+import BookCover from '../components/BookCover';
 import LoanStatus from '../components/LoanStatus';
 import { formatDate } from '../format';
 import { useAction, useApi } from '../hooks';
@@ -19,13 +20,13 @@ export default function MyLoans() {
 
   return (
     <>
-      <h1 className="h3 mb-3">My loans</h1>
+      <h1 className="h3 mb-3 page-title">My loans</h1>
       <ErrorAlert error={action.error} onDismiss={action.clearError} />
       {loans.data.length === 0 ? (
-        <p className="text-muted py-4">You have not borrowed or requested any books yet.</p>
+        <p className="empty-state">You have not borrowed or requested any books yet.</p>
       ) : (
         <Table responsive className="align-middle shadow-sm">
-          <thead className="table-dark">
+          <thead className="table-library">
             <tr>
               <th scope="col">Book</th>
               <th scope="col">Borrowed</th>
@@ -38,8 +39,13 @@ export default function MyLoans() {
             {loans.data.map((loan) => (
               <tr key={loan.id}>
                 <td>
-                  <span className="fw-semibold">{loan.book.title}</span>
-                  <span className="d-block small text-muted">{loan.book.authorName}</span>
+                  <div className="d-flex align-items-center gap-3">
+                    <BookCover title={loan.book.title} />
+                    <div>
+                      <span className="fw-semibold">{loan.book.title}</span>
+                      <span className="d-block small text-muted">{loan.book.authorName}</span>
+                    </div>
+                  </div>
                 </td>
                 <td className="text-nowrap">{formatDate(loan.borrowDate)}</td>
                 <td className="text-nowrap">{loan.status === 'ACTIVE' ? formatDate(loan.dueDate) : '—'}</td>

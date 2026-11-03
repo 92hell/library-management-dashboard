@@ -12,13 +12,13 @@ export default function PagedTable({ list, headers, renderRow, emptyMessage }) {
   if (error) return <ErrorAlert error={error} />;
   if (!data) return <Loading />;
   if (data.content.length === 0) {
-    return loading ? <Loading /> : <p className="text-muted text-center py-4">{emptyMessage}</p>;
+    return loading ? <Loading /> : <p className="empty-state">{emptyMessage}</p>;
   }
 
   return (
     <>
       <Table responsive hover className={`align-middle shadow-sm ${loading ? 'opacity-50' : ''}`} aria-busy={loading}>
-        <thead className="table-dark">
+        <thead className="table-library">
           <tr>
             {headers.map((header) => (
               <th key={header} scope="col">

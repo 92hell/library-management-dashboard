@@ -1,30 +1,27 @@
-import { Badge } from 'reactstrap';
 import { formatDate } from '../format';
 
-/** Status badge for a loan, including the derived "Overdue" state and the rejection reason. */
+/** Loan status drawn as a library date-due stamp, including derived "Overdue" and the decline reason. */
 export default function LoanStatus({ loan }) {
   switch (loan.status) {
     case 'PENDING':
-      return <Badge color="secondary">Requested</Badge>;
+      return <span className="stamp stamp-pending">Requested</span>;
     case 'ACTIVE':
       return loan.overdue ? (
-        <Badge color="danger">Overdue</Badge>
+        <span className="stamp stamp-overdue">Overdue</span>
       ) : (
-        <Badge color="warning" className="text-dark">
-          On loan
-        </Badge>
+        <span className="stamp stamp-active">On loan</span>
       );
     case 'RETURNED':
-      return <span>Returned {formatDate(loan.returnDate)}</span>;
+      return <span className="stamp stamp-returned">Returned {formatDate(loan.returnDate)}</span>;
     case 'REJECTED':
       return (
         <span>
-          <Badge color="dark">Declined</Badge>
+          <span className="stamp stamp-declined">Declined</span>
           {loan.decisionNote && <span className="small text-muted ms-2">Reason: {loan.decisionNote}</span>}
         </span>
       );
     case 'CANCELLED':
-      return <Badge color="light" className="text-dark border">Cancelled</Badge>;
+      return <span className="stamp stamp-cancelled">Cancelled</span>;
     default:
       return <span>{loan.status}</span>;
   }

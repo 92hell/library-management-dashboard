@@ -20,7 +20,7 @@ export default function LibrarianHome() {
   return (
     <>
       <h1 className="h3 mb-1">Welcome, {user.displayName}</h1>
-      <p className="text-muted mb-4">Here is what needs attention today.</p>
+      <p className="page-subtitle mb-4">Here is what needs your attention at the desk today.</p>
       <ErrorAlert error={summary.error} />
       {summary.loading && !summary.data ? (
         <Loading />
@@ -28,10 +28,10 @@ export default function LibrarianHome() {
         <Row xs="2" md="3" lg="6" className="g-3">
           {TILES.map(({ key, label, to, highlight }) => {
             const value = summary.data?.[key] ?? 0;
-            const color = highlight && value > 0 ? `border-${highlight} text-${highlight}` : '';
+            const tone = highlight && value > 0 ? (highlight === 'danger' ? 'tile-attention' : 'tile-info') : '';
             return (
               <Col key={key}>
-                <Card className={`h-100 shadow-sm ${color}`}>
+                <Card className={`h-100 shadow-sm tile ${tone}`}>
                   <CardBody>
                     <Link to={to} className="stretched-link text-reset text-decoration-none">
                       <span className="d-block display-6 fw-semibold">{value}</span>

@@ -2,6 +2,8 @@ import { useState } from 'react';
 import { Link, Navigate, useLocation } from 'react-router-dom';
 import { Alert, Button, Card, CardBody, Container, Form, Spinner } from 'reactstrap';
 import { useAuth } from '../auth';
+import Bookshelf from '../components/Bookshelf';
+import BrandMark from '../components/BrandMark';
 import Field from '../components/Field';
 import { Loading } from '../components/Feedback';
 import { useApi, useFormFields } from '../hooks';
@@ -44,58 +46,64 @@ export default function Login() {
   }
 
   return (
-    <Container className="py-5" style={{ maxWidth: '26rem' }}>
-      <h1 className="h3 mb-4 text-center">Library</h1>
-      <Card className="shadow-sm">
-        <CardBody className="p-4">
-          <h2 className="h5 mb-3">Sign in</h2>
-          {error && <Alert color="danger">{error}</Alert>}
-          <Form onSubmit={handleSubmit} noValidate>
-            <Field
-              label="Username"
-              name="username"
-              value={credentials.username}
-              onChange={handleChange}
-              autoComplete="username"
-              autoFocus
-            />
-            <Field
-              label="Password"
-              name="password"
-              type="password"
-              value={credentials.password}
-              onChange={handleChange}
-              autoComplete="current-password"
-            />
-            <Button color="primary" type="submit" className="w-100" disabled={submitting}>
-              {submitting && <Spinner size="sm" className="me-2" />}
-              Sign in
-            </Button>
-          </Form>
-          <p className="text-center small mt-3 mb-0">
-            New here? <Link to="/register">Create an account</Link>
-          </p>
-          {demo?.enabled && demo.accounts.length > 0 && (
-            <>
-              <hr />
-              <p className="small text-muted mb-2">This is a demo. Try it without signing up:</p>
-              <div className="d-grid gap-2">
-                {demo.accounts.map((account) => (
-                  <Button
-                    key={account.username}
-                    color="secondary"
-                    outline
-                    onClick={() => signInWithDemo(account)}
-                    disabled={submitting}
-                  >
-                    Try as {account.label.toLowerCase()}
-                  </Button>
-                ))}
-              </div>
-            </>
-          )}
-        </CardBody>
-      </Card>
-    </Container>
+    <div className="reading-room">
+      <Container className="py-5" style={{ maxWidth: '26rem' }}>
+        <Bookshelf />
+        <h1 className="h3 mb-1 text-center reading-room-title d-flex align-items-center justify-content-center gap-2">
+          <BrandMark size={34} /> Library
+        </h1>
+        <p className="text-center page-subtitle mb-4">Welcome back to the reading room.</p>
+        <Card className="shadow-sm">
+          <CardBody className="p-4">
+            <h2 className="h5 mb-3">Sign in</h2>
+            {error && <Alert color="danger">{error}</Alert>}
+            <Form onSubmit={handleSubmit} noValidate>
+              <Field
+                label="Username"
+                name="username"
+                value={credentials.username}
+                onChange={handleChange}
+                autoComplete="username"
+                autoFocus
+              />
+              <Field
+                label="Password"
+                name="password"
+                type="password"
+                value={credentials.password}
+                onChange={handleChange}
+                autoComplete="current-password"
+              />
+              <Button color="primary" type="submit" className="w-100" disabled={submitting}>
+                {submitting && <Spinner size="sm" className="me-2" />}
+                Sign in
+              </Button>
+            </Form>
+            <p className="text-center small mt-3 mb-0">
+              New here? <Link to="/register">Create an account</Link>
+            </p>
+            {demo?.enabled && demo.accounts.length > 0 && (
+              <>
+                <hr />
+                <p className="small text-muted mb-2">This is a demo. Try it without signing up:</p>
+                <div className="d-grid gap-2">
+                  {demo.accounts.map((account) => (
+                    <Button
+                      key={account.username}
+                      color="secondary"
+                      outline
+                      onClick={() => signInWithDemo(account)}
+                      disabled={submitting}
+                    >
+                      Try as {account.label.toLowerCase()}
+                    </Button>
+                  ))}
+                </div>
+              </>
+            )}
+          </CardBody>
+        </Card>
+      </Container>
+    </div>
   );
 }
