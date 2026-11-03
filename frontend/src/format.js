@@ -1,10 +1,16 @@
-const DATE_FORMAT = new Intl.DateTimeFormat(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
+import { getLanguage, locale } from './i18n';
 
-/** Formats a "YYYY-MM-DD" string for display without shifting it across time zones. */
+const dateFormats = new Map();
+
+/** Formats a "YYYY-MM-DD" string in the current language, without shifting it across time zones. */
 export function formatDate(isoDate, fallback = '—') {
   if (!isoDate) return fallback;
+  const lang = getLanguage();
+  if (!dateFormats.has(lang)) {
+    dateFormats.set(lang, new Intl.DateTimeFormat(locale(lang), { year: 'numeric', month: 'short', day: 'numeric' }));
+  }
   const [year, month, day] = isoDate.split('-').map(Number);
-  return DATE_FORMAT.format(new Date(year, month - 1, day));
+  return dateFormats.get(lang).format(new Date(year, month - 1, day));
 }
 
 /** Today's local date as "YYYY-MM-DD". */
@@ -20,7 +26,7 @@ export function emptyToNull(value) {
   return value === '' ? null : value;
 }
 
-/** "IDR 25,000": amounts are whole units of the currency. */
+/** "IDR 25,000" ("IDR 25.000" in Indonesian): amounts are whole units of the currency. */
 export function formatMoney(amount, currency) {
-  return `${currency} ${Number(amount).toLocaleString('en')}`;
+  return `${currency} ${Number(amount).toLocaleString(getLanguage() === 'id' ? 'id-ID' : 'en')}`;
 }

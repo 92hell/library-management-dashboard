@@ -8,6 +8,7 @@ import PageHeader from '../components/PageHeader';
 import RowActions from '../components/RowActions';
 import SearchBox from '../components/SearchBox';
 import { useAction, useDebouncedValue, usePagedList } from '../hooks';
+import { useT } from '../i18n';
 
 const COLUMN_COUNT = 8;
 
@@ -17,9 +18,10 @@ export default function MemberList() {
   const members = usePagedList('/api/members', { q });
   const [expandedId, setExpandedId] = useState(null);
   const removal = useAction();
+  const t = useT();
 
   async function remove(member) {
-    if (!window.confirm(`Delete member "${member.name}"?`)) return;
+    if (!window.confirm(t('Delete member "{name}"?', { name: member.name }))) return;
     if (await removal.run(() => api.delete(`/api/members/${member.id}`))) members.refreshAfterRemoval();
   }
 
@@ -29,12 +31,12 @@ export default function MemberList() {
 
   return (
     <>
-      <PageHeader title="Members" addLabel="Add member" addTo="/members/new" />
+      <PageHeader title={t('Members')} addLabel={t('Add member')} addTo="/members/new" />
       <div className="mb-3">
         <SearchBox
           id="member-search"
-          label="Search members"
-          placeholder="Search by name, library card ID, email or phone"
+          label={t('Search members')}
+          placeholder={t('Search by name, library card ID, email or phone')}
           value={search}
           onChange={setSearch}
         />
@@ -42,8 +44,17 @@ export default function MemberList() {
       <ErrorAlert error={removal.error} onDismiss={removal.clearError} />
       <PagedTable
         list={members}
-        headers={['Name', 'Library card ID', 'Email', 'Phone', 'Online account', 'Status', 'Loans', 'Actions']}
-        emptyMessage="No members found."
+        headers={[
+          t('Name'),
+          t('Library card ID'),
+          t('Email'),
+          t('Phone'),
+          t('Online account'),
+          t('Status'),
+          t('Loans'),
+          t('Actions'),
+        ]}
+        emptyMessage={t('No members found.')}
         renderRow={(member) => {
           const expanded = expandedId === member.id;
           return (
@@ -57,11 +68,11 @@ export default function MemberList() {
                   {member.accountUsername ? (
                     <Badge color="info">{member.accountUsername}</Badge>
                   ) : (
-                    <span className="small text-muted">Walk-in</span>
+                    <span className="small text-muted">{t('Walk-in')}</span>
                   )}
                 </td>
                 <td>
-                  <Badge color={member.active ? 'success' : 'secondary'}>{member.active ? 'Active' : 'Inactive'}</Badge>
+                  <Badge color={member.active ? 'success' : 'secondary'}>{member.active ? t('Active') : t('Inactive')}</Badge>
                 </td>
                 <td>
                   <Button
@@ -71,7 +82,7 @@ export default function MemberList() {
                     onClick={() => toggleLoans(member.id)}
                     aria-expanded={expanded}
                   >
-                    {expanded ? 'Hide' : 'Show'}
+                    {expanded ? t('Hide') : t('Show')}
                   </Button>
                 </td>
                 <td>

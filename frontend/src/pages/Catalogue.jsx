@@ -8,12 +8,13 @@ import { ErrorAlert } from '../components/Feedback';
 import PagedTable from '../components/PagedTable';
 import SearchBox from '../components/SearchBox';
 import { useAction, useApi, useDebouncedValue, usePagedList } from '../hooks';
+import { msg, useT } from '../i18n';
 
 const ORDERS = [
-  { value: 'title', label: 'Title A–Z' },
-  { value: 'newest', label: 'Newest first' },
-  { value: 'oldest', label: 'Oldest first' },
-  { value: 'added', label: 'Recently added' },
+  { value: 'title', label: msg('Title A–Z') },
+  { value: 'newest', label: msg('Newest first') },
+  { value: 'oldest', label: msg('Oldest first') },
+  { value: 'added', label: msg('Recently added') },
 ];
 const DEFAULT_ORDER = 'title';
 
@@ -33,6 +34,7 @@ export default function Catalogue() {
   const categories = useApi('/api/books/categories', { inUse: 'true' });
   const authors = useApi('/api/authors/options');
   const filtered = Boolean(category || authorId || available);
+  const t = useT();
 
   function setFilter(key, value) {
     const next = new URLSearchParams(params);
@@ -56,13 +58,13 @@ export default function Catalogue() {
 
   return (
     <>
-      <h1 className="h3 mb-1 page-title">Catalogue</h1>
-      <p className="page-subtitle mb-3">Find a book and request it; we&apos;ll let you know when it&apos;s ready.</p>
+      <h1 className="h3 mb-1 page-title">{t('Catalogue')}</h1>
+      <p className="page-subtitle mb-3">{t('Find a book and request it; we\'ll let you know when it\'s ready.')}</p>
       <div className="mb-3">
         <SearchBox
           id="catalogue-search"
-          label="Search the catalogue"
-          placeholder="Search by title, author, publisher or category"
+          label={t('Search the catalogue')}
+          placeholder={t('Search by title, author, publisher or category')}
           value={search}
           onChange={setSearch}
         />
@@ -70,10 +72,10 @@ export default function Catalogue() {
       <Row className="g-2 align-items-center mb-3">
         <Col xs={6} md={3}>
           <Label for="filter-category" className="visually-hidden">
-            Category
+            {t('Category')}
           </Label>
           <Input id="filter-category" type="select" value={category} onChange={(e) => setFilter('category', e.target.value)}>
-            <option value="">All categories</option>
+            <option value="">{t('All categories')}</option>
             {categories.data?.map((c) => (
               <option key={c} value={c}>
                 {c}
@@ -83,10 +85,10 @@ export default function Catalogue() {
         </Col>
         <Col xs={6} md={3}>
           <Label for="filter-author" className="visually-hidden">
-            Author
+            {t('Author')}
           </Label>
           <Input id="filter-author" type="select" value={authorId} onChange={(e) => setFilter('authorId', e.target.value)}>
-            <option value="">All authors</option>
+            <option value="">{t('All authors')}</option>
             {authors.data?.map((a) => (
               <option key={a.id} value={String(a.id)}>
                 {a.name}
@@ -96,12 +98,12 @@ export default function Catalogue() {
         </Col>
         <Col xs={6} md={3}>
           <Label for="filter-order" className="visually-hidden">
-            Sort by
+            {t('Sort by')}
           </Label>
           <Input id="filter-order" type="select" value={order} onChange={(e) => setFilter('order', e.target.value)}>
             {ORDERS.map(({ value, label }) => (
               <option key={value} value={value}>
-                {label}
+                {t(label)}
               </option>
             ))}
           </Input>
@@ -117,27 +119,27 @@ export default function Catalogue() {
               onChange={(e) => setFilter('available', e.target.checked ? 'true' : '')}
             />
             <Label for="filter-available" check>
-              On the shelf now
+              {t('On the shelf now')}
             </Label>
           </div>
           {filtered && (
             <Button size="sm" color="link" className="p-0" onClick={clearFilters}>
-              Clear filters
+              {t('Clear filters')}
             </Button>
           )}
         </Col>
       </Row>
       {sent && (
         <div className="alert alert-success d-flex justify-content-between align-items-start" role="status">
-          <span>Request sent for &quot;{sent}&quot;. A librarian will review it; you will get a notification.</span>
-          <button type="button" className="btn-close" aria-label="Dismiss" onClick={() => setSent(null)} />
+          <span>{t('Request sent for "{title}". A librarian will review it; you will get a notification.', { title: sent })}</span>
+          <button type="button" className="btn-close" aria-label={t('Dismiss')} onClick={() => setSent(null)} />
         </div>
       )}
       <ErrorAlert error={request.error} onDismiss={request.clearError} />
       <PagedTable
         list={books}
-        headers={['Title', 'Author', 'Categories', 'Availability', '']}
-        emptyMessage={filtered ? 'No books match your search and filters.' : 'No books match your search.'}
+        headers={[t('Title'), t('Author'), t('Categories'), t('Availability'), '']}
+        emptyMessage={filtered ? t('No books match your search and filters.') : t('No books match your search.')}
         renderRow={(book) => (
           <tr key={book.id}>
             <td>
@@ -155,7 +157,7 @@ export default function Catalogue() {
             </td>
             <td className="text-end">
               <Button size="sm" color="primary" outline onClick={() => requestBook(book)} disabled={request.pending}>
-                Request
+                {t('Request')}
               </Button>
             </td>
           </tr>

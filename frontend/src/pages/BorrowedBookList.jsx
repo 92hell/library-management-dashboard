@@ -10,18 +10,19 @@ import PageHeader from '../components/PageHeader';
 import SearchBox from '../components/SearchBox';
 import { formatDate } from '../format';
 import { useAction, useDebouncedValue, usePagedList } from '../hooks';
+import { msg, useT } from '../i18n';
 
 const STATUSES = [
-  { value: 'all', label: 'All' },
-  { value: 'pending', label: 'Pending requests' },
-  { value: 'waitlisted', label: 'In queue' },
-  { value: 'ready', label: 'Ready for pickup' },
-  { value: 'active', label: 'On loan' },
-  { value: 'overdue', label: 'Overdue' },
-  { value: 'returned', label: 'Returned' },
-  { value: 'rejected', label: 'Declined' },
-  { value: 'cancelled', label: 'Cancelled' },
-  { value: 'expired', label: 'Not collected' },
+  { value: 'all', label: msg('All') },
+  { value: 'pending', label: msg('Pending requests') },
+  { value: 'waitlisted', label: msg('In queue') },
+  { value: 'ready', label: msg('Ready for pickup') },
+  { value: 'active', label: msg('On loan') },
+  { value: 'overdue', label: msg('Overdue') },
+  { value: 'returned', label: msg('Returned') },
+  { value: 'rejected', label: msg('Declined') },
+  { value: 'cancelled', label: msg('Cancelled') },
+  { value: 'expired', label: msg('Not collected') },
 ];
 const EDITABLE = ['ACTIVE', 'RETURNED'];
 
@@ -36,6 +37,7 @@ export default function BorrowedBookList() {
   const action = useAction();
   const [returnBarcode, setReturnBarcode] = useState('');
   const [returned, setReturned] = useState(null);
+  const t = useT();
 
   /** Desk return: scan the copy and its loan is closed. */
   async function returnScanned(event) {
@@ -70,7 +72,10 @@ export default function BorrowedBookList() {
   }
 
   function reject(loan) {
-    const reason = window.prompt(`Decline the request for "${loan.book.title}"? Optional reason for ${loan.member.name}:`, '');
+    const reason = window.prompt(
+      t('Decline the request for "{title}"? Optional reason for {name}:', { title: loan.book.title, name: loan.member.name }),
+      '',
+    );
     if (reason === null) return;
     perform(() => api.post(`/api/borrowed-books/${loan.id}/reject`, { reason: reason.trim() || null }));
   }
@@ -88,61 +93,66 @@ export default function BorrowedBookList() {
   }
 
   function remove(loan) {
-    if (!window.confirm(`Delete the record of "${loan.book.title}" for ${loan.member.name}?`)) return;
+    if (!window.confirm(t('Delete the record of "{title}" for {name}?', { title: loan.book.title, name: loan.member.name }))) return;
     perform(() => api.delete(`/api/borrowed-books/${loan.id}`));
   }
 
   return (
     <>
-      <PageHeader title="Loans" addLabel="Lend a book" addTo="/borrowed-books/new" />
+      <PageHeader title={t('Loans')} addLabel={t('Lend a book')} addTo="/borrowed-books/new" />
       <form className="d-flex gap-2 mb-3" onSubmit={returnScanned}>
         <Label for="return-barcode" className="visually-hidden">
-          Return by barcode
+          {t('Return by barcode')}
         </Label>
         <Input
           id="return-barcode"
-          placeholder="Return by barcode: scan or type, then Enter"
+          placeholder={t('Return by barcode: scan or type, then Enter')}
           value={returnBarcode}
           onChange={(e) => setReturnBarcode(e.target.value)}
           autoComplete="off"
         />
         <Button color="success" type="submit" disabled={action.pending || !returnBarcode.trim()}>
-          Return
+          {t('Return')}
         </Button>
       </form>
       {returned && (
         <div className="alert alert-success d-flex justify-content-between align-items-start" role="status">
           <span>
-            Returned &quot;{returned.book.title}&quot; from {returned.member.name}
-            {returned.copy ? ` (${returned.copy.barcode})` : ''}.
+            {returned.copy
+              ? t('Returned "{title}" from {name} ({barcode}).', {
+                  title: returned.book.title,
+                  name: returned.member.name,
+                  barcode: returned.copy.barcode,
+                })
+              : t('Returned "{title}" from {name}.', { title: returned.book.title, name: returned.member.name })}
           </span>
-          <button type="button" className="btn-close" aria-label="Dismiss" onClick={() => setReturned(null)} />
+          <button type="button" className="btn-close" aria-label={t('Dismiss')} onClick={() => setReturned(null)} />
         </div>
       )}
       <Row className="g-2 mb-3">
         <Col md={6}>
           <SearchBox
             id="loan-search"
-            label="Search loans"
-            placeholder="Search by member, library card ID, book or author"
+            label={t('Search loans')}
+            placeholder={t('Search by member, library card ID, book or author')}
             value={search}
             onChange={setSearch}
           />
         </Col>
         <Col xs={6} md={3}>
           <Label for="loan-borrow-date" className="visually-hidden">
-            Borrow date
+            {t('Borrow date')}
           </Label>
-          <Input id="loan-borrow-date" type="date" value={borrowDate} onChange={(e) => setBorrowDate(e.target.value)} title="Borrow date" />
+          <Input id="loan-borrow-date" type="date" value={borrowDate} onChange={(e) => setBorrowDate(e.target.value)} title={t('Borrow date')} />
         </Col>
         <Col xs={6} md={3}>
           <Label for="loan-status" className="visually-hidden">
-            Status
+            {t('Status')}
           </Label>
           <Input id="loan-status" type="select" value={status} onChange={(e) => setStatus(e.target.value)}>
             {STATUSES.map(({ value, label }) => (
               <option key={value} value={value}>
-                {label}
+                {t(label)}
               </option>
             ))}
           </Input>
@@ -151,8 +161,8 @@ export default function BorrowedBookList() {
       <ErrorAlert error={action.error} onDismiss={action.clearError} />
       <PagedTable
         list={loans}
-        headers={['Book', 'Member', 'Borrowed', 'Due', 'Status', 'Actions']}
-        emptyMessage="No loans found."
+        headers={[t('Book'), t('Member'), t('Borrowed'), t('Due'), t('Status'), t('Actions')]}
+        emptyMessage={t('No loans found.')}
         renderRow={(loan) => (
           <tr key={loan.id}>
             <td>
@@ -168,7 +178,7 @@ export default function BorrowedBookList() {
               </div>
             </td>
             <td>{loan.member.name}</td>
-            <td className="text-nowrap">{loan.status === 'PENDING' ? 'Requested' : formatDate(loan.borrowDate)}</td>
+            <td className="text-nowrap">{loan.status === 'PENDING' ? t('Requested') : formatDate(loan.borrowDate)}</td>
             <td className="text-nowrap">{formatDate(loan.dueDate)}</td>
             <td>
               <LoanStatus loan={loan} />
@@ -177,36 +187,36 @@ export default function BorrowedBookList() {
               <ButtonGroup size="sm">
                 {loan.status === 'PENDING' && (
                   <Button color="success" onClick={() => approve(loan)} disabled={action.pending}>
-                    Approve
+                    {t('Approve')}
                   </Button>
                 )}
                 {loan.status === 'READY' && (
                   <Button color="success" onClick={() => handOver(loan)} disabled={action.pending}>
-                    Hand over
+                    {t('Hand over')}
                   </Button>
                 )}
                 {['PENDING', 'WAITLISTED', 'READY'].includes(loan.status) && (
                   <Button color="secondary" onClick={() => reject(loan)} disabled={action.pending}>
-                    Reject
+                    {t('Reject')}
                   </Button>
                 )}
                 {loan.status === 'ACTIVE' && (
                   <Button color="success" onClick={() => markReturned(loan)} disabled={action.pending}>
-                    Mark returned
+                    {t('Mark returned')}
                   </Button>
                 )}
                 {loan.canRenew && (
                   <Button color="primary" outline onClick={() => renew(loan)} disabled={action.pending}>
-                    Renew
+                    {t('Renew')}
                   </Button>
                 )}
                 {EDITABLE.includes(loan.status) && (
                   <Button color="primary" tag={Link} to={`/borrowed-books/${loan.id}`}>
-                    Edit
+                    {t('Edit')}
                   </Button>
                 )}
                 <Button color="danger" outline onClick={() => remove(loan)} disabled={action.pending}>
-                  Delete
+                  {t('Delete')}
                 </Button>
               </ButtonGroup>
             </td>

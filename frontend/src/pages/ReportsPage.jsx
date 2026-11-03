@@ -5,6 +5,7 @@ import { buildUrl } from '../api';
 import { ErrorAlert, Loading } from '../components/Feedback';
 import { formatDate, formatMoney, todayIso } from '../format';
 import { useApi, useDebouncedValue } from '../hooks';
+import { msg, useT } from '../i18n';
 
 /** "YYYY-MM-DD" for `days` days before today. */
 function daysAgoIso(days) {
@@ -14,9 +15,9 @@ function daysAgoIso(days) {
 }
 
 const PRESETS = [
-  { label: 'Last 30 days', from: () => daysAgoIso(29) },
-  { label: 'Last 90 days', from: () => daysAgoIso(89) },
-  { label: 'This year', from: () => `${new Date().getFullYear()}-01-01` },
+  { label: msg('Last 30 days'), from: () => daysAgoIso(29) },
+  { label: msg('Last 90 days'), from: () => daysAgoIso(89) },
+  { label: msg('This year'), from: () => `${new Date().getFullYear()}-01-01` },
 ];
 
 /** Librarian reports for a date range, with CSV downloads of the same range. */
@@ -25,23 +26,24 @@ export default function ReportsPage() {
   const params = useDebouncedValue(range);
   const report = useApi('/api/reports/summary', params);
   const r = report.data;
+  const t = useT();
 
   return (
     <>
-      <h1 className="h3 mb-1 page-title">Reports</h1>
+      <h1 className="h3 mb-1 page-title">{t('Reports')}</h1>
       <p className="page-subtitle mb-3">
-        {r ? `${formatDate(r.from)} – ${formatDate(r.to)}` : 'Lending, late returns, members and fines'}
+        {r ? `${formatDate(r.from)} – ${formatDate(r.to)}` : t('Lending, late returns, members and fines')}
       </p>
       <Row className="g-2 align-items-end mb-4">
         <Col xs={6} md={3}>
           <Label for="report-from" className="small mb-1">
-            From
+            {t('From')}
           </Label>
           <Input id="report-from" type="date" value={range.from} onChange={(e) => setRange({ ...range, from: e.target.value })} />
         </Col>
         <Col xs={6} md={3}>
           <Label for="report-to" className="small mb-1">
-            To
+            {t('To')}
           </Label>
           <Input id="report-to" type="date" value={range.to} onChange={(e) => setRange({ ...range, to: e.target.value })} />
         </Col>
@@ -49,7 +51,7 @@ export default function ReportsPage() {
           <ButtonGroup size="sm">
             {PRESETS.map((p) => (
               <Button key={p.label} color="secondary" outline onClick={() => setRange({ from: p.from(), to: todayIso() })}>
-                {p.label}
+                {t(p.label)}
               </Button>
             ))}
           </ButtonGroup>
@@ -61,40 +63,54 @@ export default function ReportsPage() {
       ) : (
         <div className={report.loading ? 'opacity-50' : ''} aria-busy={report.loading}>
           <Row xs="2" lg="5" className="g-3 mb-4">
-            <Tile label="Books lent" value={r.loans} />
-            <Tile label="Returned" value={r.returns} />
+            <Tile label={t('Books lent')} value={r.loans} />
+            <Tile label={t('Returned')} value={r.returns} />
             <Tile
-              label="Returned late"
+              label={t('Returned late')}
               value={r.lateRate == null ? '—' : `${Math.round(r.lateRate * 100)}%`}
-              note={r.lateRate == null ? 'Nothing fell due' : `${r.lateInPeriod} of ${r.dueInPeriod} loans that fell due`}
+              note={
+                r.lateRate == null
+                  ? t('Nothing fell due')
+                  : t('{late} of {due} loans that fell due', { late: r.lateInPeriod, due: r.dueInPeriod })
+              }
             />
-            <Tile label="Active members" value={r.activeMembers} note={`${r.newMembers} new`} />
+            <Tile label={t('Active members')} value={r.activeMembers} note={t('{n} new', { n: r.newMembers })} />
             <Tile
-              label="Fines charged"
+              label={t('Fines charged')}
               value={formatMoney(r.finesCharged, r.currency)}
-              note={`${formatMoney(r.finesCollected, r.currency)} collected`}
+              note={t('{amount} collected', { amount: formatMoney(r.finesCollected, r.currency) })}
               small
             />
           </Row>
           <Row className="g-4">
             <Col lg={7}>
-              <Ranking id="most-borrowed" title="Most borrowed" empty="No books were lent in this period." headers={['#', 'Title', 'Author', 'Loans']}>
-                {r.mostBorrowed.map((t, i) => (
-                  <tr key={t.bookId}>
+              <Ranking
+                id="most-borrowed"
+                title={t('Most borrowed')}
+                empty={t('No books were lent in this period.')}
+                headers={['#', msg('Title'), msg('Author'), msg('Loans')]}
+              >
+                {r.mostBorrowed.map((book, i) => (
+                  <tr key={book.bookId}>
                     <td className="text-muted">{i + 1}</td>
                     <td>
-                      <Link to={`/catalogue/${t.bookId}`} className="fw-semibold">
-                        {t.title}
+                      <Link to={`/catalogue/${book.bookId}`} className="fw-semibold">
+                        {book.title}
                       </Link>
                     </td>
-                    <td>{t.authorName}</td>
-                    <td className="text-end">{t.loans}</td>
+                    <td>{book.authorName}</td>
+                    <td className="text-end">{book.loans}</td>
                   </tr>
                 ))}
               </Ranking>
             </Col>
             <Col lg={5}>
-              <Ranking id="most-active" title="Most active members" empty="Nobody borrowed in this period." headers={['#', 'Member', 'Loans']}>
+              <Ranking
+                id="most-active"
+                title={t('Most active members')}
+                empty={t('Nobody borrowed in this period.')}
+                headers={['#', msg('Member'), msg('Loans')]}
+              >
                 {r.mostActiveMembers.map((m, i) => (
                   <tr key={m.memberId}>
                     <td className="text-muted">{i + 1}</td>
@@ -110,10 +126,10 @@ export default function ReportsPage() {
           </Row>
           <div className="d-flex flex-wrap gap-2 mt-2">
             <a className="btn btn-outline-primary" href={buildUrl('/api/reports/loans.csv', params)} download>
-              Download loans (CSV)
+              {t('Download loans (CSV)')}
             </a>
             <a className="btn btn-outline-primary" href={buildUrl('/api/reports/most-borrowed.csv', params)} download>
-              Download most borrowed (CSV)
+              {t('Download most borrowed (CSV)')}
             </a>
           </div>
         </div>
@@ -136,7 +152,9 @@ function Tile({ label, value, note, small }) {
   );
 }
 
+/** `headers` are untranslated labels (msg), shown with t(). */
 function Ranking({ id, title, headers, empty, children }) {
+  const t = useT();
   return (
     <section aria-labelledby={`${id}-heading`}>
       <h2 id={`${id}-heading`} className="h5">
@@ -150,7 +168,7 @@ function Ranking({ id, title, headers, empty, children }) {
             <tr>
               {headers.map((h) => (
                 <th key={h} scope="col" className={h === 'Loans' ? 'text-end' : undefined}>
-                  {h}
+                  {t(h)}
                 </th>
               ))}
             </tr>

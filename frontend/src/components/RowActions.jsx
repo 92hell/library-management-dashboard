@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom';
 import { Button, ButtonGroup } from 'reactstrap';
 import { useAuth } from '../auth';
+import { useT } from '../i18n';
 
 /**
  * Edit/Delete buttons for librarians (plus any extra actions passed as children);
@@ -8,11 +9,12 @@ import { useAuth } from '../auth';
  */
 export default function RowActions({ to, onDelete, disabled, children }) {
   const { isLibrarian } = useAuth();
+  const t = useT();
 
   if (!isLibrarian) {
     return (
       <Button size="sm" color="secondary" outline tag={Link} to={to}>
-        View
+        {t('View')}
       </Button>
     );
   }
@@ -21,10 +23,10 @@ export default function RowActions({ to, onDelete, disabled, children }) {
     <ButtonGroup size="sm">
       {children}
       <Button color="primary" tag={Link} to={to}>
-        Edit
+        {t('Edit')}
       </Button>
       <Button color="danger" onClick={onDelete} disabled={disabled}>
-        Delete
+        {t('Delete')}
       </Button>
     </ButtonGroup>
   );

@@ -2,6 +2,7 @@ import { Button, Col, Form, Row, Table } from 'reactstrap';
 import { api } from '../api';
 import { formatDate } from '../format';
 import { useAction, useApi, useFormFields } from '../hooks';
+import { useT } from '../i18n';
 import { ErrorAlert, Loading } from './Feedback';
 import Field from './Field';
 
@@ -10,6 +11,7 @@ export default function CopiesPanel({ bookId }) {
   const copies = useApi(`/api/books/${bookId}/copies`);
   const [values, setValues, handleChange] = useFormFields({ barcode: '', shelfLocation: '' });
   const action = useAction();
+  const t = useT();
 
   async function addCopy(event) {
     event.preventDefault();
@@ -21,27 +23,29 @@ export default function CopiesPanel({ bookId }) {
   }
 
   async function withdraw(copy) {
-    if (!window.confirm(`Withdraw copy ${copy.barcode} from the collection (lost, damaged or discarded)?`)) return;
+    if (!window.confirm(t('Withdraw copy {barcode} from the collection (lost, damaged or discarded)?', { barcode: copy.barcode }))) {
+      return;
+    }
     if (await action.run(() => api.delete(`/api/copies/${copy.id}`))) copies.reload();
   }
 
   return (
     <section className="p-4 border rounded shadow-sm mt-4" aria-labelledby="copies-heading">
-      <h2 id="copies-heading" className="h5 mb-3">Copies</h2>
+      <h2 id="copies-heading" className="h5 mb-3">{t('Copies')}</h2>
       <ErrorAlert error={Object.keys(action.fieldErrors).length ? null : action.error} onDismiss={action.clearError} />
       {copies.error && <ErrorAlert error={copies.error} />}
       {!copies.data ? (
         <Loading />
       ) : copies.data.length === 0 ? (
-        <p className="empty-state">No copies yet. Add the first one below.</p>
+        <p className="empty-state">{t('No copies yet. Add the first one below.')}</p>
       ) : (
         <Table responsive className="align-middle">
           <thead className="table-library">
             <tr>
-              <th scope="col">Barcode</th>
-              <th scope="col">Shelf</th>
-              <th scope="col">Status</th>
-              <th scope="col" aria-label="Actions" />
+              <th scope="col">{t('Barcode')}</th>
+              <th scope="col">{t('Shelf')}</th>
+              <th scope="col">{t('Status')}</th>
+              <th scope="col" aria-label={t('Actions')} />
             </tr>
           </thead>
           <tbody>
@@ -53,20 +57,20 @@ export default function CopiesPanel({ bookId }) {
                   {copy.loan ? (
                     <span>
                       <span className={`stamp ${copy.loan.overdue ? 'stamp-overdue' : 'stamp-active'}`}>
-                        {copy.loan.overdue ? 'Overdue' : 'On loan'}
+                        {copy.loan.overdue ? t('Overdue') : t('On loan')}
                       </span>{' '}
                       <span className="small">
-                        {copy.loan.memberName}, due {formatDate(copy.loan.dueDate)}
+                        {t('{name}, due {date}', { name: copy.loan.memberName, date: formatDate(copy.loan.dueDate) })}
                       </span>
                     </span>
                   ) : (
-                    <span className="stamp stamp-returned">On shelf</span>
+                    <span className="stamp stamp-returned">{t('On shelf')}</span>
                   )}
                 </td>
                 <td className="text-end">
                   {!copy.loan && (
                     <Button size="sm" color="danger" outline onClick={() => withdraw(copy)} disabled={action.pending}>
-                      Withdraw
+                      {t('Withdraw')}
                     </Button>
                   )}
                 </td>
@@ -79,9 +83,9 @@ export default function CopiesPanel({ bookId }) {
         <Row className="g-2 align-items-end">
           <Col md={5}>
             <Field
-              label="New copy barcode"
+              label={t('New copy barcode')}
               name="barcode"
-              placeholder="Leave empty to generate one"
+              placeholder={t('Leave empty to generate one')}
               value={values.barcode}
               onChange={handleChange}
               error={action.fieldErrors.barcode}
@@ -89,9 +93,9 @@ export default function CopiesPanel({ bookId }) {
           </Col>
           <Col md={4}>
             <Field
-              label="Shelf location"
+              label={t('Shelf location')}
               name="shelfLocation"
-              placeholder="e.g. FIC HIR"
+              placeholder={t('e.g. FIC HIR')}
               value={values.shelfLocation}
               onChange={handleChange}
               error={action.fieldErrors.shelfLocation}
@@ -99,7 +103,7 @@ export default function CopiesPanel({ bookId }) {
           </Col>
           <Col md={3} className="mb-3">
             <Button color="success" type="submit" className="w-100" disabled={action.pending}>
-              Add copy
+              {t('Add copy')}
             </Button>
           </Col>
         </Row>

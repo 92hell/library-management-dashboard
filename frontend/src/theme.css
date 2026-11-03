@@ -76,9 +76,11 @@ h1, h2, h3, .h1, .h2, .h3, .h4, .h5, .display-6, .navbar-brand {
   --bs-btn-color: var(--lib-muted); --bs-btn-border-color: #cbbd9f;
   --bs-btn-hover-bg: #efe6d3; --bs-btn-hover-color: var(--lib-ink); --bs-btn-hover-border-color: #cbbd9f;
 }
+/* #6e665a keeps white text above the WCAG AA 4.5:1 contrast ratio (about 5.7:1). */
 .btn-secondary {
-  --bs-btn-bg: #8a7f6c; --bs-btn-border-color: #8a7f6c;
-  --bs-btn-hover-bg: #6f6656; --bs-btn-hover-border-color: #6f6656;
+  --bs-btn-bg: #6e665a; --bs-btn-border-color: #6e665a;
+  --bs-btn-hover-bg: #574f44; --bs-btn-hover-border-color: #574f44;
+  --bs-btn-active-bg: #574f44; --bs-btn-active-border-color: #574f44;
 }
 
 /* ---- Navbar ----------------------------------------------------------------------------- */
@@ -205,3 +207,11 @@ main form.border, main .border.rounded { background-color: var(--lib-card); bord
   background: #efe2c4; color: #5a4520; border-bottom: 1px solid #d8c49b;
   text-align: center; font-size: 0.9rem; padding: 0.4rem 1rem;
 }
+
+/* ---- Accessibility ---------------------------------------------------------------------------- */
+.skip-link {
+  position: absolute; left: 0.75rem; top: 0.5rem; z-index: 1100;
+  background: var(--bs-body-bg); color: var(--bs-body-color); padding: 0.5rem 0.9rem; border-radius: 0.4rem;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+}
+main:focus { outline: none; }

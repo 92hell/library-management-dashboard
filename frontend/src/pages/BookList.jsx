@@ -11,26 +11,28 @@ import RowActions from '../components/RowActions';
 import SearchBox from '../components/SearchBox';
 import { formatDate } from '../format';
 import { useAction, useDebouncedValue, usePagedList } from '../hooks';
+import { useT } from '../i18n';
 
 export default function BookList() {
   const [search, setSearch] = useState('');
   const q = useDebouncedValue(search.trim());
   const books = usePagedList('/api/books', { q });
   const removal = useAction();
+  const t = useT();
 
   async function remove(book) {
-    if (!window.confirm(`Delete book "${book.title}"?`)) return;
+    if (!window.confirm(t('Delete book "{title}"?', { title: book.title }))) return;
     if (await removal.run(() => api.delete(`/api/books/${book.id}`))) books.refreshAfterRemoval();
   }
 
   return (
     <>
-      <PageHeader title="Books" addLabel="Add book" addTo="/books/new" />
+      <PageHeader title={t('Books')} addLabel={t('Add book')} addTo="/books/new" />
       <div className="mb-3">
         <SearchBox
           id="book-search"
-          label="Search books"
-          placeholder="Search by title, publisher, category or author"
+          label={t('Search books')}
+          placeholder={t('Search by title, publisher, category or author')}
           value={search}
           onChange={setSearch}
         />
@@ -38,8 +40,8 @@ export default function BookList() {
       <ErrorAlert error={removal.error} onDismiss={removal.clearError} />
       <PagedTable
         list={books}
-        headers={['Title', 'Author', 'Published', 'Publisher', 'Categories', 'Copies', 'Actions']}
-        emptyMessage="No books found."
+        headers={[t('Title'), t('Author'), t('Published'), t('Publisher'), t('Categories'), t('Copies'), t('Actions')]}
+        emptyMessage={t('No books found.')}
         renderRow={(book) => (
           <tr key={book.id}>
             <td>

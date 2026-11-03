@@ -9,6 +9,7 @@ import CopiesPanel from '../components/CopiesPanel';
 import FormActions from '../components/FormActions';
 import { emptyToNull } from '../format';
 import { useAction, useApi, useFormFields } from '../hooks';
+import { msg, useT } from '../i18n';
 
 const EMPTY_BOOK = {
   title: '',
@@ -33,14 +34,15 @@ function toFormValues(book) {
   };
 }
 
+/** Client-side checks; the messages are translated where they are shown. */
 function validate(values) {
   const errors = {};
-  if (!values.title.trim()) errors.title = 'Title is required.';
-  if (!values.publishedDate) errors.publishedDate = 'Published date is required.';
-  if (!values.authorId) errors.authorId = 'Please select an author.';
-  if (values.categories.length === 0) errors.categories = 'Please select at least one category.';
+  if (!values.title.trim()) errors.title = msg('Title is required.');
+  if (!values.publishedDate) errors.publishedDate = msg('Published date is required.');
+  if (!values.authorId) errors.authorId = msg('Please select an author.');
+  if (values.categories.length === 0) errors.categories = msg('Please select at least one category.');
   if (values.copies !== undefined && !(Number(values.copies) >= 0 && Number(values.copies) <= 50)) {
-    errors.copies = 'Between 0 and 50 copies.';
+    errors.copies = msg('Between 0 and 50 copies.');
   }
   return errors;
 }
@@ -72,6 +74,7 @@ function BookForm({ book, readOnly }) {
   const lookup = useAction();
   const [missingAuthor, setMissingAuthor] = useState(null);
   const { fieldErrors } = save;
+  const t = useT();
 
   /** Fills the form from Open Library; what it does not know keeps the value already typed. */
   async function lookUp() {
@@ -120,8 +123,10 @@ function BookForm({ book, readOnly }) {
     if (saved) navigate('/books');
   }
 
-  const title = readOnly ? 'Book' : book ? 'Edit book' : 'Add book';
+  const title = readOnly ? t('Book') : book ? t('Edit book') : t('Add book');
   const optionsError = authors.error ?? categories.error;
+  // The link sits where the translation puts {link}, so each language keeps its own word order.
+  const [beforeLink, afterLink] = t('{link} first, then choose them here.').split('{link}');
 
   return (
     <Form onSubmit={handleSubmit} noValidate className="p-4 border rounded shadow-sm">
@@ -129,7 +134,7 @@ function BookForm({ book, readOnly }) {
       <ErrorAlert error={save.error ?? optionsError} onDismiss={save.error ? save.clearError : undefined} />
       <fieldset disabled={readOnly}>
         <FormGroup>
-          <Label for="isbn">ISBN</Label>
+          <Label for="isbn">{t('ISBN')}</Label>
           <InputGroup>
             <Input
               id="isbn"
@@ -141,52 +146,54 @@ function BookForm({ book, readOnly }) {
               inputMode="numeric"
             />
             <Button type="button" color="secondary" outline onClick={lookUp} disabled={lookup.pending || !values.isbn.trim()}>
-              Look up
+              {t('Look up')}
             </Button>
           </InputGroup>
-          {fieldErrors.isbn && <FormFeedback className="d-block">{fieldErrors.isbn}</FormFeedback>}
-          {!fieldErrors.isbn && <FormText>Optional. Look it up to fill in the details and show the cover from Open Library.</FormText>}
+          {fieldErrors.isbn && <FormFeedback className="d-block">{t(fieldErrors.isbn)}</FormFeedback>}
+          {!fieldErrors.isbn && (
+            <FormText>{t('Optional. Look it up to fill in the details and show the cover from Open Library.')}</FormText>
+          )}
         </FormGroup>
         <ErrorAlert error={lookup.error} onDismiss={lookup.clearError} />
-        <Field label="Title" name="title" value={values.title} onChange={handleChange} error={fieldErrors.title} />
+        <Field label={t('Title')} name="title" value={values.title} onChange={handleChange} error={t(fieldErrors.title)} />
         <Field
-          label="Publisher"
+          label={t('Publisher')}
           name="publisherName"
           value={values.publisherName}
           onChange={handleChange}
-          error={fieldErrors.publisherName}
+          error={t(fieldErrors.publisherName)}
         />
         {!book && (
           <Field
-            label="Number of copies"
+            label={t('Number of copies')}
             name="copies"
             type="number"
             min="0"
             max="50"
             value={values.copies}
             onChange={handleChange}
-            error={fieldErrors.copies}
-            hint="Each copy gets its own barcode; you can add or withdraw copies later."
+            error={t(fieldErrors.copies)}
+            hint={t('Each copy gets its own barcode; you can add or withdraw copies later.')}
           />
         )}
         <Field
-          label="Published date"
+          label={t('Published date')}
           name="publishedDate"
           type="date"
           value={values.publishedDate}
           onChange={handleChange}
-          error={fieldErrors.publishedDate}
+          error={t(fieldErrors.publishedDate)}
         />
         <Field
-          label="Author"
+          label={t('Author')}
           name="authorId"
           type="select"
           value={values.authorId}
           onChange={handleChange}
-          error={fieldErrors.authorId}
+          error={t(fieldErrors.authorId)}
           disabled={authors.loading}
         >
-          <option value="">{authors.loading ? 'Loading authors…' : 'Select an author'}</option>
+          <option value="">{authors.loading ? t('Loading authors…') : t('Select an author')}</option>
           {authors.data?.map((author) => (
             <option key={author.id} value={author.id}>
               {author.name}
@@ -195,13 +202,15 @@ function BookForm({ book, readOnly }) {
         </Field>
         {missingAuthor && (
           <p className="small text-muted mt-n2">
-            Open Library lists the author as “{missingAuthor}”, who is not in the catalogue yet.{' '}
-            <Link to="/authors/new">Add the author</Link> first, then choose them here.
+            {t('Open Library lists the author as “{name}”, who is not in the catalogue yet.', { name: missingAuthor })}{' '}
+            {beforeLink}
+            <Link to="/authors/new">{t('Add the author')}</Link>
+            {afterLink}
           </p>
         )}
         <FormGroup tag="fieldset">
-          <legend className="form-label fs-6">Categories</legend>
-          {categories.loading && <Loading label="Loading categories…" />}
+          <legend className="form-label fs-6">{t('Categories')}</legend>
+          {categories.loading && <Loading label={t('Loading categories…')} />}
           {categories.data?.map((category) => (
             <FormGroup check inline key={category}>
               <Input
@@ -216,18 +225,18 @@ function BookForm({ book, readOnly }) {
               </Label>
             </FormGroup>
           ))}
-          {fieldErrors.categories && <FormFeedback className="d-block">{fieldErrors.categories}</FormFeedback>}
+          {fieldErrors.categories && <FormFeedback className="d-block">{t(fieldErrors.categories)}</FormFeedback>}
         </FormGroup>
         <Field
-          label="Description"
+          label={t('Description')}
           name="description"
           type="textarea"
           rows="4"
           maxLength="2000"
           value={values.description}
           onChange={handleChange}
-          error={fieldErrors.description}
-          hint="Shown on the book's page in the catalogue."
+          error={t(fieldErrors.description)}
+          hint={t('Shown on the book\'s page in the catalogue.')}
         />
       </fieldset>
       <FormActions readOnly={readOnly} saving={save.pending} backTo="/books" />

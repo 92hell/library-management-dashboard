@@ -43,6 +43,13 @@ React 18 · Vite · React Router 6 · Bootstrap 5 / reactstrap.
 - Manage books, authors, members (each with a library card ID) and librarian accounts
 - Notified of every new borrow request
 
+**For everyone**
+- English and Bahasa Indonesia: follows the browser language at first, switch any time (EN / ID in
+  the menu and on the sign-in page; remembered). Dates and amounts follow the language. Messages
+  from the server are in English for now.
+- Accessibility: WCAG 2.1 AA checked automatically (axe) on every main page in the browser tests;
+  skip link, focus moves to the page on navigation, form errors and hints read with their field
+
 **Rules enforced by the API**
 - A copy can only be lent to one member at a time; a title with several copies can be lent to
   several members (row lock against races)
@@ -204,7 +211,8 @@ src/main/java/com/helmifr/library/
   common/                             errors, paging, request logging, audit, helpers
 src/main/resources/db/migration/      Flyway migrations (V1 = original schema)
 frontend/src/                         pages/, components/, api.js (fetch + CSRF), auth.jsx
-e2e/tests/                            Playwright journeys (borrowing, desk returns and fines, catalogue, access)
+frontend/src/i18n/                    language switch; Indonesian texts in id/*.js (English text is the key)
+e2e/tests/                            Playwright journeys and WCAG scans (axe)
 ```
 
 ## Tests

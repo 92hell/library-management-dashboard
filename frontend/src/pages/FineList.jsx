@@ -7,12 +7,13 @@ import PageHeader from '../components/PageHeader';
 import SearchBox from '../components/SearchBox';
 import { formatDate, formatMoney } from '../format';
 import { useAction, useDebouncedValue, usePagedList } from '../hooks';
+import { msg, useT } from '../i18n';
 
 const STATUSES = [
-  { value: 'UNPAID', label: 'Unpaid' },
-  { value: 'PAID', label: 'Paid' },
-  { value: 'WAIVED', label: 'Waived' },
-  { value: '', label: 'All' },
+  { value: 'UNPAID', label: msg('Unpaid') },
+  { value: 'PAID', label: msg('Paid') },
+  { value: 'WAIVED', label: msg('Waived') },
+  { value: '', label: msg('All') },
 ];
 
 /** The fines desk: late fees charged on returns; record a payment or waive one with a reason. */
@@ -22,6 +23,7 @@ export default function FineList() {
   const q = useDebouncedValue(search.trim());
   const fines = usePagedList('/api/fines', { q, status });
   const action = useAction();
+  const t = useT();
 
   /** Settling a fine removes it from the Unpaid view, like a deletion. */
   async function perform(call) {
@@ -33,37 +35,39 @@ export default function FineList() {
 
   function pay(fine) {
     const amount = formatMoney(fine.amount, fine.currency);
-    if (!window.confirm(`Record that ${fine.member.name} paid ${amount} for "${fine.book.title}"?`)) return;
+    if (!window.confirm(t('Record that {name} paid {amount} for "{title}"?', { name: fine.member.name, amount, title: fine.book.title }))) {
+      return;
+    }
     perform(() => api.post(`/api/fines/${fine.id}/pay`));
   }
 
   function waive(fine) {
-    const reason = window.prompt(`Why waive the late fee for "${fine.book.title}" (${fine.member.name})?`, '');
+    const reason = window.prompt(t('Why waive the late fee for "{title}" ({name})?', { title: fine.book.title, name: fine.member.name }), '');
     if (!reason || !reason.trim()) return;
     perform(() => api.post(`/api/fines/${fine.id}/waive`, { reason: reason.trim() }));
   }
 
   return (
     <>
-      <PageHeader title="Fines" />
+      <PageHeader title={t('Fines')} />
       <Row className="g-2 mb-3">
         <Col md={8}>
           <SearchBox
             id="fine-search"
-            label="Search fines"
-            placeholder="Search by member, library card ID or book"
+            label={t('Search fines')}
+            placeholder={t('Search by member, library card ID or book')}
             value={search}
             onChange={setSearch}
           />
         </Col>
         <Col md={4}>
           <Label for="fine-status" className="visually-hidden">
-            Status
+            {t('Status')}
           </Label>
           <Input id="fine-status" type="select" value={status} onChange={(e) => setStatus(e.target.value)}>
             {STATUSES.map(({ value, label }) => (
               <option key={label} value={value}>
-                {label}
+                {t(label)}
               </option>
             ))}
           </Input>
@@ -72,8 +76,8 @@ export default function FineList() {
       <ErrorAlert error={action.error} onDismiss={action.clearError} />
       <PagedTable
         list={fines}
-        headers={['Book', 'Member', 'Returned', 'Late', 'Fee', 'Status', 'Actions']}
-        emptyMessage={status === 'UNPAID' ? 'No unpaid fines.' : 'No fines found.'}
+        headers={[t('Book'), t('Member'), t('Returned'), t('Late'), t('Fee'), t('Status'), t('Actions')]}
+        emptyMessage={status === 'UNPAID' ? t('No unpaid fines.') : t('No fines found.')}
         renderRow={(fine) => (
           <tr key={fine.id}>
             <td className="fw-semibold">{fine.book.title}</td>
@@ -83,7 +87,7 @@ export default function FineList() {
             </td>
             <td className="text-nowrap">{formatDate(fine.returnDate)}</td>
             <td className="text-nowrap">
-              {fine.daysLate} {fine.daysLate === 1 ? 'day' : 'days'} late
+              {fine.daysLate === 1 ? t('{n} day late', { n: fine.daysLate }) : t('{n} days late', { n: fine.daysLate })}
             </td>
             <td className="text-nowrap fw-semibold">{formatMoney(fine.amount, fine.currency)}</td>
             <td>
@@ -93,10 +97,10 @@ export default function FineList() {
               {fine.status === 'UNPAID' && (
                 <ButtonGroup size="sm">
                   <Button color="success" onClick={() => pay(fine)} disabled={action.pending}>
-                    Record payment
+                    {t('Record payment')}
                   </Button>
                   <Button color="secondary" outline onClick={() => waive(fine)} disabled={action.pending}>
-                    Waive
+                    {t('Waive')}
                   </Button>
                 </ButtonGroup>
               )}
@@ -109,13 +113,14 @@ export default function FineList() {
 }
 
 function FineState({ fine }) {
-  if (fine.status === 'UNPAID') return <span className="stamp stamp-overdue">Unpaid</span>;
-  const label = fine.status === 'PAID' ? 'Paid' : 'Waived';
+  const t = useT();
+  if (fine.status === 'UNPAID') return <span className="stamp stamp-overdue">{t('Unpaid')}</span>;
+  const paid = fine.status === 'PAID';
   return (
     <span>
-      <span className="stamp stamp-returned">{label}</span>
+      <span className="stamp stamp-returned">{paid ? t('Paid') : t('Waived')}</span>
       <span className="d-block small text-muted mt-1">
-        {label} by {fine.settledBy}
+        {paid ? t('Paid by {name}', { name: fine.settledBy }) : t('Waived by {name}', { name: fine.settledBy })}
         {fine.note && <> · {fine.note}</>}
       </span>
     </span>

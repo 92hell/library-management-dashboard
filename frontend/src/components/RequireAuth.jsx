@@ -1,5 +1,6 @@
 import { Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../auth';
+import { useT } from '../i18n';
 import { Loading } from './Feedback';
 
 /**
@@ -9,8 +10,9 @@ import { Loading } from './Feedback';
 export default function RequireAuth({ children }) {
   const { user, loading, loggedOut } = useAuth();
   const location = useLocation();
+  const t = useT();
 
-  if (loading) return <Loading label="Checking your session…" />;
+  if (loading) return <Loading label={t('Checking your session…')} />;
   if (!user) return <Navigate to="/login" replace state={loggedOut ? undefined : { from: location }} />;
   return children;
 }

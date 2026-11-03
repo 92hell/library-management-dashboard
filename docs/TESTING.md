@@ -7,7 +7,7 @@ Run everything: `mvn clean verify` (backend; add `-Pmariadb` to run it on MariaD
 `cd frontend && npm test` (frontend), and after `mvn -Pfullstack package` also
 `cd e2e && npm test` (end-to-end, in a real browser).
 
-Totals: 171 backend test methods (parameterised ones run once per case), 63 frontend tests, 6 end-to-end journeys.
+Totals: 171 backend test methods (parameterised ones run once per case), 86 frontend tests, 9 end-to-end journeys.
 
 ## Backend (JUnit, `src/test/java`)
 
@@ -340,6 +340,14 @@ live in `support/`.
 - reports 401s outside /api/auth to the unauthorized listener
 - wraps network failures in an ApiError
 
+### `frontend/src/components/Accessibility.test.jsx`
+
+**Accessibility**
+
+- links a field to its error message and hint
+- offers a skip link to the main content
+- moves focus to the page content after navigating
+
 ### `frontend/src/components/BookCover.test.jsx`
 
 **BookCover**
@@ -368,6 +376,16 @@ live in `support/`.
 - customers opening a staff page are sent to their home page
 - after logging out, the next sign-in starts on the home page, not the previous user\'s page
 
+### `frontend/src/i18n/i18n.test.js`
+
+**Translations (English / Bahasa Indonesia)**
+
+- has an Indonesian translation for every text the app shows
+- has no leftover translations for texts the app no longer shows
+- keeps the same {placeholders} in both languages
+- fills placeholders and falls back to English
+- marks the page with the chosen language
+
 ### `frontend/src/pages/AccountPages.test.jsx`
 
 **Profile page**
@@ -376,6 +394,15 @@ live in `support/`.
 **Notifications page**
 
 - lists notifications and marks them all read
+
+### `frontend/src/pages/AdminPagesIndonesian.test.jsx`
+
+**Admin pages in Bahasa Indonesia**
+
+- shows the book list in Indonesian, leaving the library data as it is
+- labels the book form in Indonesian and explains what is missing
+- labels the member form in Indonesian
+- shows the users page in Indonesian
 
 ### `frontend/src/pages/BookDetailsPages.test.jsx`
 
@@ -420,6 +447,27 @@ live in `support/`.
 **My loans (customer)**
 
 - shows each loan with its status and lets the customer cancel a pending request
+
+### `frontend/src/pages/CustomerPagesIndonesian.test.jsx`
+
+**Customer pages in Bahasa Indonesia**
+
+- shows the login page in Indonesian and switches back to English
+- switches to Indonesian from the register page and translates its validation
+- shows My loans with Indonesian stamps and a renew button
+- shows the catalogue in Indonesian, without translating book data
+- shows a book page in Indonesian
+
+### `frontend/src/pages/DeskPagesIndonesian.test.jsx`
+
+**Desk pages in Bahasa Indonesia**
+
+- shows the loans list with Indonesian filters, headers and actions
+- asks in Indonesian before deleting a loan record
+- shows the librarian home tiles in Indonesian
+- runs the fines desk in Indonesian, amounts included
+- says who waived a fine in Indonesian
+- shows the reports in Indonesian
 
 ### `frontend/src/pages/FinesPages.test.jsx`
 
@@ -486,6 +534,12 @@ live in `support/`.
 
 Whole user journeys in Chromium against the real jar on an in-memory database; each test
 creates its own uniquely named data through the API, then works through the UI.
+
+### `e2e/tests/accessibility.spec.js`
+
+- the sign-in page is accessible in both languages
+- customer pages are accessible
+- librarian pages are accessible
 
 ### `e2e/tests/borrowing.spec.js`
 

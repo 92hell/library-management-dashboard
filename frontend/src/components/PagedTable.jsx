@@ -1,13 +1,15 @@
 import { Table } from 'reactstrap';
+import { useT } from '../i18n';
 import { ErrorAlert, Loading } from './Feedback';
 import Pager from './Pager';
 
 /**
  * Renders a list returned by usePagedList: loading and error states, an empty message,
- * the table itself and the pager.
+ * the table itself and the pager. Pass `headers` and `emptyMessage` already translated.
  */
 export default function PagedTable({ list, headers, renderRow, emptyMessage }) {
   const { data, error, loading, page, setPage } = list;
+  const t = useT();
 
   if (error) return <ErrorAlert error={error} />;
   if (!data) return <Loading />;
@@ -30,7 +32,7 @@ export default function PagedTable({ list, headers, renderRow, emptyMessage }) {
         <tbody>{data.content.map(renderRow)}</tbody>
       </Table>
       <div className="d-flex flex-column flex-sm-row align-items-center justify-content-between gap-2">
-        <span className="text-muted small">{data.totalElements} total</span>
+        <span className="text-muted small">{t('{count} total', { count: data.totalElements })}</span>
         <Pager page={page} totalPages={data.totalPages} onPageChange={setPage} />
       </div>
     </>

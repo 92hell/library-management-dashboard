@@ -1,0 +1,21 @@
+/** Navigation, shared components and words used across pages. */
+export default {
+  Library: 'Perpustakaan',
+  'Toggle navigation': 'Buka/tutup navigasi',
+  Loans: 'Peminjaman',
+  Books: 'Buku',
+  Authors: 'Penulis',
+  Members: 'Anggota',
+  Fines: 'Denda',
+  Reports: 'Laporan',
+  Users: 'Pengguna',
+  Catalogue: 'Katalog',
+  'My loans': 'Pinjaman saya',
+  Notifications: 'Notifikasi',
+  'Notifications ({count} unread)': 'Notifikasi ({count} belum dibaca)',
+  Librarian: 'Pustakawan',
+  Member: 'Anggota',
+  'Log out': 'Keluar',
+  Language: 'Bahasa',
+  'Skip to main content': 'Langsung ke konten utama',
+};

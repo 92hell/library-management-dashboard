@@ -5,20 +5,42 @@ import { useAuth } from '../auth';
 import { ErrorAlert, Loading } from '../components/Feedback';
 import Bookshelf from '../components/Bookshelf';
 import Field from '../components/Field';
+import LanguageSwitch from '../components/LanguageSwitch';
 import { useAction, useApi, useFormFields } from '../hooks';
+import { msg, useT } from '../i18n';
 
 const EMPTY = {
   name: '', email: '', phone: '', dateOfBirth: '', username: '', password: '', hasCard: false, libraryCardId: '',
 };
 
-function validate(values) {
+const REQUIRED = {
+  name: msg('Name is required.'),
+  email: msg('Email is required.'),
+  phone: msg('Phone is required.'),
+  dateOfBirth: msg('Date of birth is required.'),
+  username: msg('Username is required.'),
+};
+
+function validate(values, t) {
   const errors = {};
-  for (const [field, label] of [['name', 'Name'], ['email', 'Email'], ['phone', 'Phone'], ['dateOfBirth', 'Date of birth'], ['username', 'Username']]) {
-    if (!values[field].trim()) errors[field] = `${label} is required.`;
+  for (const [field, message] of Object.entries(REQUIRED)) {
+    if (!values[field].trim()) errors[field] = t(message);
   }
-  if (values.password.length < 10) errors.password = 'Use at least 10 characters.';
-  if (values.hasCard && !values.libraryCardId.trim()) errors.libraryCardId = 'Enter the ID printed on your library card.';
+  if (values.password.length < 10) errors.password = t('Use at least 10 characters.');
+  if (values.hasCard && !values.libraryCardId.trim()) errors.libraryCardId = t('Enter the ID printed on your library card.');
   return errors;
+}
+
+/** Puts `element` where `{name}` is in an already translated sentence, so the sentence can be reordered freely. */
+function withElement(text, name, element) {
+  const [before, after = ''] = text.split(`{${name}}`);
+  return (
+    <>
+      {before}
+      {element}
+      {after}
+    </>
+  );
 }
 
 /**
@@ -32,18 +54,26 @@ export default function Register() {
   const submit = useAction();
   const { data: demo } = useApi('/api/auth/demo');
   const { fieldErrors } = submit;
+  const t = useT();
 
-  if (loading) return <Loading label="Checking your session…" />;
+  if (loading) return <Loading label={t('Checking your session…')} />;
   if (user) return <Navigate to="/" replace />;
   if (demo?.registrationOpen === false) {
     return (
       <div className="reading-room">
         <Container className="py-5" style={{ maxWidth: '30rem' }}>
           <Bookshelf />
-          <h1 className="h3 mb-3 text-center reading-room-title">Registration is turned off in this demo</h1>
+          <div className="d-flex justify-content-end mb-2">
+            <LanguageSwitch />
+          </div>
+          <h1 className="h3 mb-3 text-center reading-room-title">{t('Registration is turned off in this demo')}</h1>
           <p className="text-center">
-            So that no real personal data is collected, this demo has no sign-up. Use one of the demo accounts on
-            the <Link to="/login">sign-in page</Link> instead.
+            {t('So that no real personal data is collected, this demo has no sign-up.')}{' '}
+            {withElement(
+              t('Use one of the demo accounts on the {link} instead.'),
+              'link',
+              <Link to="/login">{t('sign-in page')}</Link>,
+            )}
           </p>
         </Container>
       </div>
@@ -64,7 +94,7 @@ export default function Register() {
     const ok = await submit.run(async () => {
       await api.post('/api/auth/register', body);
       await login(body.username, body.password);
-    }, validate(values));
+    }, validate(values, t));
     if (ok) navigate('/', { replace: true });
   }
 
@@ -72,42 +102,45 @@ export default function Register() {
     <div className="reading-room">
       <Container className="py-5" style={{ maxWidth: '36rem' }}>
         <Bookshelf />
-        <h1 className="h3 mb-1 text-center reading-room-title">Get your library card</h1>
-        <p className="text-center page-subtitle mb-4">Already have a card from the desk? Link it below.</p>
+        <h1 className="h3 mb-1 text-center reading-room-title">{t('Get your library card')}</h1>
+        <p className="text-center page-subtitle mb-4">{t('Already have a card from the desk? Link it below.')}</p>
         <Card className="shadow-sm">
           <CardBody className="p-4">
+            <div className="d-flex justify-content-end mb-2">
+              <LanguageSwitch />
+            </div>
             <ErrorAlert error={Object.keys(fieldErrors).length ? null : submit.error} onDismiss={submit.clearError} />
             <Form onSubmit={handleSubmit} noValidate>
-              <Field label="Full name" name="name" value={values.name} onChange={handleChange} error={fieldErrors.name} autoComplete="name" />
+              <Field label={t('Full name')} name="name" value={values.name} onChange={handleChange} error={fieldErrors.name} autoComplete="name" />
               <Row>
                 <Col md={7}>
-                  <Field label="Email" name="email" type="email" value={values.email} onChange={handleChange} error={fieldErrors.email} autoComplete="email" />
+                  <Field label={t('Email')} name="email" type="email" value={values.email} onChange={handleChange} error={fieldErrors.email} autoComplete="email" />
                 </Col>
                 <Col md={5}>
-                  <Field label="Phone" name="phone" type="tel" value={values.phone} onChange={handleChange} error={fieldErrors.phone} autoComplete="tel" />
+                  <Field label={t('Phone')} name="phone" type="tel" value={values.phone} onChange={handleChange} error={fieldErrors.phone} autoComplete="tel" />
                 </Col>
               </Row>
-              <Field label="Date of birth" name="dateOfBirth" type="date" value={values.dateOfBirth} onChange={handleChange} error={fieldErrors.dateOfBirth} />
+              <Field label={t('Date of birth')} name="dateOfBirth" type="date" value={values.dateOfBirth} onChange={handleChange} error={fieldErrors.dateOfBirth} />
               <Row>
                 <Col md={6}>
-                  <Field label="Username" name="username" value={values.username} onChange={handleChange} error={fieldErrors.username} autoComplete="username" />
+                  <Field label={t('Username')} name="username" value={values.username} onChange={handleChange} error={fieldErrors.username} autoComplete="username" />
                 </Col>
                 <Col md={6}>
-                  <Field label="Password" name="password" type="password" value={values.password} onChange={handleChange} error={fieldErrors.password} autoComplete="new-password" />
+                  <Field label={t('Password')} name="password" type="password" value={values.password} onChange={handleChange} error={fieldErrors.password} autoComplete="new-password" />
                 </Col>
               </Row>
               <FormGroup check className="mb-3">
                 <Input id="hasCard" name="hasCard" type="checkbox" checked={values.hasCard} onChange={handleChange} />
                 <Label for="hasCard" check>
-                  I already have a library card (link it to this account)
+                  {t('I already have a library card (link it to this account)')}
                 </Label>
               </FormGroup>
               {values.hasCard && (
                 <Field
-                  label="Library card ID"
+                  label={t('Library card ID')}
                   name="libraryCardId"
-                  placeholder="e.g. LIB-7KQ2XM"
-                  hint="We match it with the email or phone number the library has on file."
+                  placeholder={t('e.g. {example}', { example: 'LIB-7KQ2XM' })}
+                  hint={t('We match it with the email or phone number the library has on file.')}
                   value={values.libraryCardId}
                   onChange={handleChange}
                   error={fieldErrors.libraryCardId}
@@ -115,11 +148,11 @@ export default function Register() {
               )}
               <Button color="primary" type="submit" className="w-100" disabled={submit.pending}>
                 {submit.pending && <Spinner size="sm" className="me-2" />}
-                Create account
+                {t('Create account')}
               </Button>
             </Form>
             <p className="text-center small mt-3 mb-0">
-              Already registered? <Link to="/login">Sign in</Link>
+              {t('Already registered?')} <Link to="/login">{t('Sign in')}</Link>
             </p>
           </CardBody>
         </Card>
