@@ -1,0 +1,75 @@
+package com.helmifr.library.account;
+
+import jakarta.validation.constraints.Email;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Past;
+import jakarta.validation.constraints.Pattern;
+import jakarta.validation.constraints.Size;
+import java.time.LocalDate;
+
+/** Request/response shapes for accounts, registration and profiles. */
+public final class AccountDtos {
+    private AccountDtos() {}
+
+    static final String USERNAME_REGEX = "^[A-Za-z0-9._-]{3,50}$";
+    static final String USERNAME_MESSAGE = "must be 3-50 letters, digits, dots, dashes or underscores";
+    static final String PHONE_REGEX = "^\\+?[0-9][0-9 -]{4,13}$";
+    static final String PHONE_MESSAGE = "must be 5-15 characters of digits, spaces or dashes, optionally starting with +";
+
+    /** Self-registration. With memberCode, an existing (walk-in) member record is linked instead of created. */
+    public record RegisterRequest(
+            @NotBlank @Pattern(regexp = USERNAME_REGEX, message = USERNAME_MESSAGE) String username,
+            @NotBlank @Size(min = 10, max = 200) String password,
+            @NotBlank @Size(max = 255) String name,
+            @NotBlank @Email @Size(max = 255) String email,
+            @NotBlank @Pattern(regexp = PHONE_REGEX, message = PHONE_MESSAGE) String phone,
+            @NotNull @Past LocalDate dateOfBirth,
+            @Size(max = 20) String memberCode) {}
+
+    public record NewLibrarianRequest(
+            @NotBlank @Pattern(regexp = USERNAME_REGEX, message = USERNAME_MESSAGE) String username,
+            @NotBlank @Size(min = 10, max = 200) String password,
+            @NotBlank @Size(max = 255) String displayName,
+            @Email @Size(max = 255) String email) {}
+
+    public record ProfileUpdateRequest(
+            @NotBlank @Size(max = 255) String displayName,
+            @NotBlank @Email @Size(max = 255) String email,
+            @Pattern(regexp = PHONE_REGEX, message = PHONE_MESSAGE) String phone) {}
+
+    public record PasswordChangeRequest(
+            @NotBlank String currentPassword,
+            @NotBlank @Size(min = 10, max = 200) String newPassword) {}
+
+    public record EnabledRequest(@NotNull Boolean enabled) {}
+
+    /** The signed-in user, as returned by /api/auth/me, login and registration. */
+    public record SessionUser(Long id, String username, String displayName, Role role, Long memberId) {
+        static SessionUser of(UserAccount a) {
+            return new SessionUser(a.getId(), a.getUsername(), a.getDisplayName(), a.getRole(),
+                    a.getMember() == null ? null : a.getMember().getId());
+        }
+    }
+
+    public record MemberCard(Long id, String memberCode, String name, String email, String phone,
+                             LocalDate dateOfBirth, boolean active) {}
+
+    public record ProfileResponse(Long id, String username, Role role, String displayName, String email,
+                                  MemberCard member) {
+        static ProfileResponse of(UserAccount a) {
+            var m = a.getMember();
+            MemberCard card = m == null ? null : new MemberCard(m.getId(), m.getMemberCode(), m.getName(),
+                    m.getEmail(), m.getPhone(), m.getDateOfBirth(), m.isActive());
+            return new ProfileResponse(a.getId(), a.getUsername(), a.getRole(), a.getDisplayName(), a.getEmail(), card);
+        }
+    }
+
+    public record AccountResponse(Long id, String username, String displayName, String email, Role role,
+                                  boolean enabled, Long memberId) {
+        static AccountResponse of(UserAccount a) {
+            return new AccountResponse(a.getId(), a.getUsername(), a.getDisplayName(), a.getEmail(), a.getRole(),
+                    a.isEnabled(), a.getMember() == null ? null : a.getMember().getId());
+        }
+    }
+}
