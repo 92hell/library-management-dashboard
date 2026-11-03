@@ -1,0 +1,41 @@
+# Roadmap
+
+Ideas to bring the system closer to a production library website, roughly in priority order.
+Items marked *(hook ready)* already have an extension point in the code.
+
+## Next up
+
+1. **Verify contact details before linking a card.** Registration currently trusts the card ID
+   plus a matching email/phone. Send a one-time code to that email/phone first
+   (needs a real email/SMS channel - see 2).
+2. **Real SMS / WhatsApp delivery** *(hook ready)* - implement `deliver()` in `SmsChannel` /
+   `WhatsAppChannel` for a provider (e.g. Twilio, WhatsApp Business Cloud API); add delivery
+   status tracking and retries.
+3. **Notification preferences** - let customers choose channels (in-app / email / SMS / WhatsApp)
+   and opt out of reminders; respect quiet hours.
+4. **Password reset by email** and **email verification** on registration.
+5. **Reservations / holds queue** - when a requested book is on loan, queue requests in order
+   and notify the next customer when it comes back ("ready for pickup", with a pickup deadline).
+6. **Renewals** - customers extend a loan once if nobody is waiting for the book.
+
+## Library operations
+
+- Multiple copies per title (barcode per physical copy) instead of one book = one copy
+- Fines for overdue books, payments and receipts
+- Member card expiry and renewal; card replacement keeps history
+- Merge duplicate member records (e.g. someone registered online before linking their card)
+- Book covers, descriptions and ISBN lookup (Open Library / Google Books API)
+- Catalogue filters (category, author, availability) and sorting; book detail pages
+- Librarian reports: most borrowed, overdue rate, active members; CSV export
+- Branches / locations and inter-branch transfers
+
+## Platform
+
+- Disabled accounts: end active sessions immediately (today they are refused at next login)
+- Rate limiting on all public endpoints; distributed lockout store (Redis) for several instances
+- Structured JSON logs and metrics (Micrometer + Prometheus/Grafana); alerting on error rate
+- Testcontainers-based tests against real MariaDB in CI (today: H2 in MariaDB mode)
+- End-to-end browser tests (Playwright) in CI
+- Accessibility review (WCAG 2.1 AA) and internationalisation (Bahasa Indonesia / English)
+- Demo mode: nightly reset of demo data
+- Deployment: container registry + one-click deploy (Render / Fly.io / Railway), HTTPS, backups

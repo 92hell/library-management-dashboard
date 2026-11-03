@@ -1,114 +1,164 @@
 # Library Management System
 
-A full-stack web application for managing authors, books, members, and book borrowing records within a library system. This project demonstrates CRUD (Create, Read, Update, Delete) operations, search functionalities, and relational data handling using Spring Boot for the backend and React for the frontend.
+A full-stack library website: members browse the catalogue and request books online, librarians
+run the desk, approve requests and track loans, and everyone gets notified when something needs
+their attention.
 
-## 🚀 Features
+**Stack:** Java 17 · Spring Boot 3.5 (Web, Data JPA, Security, Validation) · Flyway · MariaDB ·
+React 18 · Vite · React Router 6 · Bootstrap 5 / reactstrap.
 
-* **Author Management:**
-    * Add, view, edit, and soft-delete authors.
-    * Search authors by name.
-* **Member Management:**
-    * Add, view, edit, and soft-delete members.
-    * Search members by name, email, or phone.
-* **Book Management:**
-    * Add, view, edit, and soft-delete books.
-    * Associate books with authors.
-    * Manage book categories.
-    * Search books by title, publisher name, categories, or author name.
-* **Borrowed Book Management:**
-    * Record book borrowing events (borrow date, return date, associated book and member).
-    * View all borrowed book records.
-    * Search borrowed books by member name, book title, author name, or specific borrow date.
-    * Edit and soft-delete borrowed book records.
+> Originally a job-interview assignment (simple CRUD). Since rewritten to be secure, tested and
+> closer to a real library system - see [Roadmap](docs/ROADMAP.md) for what comes next.
 
-## 💻 Technologies Used
+## Features
 
-### Backend (Spring Boot)
+**Customers (members with an online account)**
+- Register online, or link an existing library card from the desk (card ID + the email or phone on file)
+- Browse and search the catalogue with live availability; request books
+- *My loans*: pending requests, books on loan with due dates, overdue warnings, history; cancel a request
+- Notifications: request approved / declined (with reason), book due soon, book overdue
+- Profile: contact details, library card ID, password change
 
-* **Spring Boot:** Framework for building robust, stand-alone, production-grade Spring applications.
-* **Spring Data JPA:** Simplifies data access and persistence with Hibernate.
-* **Hibernate:** JPA implementation for ORM.
-* **Lombok:** Reduces boilerplate code (getters, setters, constructors).
-* **Jackson:** High-performance JSON processor for Java.
-* **MariaDB / MySQL:** Relational database for persistent storage.
-* **Maven:** Build automation tool.
+**Librarians (staff)**
+- Dashboard: pending requests, overdue loans, due today, books on loan
+- Approve or decline borrow requests; mark books returned
+- Desk checkout for walk-in members who have no online account; record past loans
+- Manage books, authors, members (each with a library card ID) and librarian accounts
+- Notified of every new borrow request
 
-### Frontend (React)
+**Rules enforced by the API**
+- A book can only be lent to one member at a time (row lock against races)
+- At most 3 open requests/loans per customer; no duplicate request for the same book
+- Due date defaults to 14 days; dates are validated (no future borrow date, no return before borrow)
+- Soft deletes; authors with books, books on loan and members with open loans cannot be deleted
+- Deleting a member disables their online account
 
-* **React:** JavaScript library for building user interfaces.
-* **React Router DOM:** For declarative routing in React applications.
-* **Reactstrap:** Bootstrap 5 components for React.
-* **JavaScript (ES6+)**
-* **CSS**
-* **npm / Yarn:** Package managers.
+## Run it
 
-## ⚙️ Prerequisites
-
-Before you begin, ensure you have the following installed on your system:
-
-* **Java Development Kit (JDK) 17 or higher**
-* **Maven 3.6.0 or higher**
-* **Node.js 18.x or higher**
-* **npm 8.x or higher** (or Yarn)
-* **MariaDB or MySQL database server** installed and running.
-* **An IDE** (e.g., IntelliJ IDEA, VS Code, Eclipse) is recommended.
-
-## 🚀 Getting Started
-
-Follow these steps to set up and run the project locally.
-
-### 1. Clone the Repository
+**Quickest - no database to install** (H2 file database in `./data`, demo data and demo logins):
 
 ```bash
-git clone https://github.com/92hell/library-dashboard.git
+cd frontend && npm ci && cd ..
 ```
-
-### 2. Database Configuration
-This application is configured to use a **MariaDB/MySQL** database.
-You will need to create a database and update the connection properties in `src/main/resources/application.properties`.
-
-Example application.properties for MariaDB/MySQL:
-
-```properties
-spring.datasource.url=jdbc:mysql://localhost:3306/library_db?useSSL=false&serverTimezone=UTC
-spring.datasource.username=your_db_username
-spring.datasource.password=your_db_password
-spring.jpa.hibernate.ddl-auto=update # Creates/updates schema on startup
-spring.jpa.show-sql=true
-spring.jpa.properties.hibernate.format_sql=true
-
-# If using MariaDB, you might use:
-# spring.datasource.url=jdbc:mariadb://localhost:3306/library_db?useSSL=false&serverTimezone=UTC
-# spring.datasource.driver-class-name=org.mariadb.jdbc.Driver
-```
-Important: Replace `library_db`, `your_db_username`, and `your_db_password` with your actual database credentials.
-
-### 3. Run the Full-Stack Application
-Navigate to the project's root directory (where the main pom.xml is located).
-The Maven build process will automatically install frontend dependencies, build the React application, and then package it within the Spring Boot JAR.
 
 ```bash
-# Build the entire project and run
-mvn spring-boot:run
+mvn -Pfullstack package
 ```
 
-#### This single command will:
+```bash
+DEMO_MODE=true java -jar target/library-dashboard-1.1.0.jar --spring.profiles.active=h2
+```
 
-1. Download Node.js and npm (if not already present via Maven plugin).
-2. Install React frontend dependencies.
-3. Build the React frontend into static assets.
-4. Compile the Spring Boot backend.
-5. Start the Spring Boot application, serving both the backend API and the static frontend content.
-The application will typically be accessible at `http://localhost:8080`.
+Open http://localhost:8080 and use **Try as customer** / **Try as librarian** on the login page.
 
-## 🖥️ Usage
+**With MariaDB via Docker:**
 
-1. Once the application is running (after executing `mvn spring-boot:run`), open your web browser and navigate to `http://localhost:8080`.
-2. You will see the navigation bar with links to Authors, Members, Books, and Borrowed Books.
-3. Start by adding Authors and Members as these are prerequisites for adding Books and Borrowed Books.
-4. Then, add some Books, ensuring you select an existing Author and assign a category.
-5. Finally, go to the Borrowed Books section to record new borrowing events, selecting existing Books and Members.
-6. Explore the CRUD operations and search functionalities on each page.
+```bash
+docker compose up --build
+```
 
-## 🤝 Contributing
-Contributions are welcome! If you have suggestions for improvements or bug fixes, please open an issue or submit a pull request.
+**Development** (hot reload; Vite proxies `/api` to Spring on :8080):
+
+```bash
+mvn spring-boot:run -Dspring-boot.run.profiles=h2 -Dspring-boot.run.arguments=--library.demo.enabled=true
+```
+
+```bash
+cd frontend && npm run dev
+```
+
+Open http://localhost:5173.
+
+On first start the app creates the librarian account `librarian`. Set `LIBRARIAN_PASSWORD`, or
+read the generated password from the log.
+
+## Configuration
+
+All settings have defaults in `src/main/resources/application.yml` and can be overridden with
+environment variables:
+
+| Variable | Default | Purpose |
+|---|---|---|
+| `DB_URL`, `DB_USERNAME`, `DB_PASSWORD` | `jdbc:mariadb://localhost:3306/library_sandbox`, `library`, empty | Database |
+| `LIBRARIAN_USERNAME`, `LIBRARIAN_PASSWORD` | `librarian`, generated | First staff account (created if missing) |
+| `DEMO_MODE`, `DEMO_PASSWORD` | `false`, `demo-password` | Sample data + demo logins shown on the login page |
+| `LOAN_PERIOD_DAYS`, `LOAN_MAX_OPEN_PER_MEMBER`, `LOAN_DUE_SOON_DAYS` | `14`, `3`, `2` | Lending rules |
+| `LOAN_REMINDER_CRON` | `0 0 8 * * *` | Daily due-soon / overdue reminder job (`-` disables) |
+| `APP_BASE_URL` | `http://localhost:8080` | Used for links in emails / messages |
+| `NOTIFY_EMAIL_ENABLED`, `NOTIFY_EMAIL_FROM` + `SPRING_MAIL_HOST`, `SPRING_MAIL_PORT`, `SPRING_MAIL_USERNAME`, `SPRING_MAIL_PASSWORD` | off | Email notifications over SMTP |
+| `NOTIFY_SMS_*`, `NOTIFY_WHATSAPP_*` (`ENABLED`, `PROVIDER`, `SENDER`, `API_URL`, `API_KEY`) | off | SMS / WhatsApp channels - dry run (logged) until a provider is integrated |
+| `SESSION_COOKIE_SECURE` | `false` | Set `true` behind HTTPS |
+| `LOG_PATH` | `logs` | Log folder |
+
+A database created by the first version is adopted through a Flyway baseline (the original schema
+counts as V1; V2+ are applied on top). That path is not exercised by the test suite, so back the
+database up before the first start.
+
+## Notifications
+
+Every notification is stored for the in-app inbox (bell icon; polled every minute). It is also
+handed to the external channels **after** the database transaction commits, on a background
+thread, so a rolled-back action never sends a message and a slow mail server never slows a page.
+
+| Channel | Status | Reaches |
+|---|---|---|
+| In-app | always on | every account |
+| Email (SMTP) | implemented, off by default | the email on the member's card (or the librarian's account) |
+| SMS / WhatsApp | configurable, **dry run** (logs what it would send, number masked) | the phone on the member's card |
+
+To integrate an SMS or WhatsApp provider, override `deliver()` in `SmsChannel` / `WhatsAppChannel`
+(`notification/channel`). Members without an online account only see their loans at the desk.
+
+## Logs
+
+`logs/` (configurable with `LOG_PATH`):
+
+| File | Contents |
+|---|---|
+| `library.log` | everything at INFO+: one access-log line per API call, business events, warnings |
+| `error.log` | WARN and ERROR only - start here when something breaks |
+| `audit.log` | who did what: logins (success, failure, lockout), registrations, approvals, returns, account changes |
+| `archive/` | rotated files (daily or 10 MB, gzipped; 30 / 90 / 365 days retention) |
+
+Every line carries `[requestId] [user]`. The request id is returned in the `X-Request-Id` response
+header (and reused from an incoming one), so a reported problem can be traced with
+`grep <request-id> logs/*.log`. Passwords and tokens are never logged; phone numbers are masked.
+
+## Security
+
+- Session cookie login (`HttpOnly`, `SameSite=Lax`), new session id on login, 30-minute timeout
+- CSRF protection with the cookie-to-header pattern (`XSRF-TOKEN` → `X-XSRF-TOKEN`), token rotated on login
+- Role-based access: customers only reach the catalogue and their own data (`/api/my/**`)
+- Passwords hashed with BCrypt; 10+ characters; login throttled after 5 failures per username and address
+- Request DTOs with validation (clients cannot set ids, flags or audit fields); RFC 7807 errors without internals
+- Content-Security-Policy, `X-Frame-Options: DENY`, `nosniff`, strict referrer policy
+- Linking a walk-in card needs the card ID **and** matching email/phone; wrong attempts count towards the lockout
+
+## Project layout
+
+```
+src/main/java/com/helmifr/library/
+  author/  book/  member/  loan/      entities, repositories, services, controllers per feature
+  account/                            user accounts, registration, profile, staff admin
+  notification/  notification/channel/  in-app inbox, email / SMS / WhatsApp channels
+  dashboard/  demo/                   librarian summary, demo data
+  security/                           Spring Security config, login, CSRF, throttling
+  common/                             errors, paging, request logging, audit, helpers
+src/main/resources/db/migration/      Flyway migrations (V1 = original schema)
+frontend/src/                         pages/, components/, api.js (fetch + CSRF), auth.jsx
+```
+
+## Tests
+
+```bash
+mvn clean verify
+```
+
+```bash
+cd frontend && npm test && npm run lint
+```
+
+The backend tests boot the whole application against H2 in MariaDB mode with the real migrations
+and Hibernate schema validation. [docs/TESTING.md](docs/TESTING.md) lists every test by name -
+it is generated from the test code (`python3 scripts/generate-test-catalog.py`), so it doubles as
+an auditable specification.
