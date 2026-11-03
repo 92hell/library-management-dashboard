@@ -6,15 +6,23 @@
  * - Turns RFC 7807 problem responses into {@link ApiError}s.
  * - Reports 401s (outside /api/auth/*) so the app can send the user back to the login page.
  */
+import { msg, translate } from './i18n';
 
 const AUTH_PATH = '/api/auth/';
 
+/**
+ * A failed request. `message` is the server's message, or - when the client words it itself - the
+ * English text; then `text` and `vars` hold the untranslated message so it can be shown in the reader's
+ * language (see errorText in components/Feedback).
+ */
 export class ApiError extends Error {
-  constructor(status, message, fieldErrors = {}) {
-    super(message);
+  constructor(status, message, fieldErrors = {}, vars = undefined) {
+    super(vars ? translate(message, vars, 'en') : message);
     this.name = 'ApiError';
     this.status = status;
     this.fieldErrors = fieldErrors;
+    this.text = message;
+    this.vars = vars;
   }
 }
 
@@ -51,8 +59,8 @@ async function toApiError(response) {
   } catch {
     // Not a JSON body (e.g. a proxy error page); fall back to the status text.
   }
-  const message =
-    problem.detail || problem.title || response.statusText || `Request failed with status ${response.status}`;
+  const message = problem.detail || problem.title || response.statusText;
+  if (!message) return new ApiError(response.status, msg('Request failed with status {status}'), {}, { status: response.status });
   return new ApiError(response.status, message, problem.errors ?? {});
 }
 
@@ -73,7 +81,7 @@ export async function request(path, { method = 'GET', params, body } = {}) {
       body: body === undefined ? undefined : JSON.stringify(body),
     });
   } catch {
-    throw new ApiError(0, 'Could not reach the server. Please check your connection and try again.');
+    throw new ApiError(0, msg('Could not reach the server. Please check your connection and try again.'));
   }
 
   if (!response.ok) {

@@ -3,19 +3,23 @@ import { Link, NavLink as RouterNavLink } from 'react-router-dom';
 import { Badge, Button, Collapse, Nav, Navbar, NavbarBrand, NavbarToggler, NavItem, NavLink } from 'reactstrap';
 import { useAuth } from '../auth';
 import { useNotifications } from '../notifications';
+import { msg, useT } from '../i18n';
 import BrandMark from './BrandMark';
+import LanguageSwitch from './LanguageSwitch';
 
 const SECTIONS = {
   LIBRARIAN: [
-    { to: '/borrowed-books', label: 'Loans' },
-    { to: '/books', label: 'Books' },
-    { to: '/authors', label: 'Authors' },
-    { to: '/members', label: 'Members' },
-    { to: '/users', label: 'Users' },
+    { to: '/borrowed-books', label: msg('Loans') },
+    { to: '/books', label: msg('Books') },
+    { to: '/authors', label: msg('Authors') },
+    { to: '/members', label: msg('Members') },
+    { to: '/fines', label: msg('Fines') },
+    { to: '/reports', label: msg('Reports') },
+    { to: '/users', label: msg('Users') },
   ],
   CUSTOMER: [
-    { to: '/catalogue', label: 'Catalogue' },
-    { to: '/my/loans', label: 'My loans' },
+    { to: '/catalogue', label: msg('Catalogue') },
+    { to: '/my/loans', label: msg('My loans') },
   ],
 };
 
@@ -24,14 +28,15 @@ export default function AppNavbar() {
   const { unread } = useNotifications();
   const [isOpen, setIsOpen] = useState(false);
   const close = () => setIsOpen(false);
+  const t = useT();
 
   return (
     <Navbar dark expand="md" className="px-3 library-nav">
       <NavbarBrand tag={Link} to="/">
         <BrandMark />
-        Library
+        {t('Library')}
       </NavbarBrand>
-      <NavbarToggler onClick={() => setIsOpen((open) => !open)} aria-label="Toggle navigation" />
+      <NavbarToggler onClick={() => setIsOpen((open) => !open)} aria-label={t('Toggle navigation')} />
       <Collapse isOpen={isOpen} navbar>
         <Nav className="me-auto" navbar>
           {(SECTIONS[user?.role] ?? [])
@@ -40,7 +45,7 @@ export default function AppNavbar() {
             .map(({ to, label }) => (
             <NavItem key={to}>
               <NavLink tag={RouterNavLink} to={to} onClick={close}>
-                {label}
+                {t(label)}
               </NavLink>
             </NavItem>
           ))}
@@ -52,7 +57,7 @@ export default function AppNavbar() {
                 tag={RouterNavLink}
                 to="/notifications"
                 onClick={close}
-                aria-label={unread > 0 ? `Notifications (${unread} unread)` : 'Notifications'}
+                aria-label={unread > 0 ? t('Notifications ({count} unread)', { count: unread }) : t('Notifications')}
               >
                 <span aria-hidden="true">🔔</span>
                 {unread > 0 && (
@@ -66,14 +71,17 @@ export default function AppNavbar() {
               <NavLink tag={RouterNavLink} to="/profile" onClick={close}>
                 {user.displayName}{' '}
                 <Badge color={isLibrarian ? 'warning' : 'light'} pill className="text-dark">
-                  {isLibrarian ? 'Librarian' : 'Member'}
+                  {isLibrarian ? t('Librarian') : t('Member')}
                 </Badge>
               </NavLink>
             </NavItem>
             <NavItem>
               <Button size="sm" outline color="light" onClick={logout}>
-                Log out
+                {t('Log out')}
               </Button>
+            </NavItem>
+            <NavItem>
+              <LanguageSwitch dark className="my-2 my-md-0" />
             </NavItem>
           </Nav>
         )}

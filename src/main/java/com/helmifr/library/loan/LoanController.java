@@ -20,6 +20,7 @@ import org.springframework.web.bind.annotation.*;
 public class LoanController {
 
     private final LoanService loanService;
+    private final LoanEvents loanEvents;
 
     @GetMapping
     public PageResponse<LoanResponse> list(
@@ -54,6 +55,33 @@ public class LoanController {
     @PostMapping("/{id}/reject")
     public LoanResponse reject(@PathVariable Long id, @Valid @RequestBody(required = false) Rejection rejection) {
         return loanService.reject(id, rejection);
+    }
+
+    public record BarcodeRequest(@jakarta.validation.constraints.NotBlank
+                                 @jakarta.validation.constraints.Size(max = 40) String barcode) {}
+
+    /** The member collects a copy that was set aside for them. */
+    @PostMapping("/{id}/checkout")
+    public LoanResponse checkout(@PathVariable Long id, @Valid @RequestBody(required = false) Approval approval) {
+        return loanService.checkout(id, approval);
+    }
+
+    @PostMapping("/{id}/renew")
+    public LoanResponse renew(@PathVariable Long id) {
+        return loanService.renew(id);
+    }
+
+    /** Desk return by scanning the copy. */
+    @PostMapping("/return-by-barcode")
+    public LoanResponse returnByBarcode(@Valid @RequestBody BarcodeRequest request) {
+        return loanService.returnByBarcode(request.barcode());
+    }
+
+    /** The loan's history, oldest first. */
+    @GetMapping("/{id}/events")
+    public java.util.List<LoanEvents.View> events(@PathVariable Long id) {
+        loanService.get(id);
+        return loanEvents.of(id);
     }
 
     @PostMapping("/{id}/return")

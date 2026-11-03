@@ -71,9 +71,11 @@ class BookApiTest {
     }
 
     @Test
-    @DisplayName("an unknown sort field is a 400, not a server error")
+    @DisplayName("a raw sort field is a 400, not a server error (books sort with order=)")
     void unknownSortField() throws Exception {
         api.as(librarian).get("/api/books", "sort", "nope").andExpect(status().isBadRequest());
+        api.as(librarian).get("/api/books", "sort", "title").andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.errors.sort").exists());
     }
 
     @Test

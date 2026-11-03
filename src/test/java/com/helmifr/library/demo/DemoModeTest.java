@@ -25,7 +25,7 @@ import org.springframework.test.context.TestPropertySource;
 @IntegrationTest
 @TestPropertySource(properties = {
         "library.demo.enabled=true",
-        "spring.datasource.url=jdbc:h2:mem:demo;MODE=MariaDB;DATABASE_TO_LOWER=TRUE;DB_CLOSE_DELAY=-1"})
+        "spring.datasource.url=${test.isolated-db.prefix}demo${test.isolated-db.suffix}"})
 @DisplayName("Demo mode is safe to publish")
 class DemoModeTest {
 
@@ -113,5 +113,46 @@ class DemoModeTest {
         assertThat(customer.isEnabled()).isTrue();
         assertThat(passwordEncoder.matches(demo.password(), librarian.getPasswordHash())).isTrue();
         assertThat(accounts.findByUsernameIgnoreCase("librarian")).isPresent();
+    }
+
+    @Test
+    @DisplayName("the reset also clears loan histories and receipts that visitors created")
+    void resetClearsHistoryAndReceipts() throws Exception {
+        var book = data.book("Visitor's book");
+        String created = api.as(demoLibrarian).post("/api/borrowed-books",
+                        "{\"bookId\": %d, \"memberId\": %d}".formatted(book.getId(), demoCustomer.getMember().getId()))
+                .andReturn().getResponse().getContentAsString();
+        long loanId = com.jayway.jsonpath.JsonPath.parse(created).read("$.id", Long.class);
+        api.as(demoLibrarian).post("/api/borrowed-books/" + loanId + "/receipt")
+                .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.status().isOk());
+
+        seeder.reset();
+
+        assertThat(receipts.count()).isZero();
+        assertThat(loanEvents.findAllByLoanIdOrderByIdAsc(loanId)).isEmpty();
+    }
+
+    @Autowired com.helmifr.library.receipt.ReceiptRepository receipts;
+    @Autowired com.helmifr.library.loan.LoanEventRepository loanEvents;
+
+    @Test
+    @DisplayName("receipts issued by the public demo say so: marked as demo and watermarked in the PDF")
+    void demoReceiptsMarked() throws Exception {
+        var book = data.book("Demo receipt book");
+        String created = api.as(demoLibrarian).post("/api/borrowed-books",
+                        "{\"bookId\": %d, \"memberId\": %d}".formatted(book.getId(), demoCustomer.getMember().getId()))
+                .andReturn().getResponse().getContentAsString();
+        long loanId = com.jayway.jsonpath.JsonPath.parse(created).read("$.id", Long.class);
+        String receipt = api.as(demoLibrarian).post("/api/borrowed-books/" + loanId + "/receipt")
+                .andReturn().getResponse().getContentAsString();
+        String number = com.jayway.jsonpath.JsonPath.read(receipt, "$.number");
+        String code = com.jayway.jsonpath.JsonPath.read(receipt, "$.verifyCode");
+
+        assertThat((Boolean) com.jayway.jsonpath.JsonPath.read(receipt, "$.content.demo")).isTrue();
+        api.anonymous().get("/api/receipts/verify/" + number, "code", code)
+                .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath("$.demo").value(true));
+        byte[] pdf = api.as(demoLibrarian).get("/api/receipts/" + number + ".pdf").andReturn().getResponse().getContentAsByteArray();
+        String text = new com.lowagie.text.pdf.parser.PdfTextExtractor(new com.lowagie.text.pdf.PdfReader(pdf)).getTextFromPage(1);
+        assertThat(text).contains("DEMO - NOT A REAL RECEIPT");
     }
 }

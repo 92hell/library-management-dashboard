@@ -5,11 +5,13 @@ import RequireAuth from './components/RequireAuth';
 import RequireRole from './components/RequireRole';
 import AuthorEdit from './pages/AuthorEdit';
 import AuthorList from './pages/AuthorList';
+import BookDetail from './pages/BookDetail';
 import BookEdit from './pages/BookEdit';
 import BookList from './pages/BookList';
 import BorrowedBookEdit from './pages/BorrowedBookEdit';
 import BorrowedBookList from './pages/BorrowedBookList';
 import Catalogue from './pages/Catalogue';
+import FineList from './pages/FineList';
 import Home from './pages/Home';
 import Login from './pages/Login';
 import MemberEdit from './pages/MemberEdit';
@@ -17,8 +19,11 @@ import MemberList from './pages/MemberList';
 import MyLoans from './pages/MyLoans';
 import Notifications from './pages/Notifications';
 import Profile from './pages/Profile';
+import ReceiptPage from './pages/ReceiptPage';
 import Register from './pages/Register';
+import ReportsPage from './pages/ReportsPage';
 import Users from './pages/Users';
+import VerifyReceipt from './pages/VerifyReceipt';
 
 const Librarian = () => (
   <RequireRole role="LIBRARIAN">
@@ -36,6 +41,7 @@ export function AppRoutes() {
     <Routes>
       <Route path="/login" element={<Login />} />
       <Route path="/register" element={<Register />} />
+      <Route path="/verify/:number" element={<VerifyReceipt />} />
       <Route
         element={
           <RequireAuth>
@@ -46,6 +52,8 @@ export function AppRoutes() {
         <Route index element={<Home />} />
         <Route path="profile" element={<Profile />} />
         <Route path="notifications" element={<Notifications />} />
+        <Route path="catalogue/:id" element={<BookDetail />} />
+        <Route path="receipts/:number" element={<ReceiptPage />} />
 
         <Route element={<Customer />}>
           <Route path="catalogue" element={<Catalogue />} />
@@ -61,6 +69,8 @@ export function AppRoutes() {
           <Route path="authors/:id" element={<AuthorEdit />} />
           <Route path="members" element={<MemberList />} />
           <Route path="members/:id" element={<MemberEdit />} />
+          <Route path="fines" element={<FineList />} />
+          <Route path="reports" element={<ReportsPage />} />
           <Route path="users" element={<Users />} />
         </Route>
       </Route>

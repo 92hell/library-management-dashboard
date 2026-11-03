@@ -16,21 +16,34 @@ import org.springframework.web.bind.annotation.*;
 public class BookController {
 
     private final BookService bookService;
+    private final IsbnLookup isbnLookup;
 
     @GetMapping
     public PageResponse<BookResponse> list(@RequestParam(required = false) String q,
+                                           @RequestParam(required = false) String category,
+                                           @RequestParam(required = false) Long authorId,
+                                           @RequestParam(defaultValue = "false") boolean available,
+                                           @RequestParam(required = false) String order,
                                            @PageableDefault(size = 20) Pageable pageable) {
-        return bookService.search(q, pageable);
+        String cat = category == null || category.isBlank() ? null : category.trim();
+        return bookService.search(new BookService.Filter(q, cat, authorId, available, BookOrder.parse(order)), pageable);
     }
 
+    /** All categories, or with ?inUse=true only those some book has (for the catalogue filter). */
     @GetMapping("/categories")
-    public List<String> categories() {
-        return bookService.categories();
+    public List<String> categories(@RequestParam(defaultValue = "false") boolean inUse) {
+        return bookService.categories(inUse);
     }
 
     @GetMapping("/options")
     public List<BookOption> options() {
         return bookService.options();
+    }
+
+    /** Librarians: fill the book form from Open Library by ISBN. */
+    @GetMapping("/lookup")
+    public IsbnLookup.Result lookup(@RequestParam String isbn) {
+        return isbnLookup.lookup(isbn);
     }
 
     @GetMapping("/{id}")

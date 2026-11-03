@@ -1,18 +1,48 @@
+import { useNavigate } from 'react-router-dom';
 import { Button, Table } from 'reactstrap';
+import { focusPageHeading } from '../a11y';
 import { api } from '../api';
 import { ErrorAlert, Loading } from '../components/Feedback';
 import BookCover from '../components/BookCover';
+import FineBalance from '../components/FineBalance';
 import LoanStatus from '../components/LoanStatus';
-import { formatDate } from '../format';
+import { formatDate, formatMoney } from '../format';
 import { useAction, useApi } from '../hooks';
+import { msg, useT } from '../i18n';
 
 export default function MyLoans() {
   const loans = useApi('/api/my/loans');
+  const fines = useApi('/api/my/fines');
   const action = useAction();
+  const navigate = useNavigate();
+  const t = useT();
 
   async function cancel(loan) {
-    if (!window.confirm(`Cancel your request for "${loan.book.title}"?`)) return;
-    if (await action.run(() => api.post(`/api/my/loans/${loan.id}/cancel`))) loans.reload();
+    const title = loan.book.title;
+    const question =
+      loan.status === 'READY'
+        ? t('Cancel the copy set aside for you for "{title}"?', { title })
+        : t('Cancel your request for "{title}"?', { title });
+    if (!window.confirm(question)) return;
+    if (await action.run(() => api.post(`/api/my/loans/${loan.id}/cancel`))) {
+      loans.reload();
+      focusPageHeading();
+    }
+  }
+
+  /** Issues (or reuses) the receipt for this loan and opens it for printing. */
+  async function openReceipt(loan) {
+    let receipt = null;
+    if (await action.run(async () => {
+      receipt = await api.post(`/api/my/loans/${loan.id}/receipt`);
+    })) navigate(`/receipts/${receipt.number}`);
+  }
+
+  async function renew(loan) {
+    if (await action.run(() => api.post(`/api/my/loans/${loan.id}/renew`))) {
+      loans.reload();
+      focusPageHeading();
+    }
   }
 
   if (loans.error) return <ErrorAlert error={loans.error} />;
@@ -20,19 +50,21 @@ export default function MyLoans() {
 
   return (
     <>
-      <h1 className="h3 mb-3 page-title">My loans</h1>
+      <h1 className="h3 mb-3 page-title">{t('My loans')}</h1>
+      <ErrorAlert error={fines.error} />
+      <FineBalance fines={fines.data} />
       <ErrorAlert error={action.error} onDismiss={action.clearError} />
       {loans.data.length === 0 ? (
-        <p className="empty-state">You have not borrowed or requested any books yet.</p>
+        <p className="empty-state">{t('You have not borrowed or requested any books yet.')}</p>
       ) : (
         <Table responsive className="align-middle shadow-sm">
           <thead className="table-library">
             <tr>
-              <th scope="col">Book</th>
-              <th scope="col">Borrowed</th>
-              <th scope="col">Due</th>
-              <th scope="col">Status</th>
-              <th scope="col" aria-label="Actions" />
+              <th scope="col">{t('Book')}</th>
+              <th scope="col">{t('Borrowed')}</th>
+              <th scope="col">{t('Due')}</th>
+              <th scope="col">{t('Status')}</th>
+              <th scope="col" aria-label={t('Actions')} />
             </tr>
           </thead>
           <tbody>
@@ -53,17 +85,72 @@ export default function MyLoans() {
                   <LoanStatus loan={loan} />
                 </td>
                 <td className="text-end">
-                  {loan.status === 'PENDING' && (
-                    <Button size="sm" color="secondary" outline onClick={() => cancel(loan)} disabled={action.pending}>
-                      Cancel request
+                  {loan.canRenew && (
+                    <Button size="sm" color="primary" outline onClick={() => renew(loan)} disabled={action.pending}>
+                      {t('Renew')}
                     </Button>
                   )}
+                  {['PENDING', 'WAITLISTED'].includes(loan.status) && (
+                    <Button size="sm" color="secondary" outline onClick={() => cancel(loan)} disabled={action.pending}>
+                      {t('Cancel request')}
+                    </Button>
+                  )}
+                  {loan.status === 'READY' && (
+                    <Button size="sm" color="secondary" outline onClick={() => cancel(loan)} disabled={action.pending}>
+                      {t('Cancel hold')}
+                    </Button>
+                  )}
+                  <Button size="sm" color="secondary" outline className="ms-1" onClick={() => openReceipt(loan)} disabled={action.pending}>
+                    {t('Receipt')}
+                  </Button>
                 </td>
               </tr>
             ))}
           </tbody>
         </Table>
       )}
+      {fines.data?.fines.length > 0 && <FeeHistory fines={fines.data.fines} />}
     </>
+  );
+}
+
+const FEE_STATUS = { UNPAID: msg('Unpaid'), PAID: msg('Paid'), WAIVED: msg('Waived') };
+
+/** Every late fee the member was charged, settled or not. */
+function FeeHistory({ fines }) {
+  const t = useT();
+  return (
+    <section className="mt-4" aria-labelledby="late-fees-heading">
+      <h2 id="late-fees-heading" className="h5">
+        {t('Late fees')}
+      </h2>
+      <Table responsive className="align-middle shadow-sm" aria-labelledby="late-fees-heading">
+        <thead className="table-library">
+          <tr>
+            <th scope="col">{t('Book')}</th>
+            <th scope="col">{t('Returned')}</th>
+            <th scope="col">{t('Late')}</th>
+            <th scope="col">{t('Fee')}</th>
+            <th scope="col">{t('Status')}</th>
+          </tr>
+        </thead>
+        <tbody>
+          {fines.map((fine) => (
+            <tr key={fine.id}>
+              <td className="fw-semibold">{fine.book.title}</td>
+              <td className="text-nowrap">{formatDate(fine.returnDate)}</td>
+              <td className="text-nowrap">
+                {fine.daysLate === 1 ? t('{n} day late', { n: fine.daysLate }) : t('{n} days late', { n: fine.daysLate })}
+              </td>
+              <td className="text-nowrap">{formatMoney(fine.amount, fine.currency)}</td>
+              <td>
+                {FEE_STATUS[fine.status] && t(FEE_STATUS[fine.status])}
+                {fine.status === 'WAIVED' && fine.note && <span className="d-block small text-muted">{fine.note}</span>}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </Table>
+    </section>
   );
 }

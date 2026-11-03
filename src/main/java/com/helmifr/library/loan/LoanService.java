@@ -2,7 +2,11 @@ package com.helmifr.library.loan;
 
 import com.helmifr.library.book.Book;
 import com.helmifr.library.book.BookRepository;
+import com.helmifr.library.book.Copy;
+import com.helmifr.library.book.CopyRepository;
+import com.helmifr.library.book.CopyService;
 import com.helmifr.library.common.Audit;
+import com.helmifr.library.fine.FineService;
 import com.helmifr.library.common.ConflictException;
 import com.helmifr.library.common.FieldValidationException;
 import com.helmifr.library.common.NotFoundException;
@@ -36,26 +40,29 @@ public class LoanService {
     private final LoanRepository loans;
     private final BookRepository books;
     private final MemberService memberService;
+    private final CopyService copyService;
+    private final HoldQueue holdQueue;
+    private final LoanViews views;
+    private final CopyRepository copies;
     private final NotificationService notifications;
+    private final FineService fines;
+    private final LoanEvents history;
     private final LoanPolicy policy;
     private final Clock clock;
+    private final jakarta.persistence.EntityManager entityManager;
 
     public PageResponse<LoanResponse> search(String q, LocalDate borrowDate, LoanFilter filter, Pageable pageable) {
-        LocalDate today = today();
         return PageResponse.of(loans.search(SearchPatterns.contains(q), borrowDate, filter.status(),
-                        filter == LoanFilter.OVERDUE, today, pageable)
-                .map(l -> LoanResponse.from(l, today)));
+                        filter == LoanFilter.OVERDUE, today(), pageable)
+                .map(views::of));
     }
 
     public List<LoanResponse> findByMember(Long memberId) {
-        LocalDate today = today();
-        return loans.findAllByMemberIdAndDeletedFalseOrderByIdDesc(memberId).stream()
-                .map(l -> LoanResponse.from(l, today))
-                .toList();
+        return views.ofAll(loans.findAllByMemberIdAndDeletedFalseOrderByIdDesc(memberId));
     }
 
     public LoanResponse get(Long id) {
-        return LoanResponse.from(require(id), today());
+        return views.of(require(id));
     }
 
     /** Desk checkout (or a past loan when a return date is given). */
@@ -66,88 +73,209 @@ public class LoanService {
         loan = loans.save(loan);
         Audit.event("LOAN_RECORDED", "loanId={} bookId={} memberId={} status={} by={}", loan.getId(),
                 loan.getBook().getId(), loan.getMember().getId(), loan.getStatus(), CurrentUser.username());
+        history.record(loan, LoanEventType.LENT, loan.getStatus() == LoanStatus.ACTIVE
+                ? "Copy %s, due %s".formatted(barcodeOf(loan), loan.getDueDate())
+                : "Past loan, returned %s".formatted(loan.getReturnDate()));
         if (loan.getStatus() == LoanStatus.ACTIVE) {
             notifications.notifyMember(loan.getMember().getId(), NotificationType.LOAN_RECORDED,
                     "You borrowed \"%s\". Please return it by %s.".formatted(loan.getBook().getTitle(), loan.getDueDate()),
                     MY_LOANS_LINK);
         }
-        return LoanResponse.from(loan, today());
+        return views.of(loan);
     }
 
     /** Corrects an ACTIVE or RETURNED loan. Requests are handled with approve/reject instead. */
     @Transactional
     public LoanResponse update(Long id, LoanRequest request) {
-        Loan loan = require(id);
+        Loan loan = lockLoan(id);
         if (loan.getStatus() != LoanStatus.ACTIVE && loan.getStatus() != LoanStatus.RETURNED) {
             throw new ConflictException("Only active or returned loans can be edited; this one is " + loan.getStatus() + ".");
         }
+        // Corrections only: returning, reopening or swapping the book go through their own rules
+        // (late fee, holds queue), so they are refused here.
+        if (loan.getStatus() == LoanStatus.ACTIVE && request.returnDate() != null) {
+            throw new ConflictException("Use Return to record that the book came back (it charges any late fee and serves the queue).");
+        }
+        if (loan.getStatus() == LoanStatus.RETURNED && request.returnDate() == null) {
+            throw new ConflictException("A returned loan cannot be reopened; record a new loan instead.");
+        }
+        Long requestedBook = request.copyBarcode() != null && !request.copyBarcode().isBlank()
+                ? copyService.requireByBarcode(request.copyBarcode()).getBook().getId() : request.bookId();
+        if (requestedBook != null && !requestedBook.equals(loan.getBook().getId())) {
+            throw new ConflictException("A loan cannot be moved to another book; record a new loan for it instead.");
+        }
+        Copy copyBefore = loan.getCopy();
         apply(loan, request);
-        return LoanResponse.from(loan, today());
+        if (loan.getStatus() == LoanStatus.RETURNED) {
+            fines.reassess(loan);
+        } else if (copyBefore != null && !copyBefore.equals(loan.getCopy())) {
+            holdQueue.serve(loan.getBook());
+        }
+        history.record(loan, LoanEventType.EDITED, "Copy %s, borrowed %s, due %s%s".formatted(barcodeOf(loan),
+                loan.getBorrowDate(), loan.getDueDate(),
+                loan.getReturnDate() == null ? "" : ", returned " + loan.getReturnDate()));
+        return views.of(loan);
     }
 
+    private static String barcodeOf(Loan loan) {
+        return loan.getCopy() == null ? "-" : loan.getCopy().getBarcode();
+    }
+
+    /**
+     * Approves a request: a free copy is set aside for the member (READY, to collect within the
+     * pickup period); if every copy is out, the request joins the queue (WAITLISTED).
+     */
     @Transactional
     public LoanResponse approve(Long id, Approval approval) {
         Loan loan = requireStatus(id, LoanStatus.PENDING);
-        Book book = lockBook(loan.getBook().getId());
-        if (loans.isBookOnLoan(book.getId(), loan.getId())) {
-            throw new ConflictException("\"" + book.getTitle() + "\" is currently lent to someone else.");
-        }
         if (!loan.getMember().isActive()) {
             throw new ConflictException("The member's card is inactive.");
         }
+        Book book = loan.getBook();
+        loan.setDecidedBy(CurrentUser.username());
+        var free = holdQueue.freeCopy(book);
+        if (free.isPresent() && loans.findQueue(book.getId()).isEmpty()) {
+            holdQueue.setAside(loan, free.get(), NotificationType.REQUEST_APPROVED,
+                    "Your request for \"%s\" was approved and is ready for pickup until %s.");
+            history.record(loan, LoanEventType.APPROVED,
+                    "Copy %s set aside until %s".formatted(barcodeOf(loan), loan.getReadyUntil()));
+        } else {
+            loan.setStatus(LoanStatus.WAITLISTED);
+            Integer position = views.of(loan).queuePosition();
+            Audit.event("REQUEST_WAITLISTED", "loanId={} bookId={} memberId={} position={} by={}", loan.getId(),
+                    book.getId(), loan.getMember().getId(), position, CurrentUser.username());
+            history.record(loan, LoanEventType.WAITLISTED, "Number %d in the queue".formatted(position));
+            notifications.notifyMember(loan.getMember().getId(), NotificationType.WAITLISTED,
+                    "Your request for \"%s\" was approved. All copies are out; you are number %d in the queue."
+                            .formatted(book.getTitle(), position), MY_LOANS_LINK);
+        }
+        return views.of(loan);
+    }
+
+    /** The member collects a copy set aside for them: the loan starts today. */
+    @Transactional
+    public LoanResponse checkout(Long id, Approval approval) {
+        Loan loan = requireStatus(id, LoanStatus.READY);
+        if (!loan.getMember().isActive()) {
+            throw new ConflictException("The member's card is inactive.");
+        }
+        fines.ensureCanBorrow(loan.getMember(), false);
         LocalDate today = today();
         loan.setStatus(LoanStatus.ACTIVE);
         loan.setBorrowDate(today);
         loan.setDueDate(approval != null && approval.dueDate() != null ? approval.dueDate() : today.plusDays(policy.periodDays()));
-        loan.setDecidedBy(CurrentUser.username());
-        Audit.event("REQUEST_APPROVED", "loanId={} bookId={} memberId={} due={} by={}", loan.getId(), book.getId(),
-                loan.getMember().getId(), loan.getDueDate(), CurrentUser.username());
-        notifications.notifyMember(loan.getMember().getId(), NotificationType.REQUEST_APPROVED,
-                "Your request for \"%s\" was approved. Please return it by %s.".formatted(book.getTitle(), loan.getDueDate()),
+        loan.setReadyUntil(null);
+        Audit.event("HOLD_COLLECTED", "loanId={} copy={} memberId={} due={} by={}", loan.getId(),
+                loan.getCopy().getBarcode(), loan.getMember().getId(), loan.getDueDate(), CurrentUser.username());
+        history.record(loan, LoanEventType.COLLECTED, "Copy %s, due %s".formatted(barcodeOf(loan), loan.getDueDate()));
+        notifications.notifyMember(loan.getMember().getId(), NotificationType.LOAN_RECORDED,
+                "You borrowed \"%s\". Please return it by %s.".formatted(loan.getBook().getTitle(), loan.getDueDate()),
                 MY_LOANS_LINK);
-        return LoanResponse.from(loan, today);
+        return views.of(loan);
     }
 
+    /** Declines a request, also one in the queue or set aside (its copy then goes to the next in line). */
     @Transactional
     public LoanResponse reject(Long id, Rejection rejection) {
-        Loan loan = requireStatus(id, LoanStatus.PENDING);
+        Loan loan = lockLoan(id);
+        if (loan.getStatus() != LoanStatus.PENDING && loan.getStatus() != LoanStatus.WAITLISTED
+                && loan.getStatus() != LoanStatus.READY) {
+            throw new ConflictException("Only requests that are not yet lent can be declined; this one is "
+                    + loan.getStatus() + ".");
+        }
+        Book book = loan.getBook();
+        boolean freesCopy = loan.getStatus() == LoanStatus.READY;
         String reason = rejection == null || rejection.reason() == null || rejection.reason().isBlank()
                 ? null : rejection.reason().trim();
         loan.setStatus(LoanStatus.REJECTED);
         loan.setDecisionNote(reason);
         loan.setDecidedBy(CurrentUser.username());
+        loan.setReadyUntil(null);
         Audit.event("REQUEST_REJECTED", "loanId={} memberId={} by={}", loan.getId(), loan.getMember().getId(),
                 CurrentUser.username());
+        history.record(loan, LoanEventType.REJECTED, reason);
         notifications.notifyMember(loan.getMember().getId(), NotificationType.REQUEST_REJECTED,
                 "Your request for \"%s\" was declined%s".formatted(loan.getBook().getTitle(),
                         reason == null ? "." : ": " + reason),
                 MY_LOANS_LINK);
-        return LoanResponse.from(loan, today());
+        if (freesCopy) {
+            holdQueue.serve(book);
+        }
+        return views.of(loan);
     }
 
+    /** The book is back: a late fee is charged if it is late; the copy goes to the next in the queue. */
     @Transactional
     public LoanResponse markReturned(Long id) {
         Loan loan = requireStatus(id, LoanStatus.ACTIVE);
+        Book book = loan.getBook();
         loan.setStatus(LoanStatus.RETURNED);
         loan.setReturnDate(today());
         Audit.event("LOAN_RETURNED", "loanId={} bookId={} memberId={} by={}", loan.getId(), loan.getBook().getId(),
                 loan.getMember().getId(), CurrentUser.username());
-        return LoanResponse.from(loan, today());
+        history.record(loan, LoanEventType.RETURNED, "Copy %s".formatted(barcodeOf(loan)));
+        fines.chargeIfLate(loan);
+        holdQueue.serve(book);
+        return views.of(loan);
+    }
+
+    /** Extends an active loan by one loan period, if the rules allow (see LoanViews.whyNotRenewable). */
+    @Transactional
+    public LoanResponse renew(Loan loan) {
+        lockBookIncludingDeleted(loan.getBook().getId());
+        entityManager.refresh(loan);
+        String refusal = views.whyNotRenewable(loan, today());
+        if (refusal != null) {
+            throw new ConflictException(refusal);
+        }
+        loan.setDueDate(loan.getDueDate().plusDays(policy.periodDays()));
+        loan.setRenewalCount(loan.getRenewalCount() + 1);
+        loan.setDueSoonNotified(false);
+        loan.setOverdueNotified(false);
+        Audit.event("LOAN_RENEWED", "loanId={} memberId={} due={} by={}", loan.getId(), loan.getMember().getId(),
+                loan.getDueDate(), CurrentUser.username());
+        history.record(loan, LoanEventType.RENEWED, "New due date %s".formatted(loan.getDueDate()));
+        return views.of(loan);
+    }
+
+    @Transactional
+    public LoanResponse renew(Long id) {
+        return renew(lockLoan(id));
     }
 
     @Transactional
     public void delete(Long id) {
-        Loan loan = require(id);
+        Loan loan = lockLoan(id);
+        Book book = loan.getBook();
+        boolean freesCopy = loan.getStatus().holdsCopy();
         loan.setDeleted(true);
         Audit.event("LOAN_DELETED", "loanId={} by={}", loan.getId(), CurrentUser.username());
+        history.record(loan, LoanEventType.DELETED);
+        if (freesCopy) {
+            holdQueue.serve(book);
+        }
     }
 
     Loan require(Long id) {
         return loans.findByIdAndDeletedFalse(id).orElseThrow(() -> new NotFoundException("Loan", id));
     }
 
-    private Loan requireStatus(Long id, LoanStatus expected) {
+    /**
+     * The loan, re-read after taking its book's row lock: every change to a loan (and to which copy is
+     * set aside or lent) happens under that lock, so two requests cannot act on the same stale state.
+     */
+    Loan lockLoan(Long id) {
         Loan loan = require(id);
+        lockBookIncludingDeleted(loan.getBook().getId());
+        entityManager.refresh(loan);
+        if (loan.isDeleted()) {
+            throw new NotFoundException("Loan", id);
+        }
+        return loan;
+    }
+
+    private Loan requireStatus(Long id, LoanStatus expected) {
+        Loan loan = lockLoan(id);
         if (loan.getStatus() != expected) {
             throw new ConflictException("This loan is " + loan.getStatus() + ", not " + expected + ".");
         }
@@ -157,6 +285,11 @@ public class LoanService {
     /** Locks the book row: concurrent checkouts of the same book are serialized here. */
     Book lockBook(Long bookId) {
         return books.findActiveForUpdate(bookId).orElseThrow(() -> new NotFoundException("Book", bookId));
+    }
+
+    /** Like lockBook, but also for a deleted book, so its old requests and loans can still be closed. */
+    Book lockBookIncludingDeleted(Long bookId) {
+        return books.findForUpdate(bookId).orElseThrow(() -> new NotFoundException("Book", bookId));
     }
 
     private void apply(Loan loan, LoanRequest request) {
@@ -170,20 +303,27 @@ public class LoanService {
             throw new FieldValidationException("dueDate", "must not be before the borrow date");
         }
 
-        Book book = lockBook(request.bookId());
-        LoanStatus status = request.returnDate() == null ? LoanStatus.ACTIVE : LoanStatus.RETURNED;
-        if (status == LoanStatus.ACTIVE && loans.isBookOnLoan(book.getId(), loan.getId())) {
-            throw new ConflictException("\"" + book.getTitle() + "\" is already on loan.");
+        Copy scanned = request.copyBarcode() == null || request.copyBarcode().isBlank()
+                ? null : copyService.requireByBarcode(request.copyBarcode());
+        if (scanned != null && request.bookId() != null && !scanned.getBook().getId().equals(request.bookId())) {
+            throw new FieldValidationException("copyBarcode", "belongs to another book");
         }
+        Book book = lockBook(scanned != null ? scanned.getBook().getId() : request.bookId());
+        LoanStatus status = request.returnDate() == null ? LoanStatus.ACTIVE : LoanStatus.RETURNED;
+        Copy copy = chooseCopy(loan, book, scanned, status);
 
         Member member = memberService.require(request.memberId());
         boolean memberChanged = loan.getMember() == null || !Objects.equals(loan.getMember().getId(), member.getId());
         if (memberChanged && !member.isActive()) {
             throw new FieldValidationException("memberId", "Member is inactive and cannot borrow books");
         }
+        if (memberChanged && status == LoanStatus.ACTIVE) {
+            fines.ensureCanBorrow(member, false);
+        }
 
         boolean datesChanged = !Objects.equals(loan.getDueDate(), dueDate);
         loan.setBook(book);
+        loan.setCopy(copy);
         loan.setMember(member);
         loan.setStatus(status);
         loan.setBorrowDate(borrowDate);
@@ -193,6 +333,46 @@ public class LoanService {
             loan.setDueSoonNotified(false);
             loan.setOverdueNotified(false);
         }
+    }
+
+    /**
+     * The scanned copy if one was given; otherwise the loan's current copy when it still fits;
+     * otherwise a free copy (any copy for a past, returned loan).
+     */
+    private Copy chooseCopy(Loan loan, Book book, Copy scanned, LoanStatus status) {
+        if (scanned != null) {
+            if (status == LoanStatus.ACTIVE && loans.isCopyOnLoan(scanned.getId(), loan.getId())) {
+                throw new ConflictException("Copy " + scanned.getBarcode() + " is already on loan.");
+            }
+            return scanned;
+        }
+        Copy current = loan.getCopy();
+        if (current != null && current.getBook().getId().equals(book.getId())
+                && (status != LoanStatus.ACTIVE || !loans.isCopyOnLoan(current.getId(), loan.getId()))) {
+            return current;
+        }
+        if (status == LoanStatus.ACTIVE) {
+            return availableCopy(book, loan.getId());
+        }
+        return copies.findAllByBookIdAndDeletedFalseOrderByIdAsc(book.getId()).stream().findFirst()
+                .orElseThrow(() -> new FieldValidationException("bookId", "This title has no copies"));
+    }
+
+    /** A copy of the book that is on the shelf; the caller holds the book's lock. */
+    private Copy availableCopy(Book book, Long excludeLoanId) {
+        return copies.findAllByBookIdAndDeletedFalseOrderByIdAsc(book.getId()).stream()
+                .filter(c -> !loans.isCopyOnLoan(c.getId(), excludeLoanId))
+                .findFirst()
+                .orElseThrow(() -> new ConflictException("No copy of \"" + book.getTitle() + "\" is available."));
+    }
+
+    /** Desk return: scan the copy, its active loan is closed. */
+    @Transactional
+    public LoanResponse returnByBarcode(String barcode) {
+        Copy copy = copyService.requireByBarcode(barcode);
+        Loan loan = loans.findActiveByCopy(copy.getId())
+                .orElseThrow(() -> new ConflictException("Copy " + copy.getBarcode() + " is not on loan."));
+        return markReturned(loan.getId());
     }
 
     private LocalDate today() {

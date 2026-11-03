@@ -1,20 +1,34 @@
 package com.helmifr.library.loan;
 
 import com.helmifr.library.common.Ref;
+import com.helmifr.library.fine.FineDtos.LoanFine;
 import java.time.Instant;
 import java.time.LocalDate;
 
-public record LoanResponse(Long id, LoanBook book, Ref member, LoanStatus status, Instant requestedAt,
+/**
+ * @param readyUntil    READY holds: collect by this date
+ * @param queuePosition WAITLISTED requests: 1 = next in line
+ * @param renewals      how many times the loan was renewed
+ * @param canRenew      an ACTIVE loan that may be renewed now
+ * @param fine          the late fee charged on return, or accruing on a book still out; null if none
+ */
+public record LoanResponse(Long id, LoanBook book, LoanCopy copy, Ref member, LoanStatus status, Instant requestedAt,
                            LocalDate borrowDate, LocalDate dueDate, LocalDate returnDate, boolean overdue,
-                           String decisionNote) {
+                           String decisionNote, LocalDate readyUntil, Integer queuePosition, int renewals,
+                           boolean canRenew, LoanFine fine) {
 
     public record LoanBook(Long id, String title, String authorName) {}
 
-    static LoanResponse from(Loan l, LocalDate today) {
+    /** The physical copy; null for requests that have not been given a copy. */
+    public record LoanCopy(Long id, String barcode) {}
+
+    static LoanResponse from(Loan l, LocalDate today, Integer queuePosition, boolean canRenew, LoanFine fine) {
         return new LoanResponse(l.getId(),
                 new LoanBook(l.getBook().getId(), l.getBook().getTitle(), l.getBook().getAuthor().getName()),
+                l.getCopy() == null ? null : new LoanCopy(l.getCopy().getId(), l.getCopy().getBarcode()),
                 new Ref(l.getMember().getId(), l.getMember().getName()),
                 l.getStatus(), l.getRequestedAt(), l.getBorrowDate(), l.getDueDate(), l.getReturnDate(),
-                l.isOverdue(today), l.getDecisionNote());
+                l.isOverdue(today), l.getDecisionNote(), l.getReadyUntil(), queuePosition, l.getRenewalCount(),
+                canRenew, fine);
     }
 }

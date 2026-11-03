@@ -8,6 +8,7 @@ import FormActions from '../components/FormActions';
 import MemberLoans from '../components/MemberLoans';
 import { emptyToNull } from '../format';
 import { useAction, useApi, useFormFields } from '../hooks';
+import { msg, useT } from '../i18n';
 
 const EMPTY_MEMBER = { name: '', dateOfBirth: '', email: '', phone: '', active: true };
 
@@ -21,12 +22,13 @@ function toFormValues(member) {
   };
 }
 
+/** Client-side checks; the messages are translated where they are shown. */
 function validate(values) {
   const errors = {};
-  if (!values.name.trim()) errors.name = 'Name is required.';
-  if (!values.email.trim()) errors.email = 'Email is required.';
-  if (!values.phone.trim()) errors.phone = 'Phone is required.';
-  if (!values.dateOfBirth) errors.dateOfBirth = 'Date of birth is required.';
+  if (!values.name.trim()) errors.name = msg('Name is required.');
+  if (!values.email.trim()) errors.email = msg('Email is required.');
+  if (!values.phone.trim()) errors.phone = msg('Phone is required.');
+  if (!values.dateOfBirth) errors.dateOfBirth = msg('Date of birth is required.');
   return errors;
 }
 
@@ -35,6 +37,7 @@ export default function MemberEdit() {
   const isNew = id === 'new';
   const { isLibrarian } = useAuth();
   const member = useApi(isNew ? null : `/api/members/${id}`);
+  const t = useT();
 
   if (isNew && !isLibrarian) return <Navigate to="/members" replace />;
   if (member.error) return <ErrorAlert error={member.error} />;
@@ -45,7 +48,7 @@ export default function MemberEdit() {
       <MemberForm key={id} member={member.data} readOnly={!isLibrarian} />
       {!isNew && (
         <section className="mt-4">
-          <h2 className="h5">Borrowing history</h2>
+          <h2 className="h5">{t('Borrowing history')}</h2>
           <MemberLoans memberId={id} />
         </section>
       )}
@@ -58,6 +61,7 @@ function MemberForm({ member, readOnly }) {
   const [values, , handleChange] = useFormFields(member ? toFormValues(member) : EMPTY_MEMBER);
   const save = useAction();
   const { fieldErrors } = save;
+  const t = useT();
 
   async function handleSubmit(event) {
     event.preventDefault();
@@ -75,7 +79,7 @@ function MemberForm({ member, readOnly }) {
     if (saved) navigate('/members');
   }
 
-  const title = readOnly ? 'Member' : member ? 'Edit member' : 'Add member';
+  const title = readOnly ? t('Member') : member ? t('Edit member') : t('Add member');
 
   return (
     <Form onSubmit={handleSubmit} noValidate className="p-4 border rounded shadow-sm">
@@ -83,43 +87,43 @@ function MemberForm({ member, readOnly }) {
       <ErrorAlert error={save.error} onDismiss={save.clearError} />
       <fieldset disabled={readOnly}>
         <Field
-          label="Name"
+          label={t('Name')}
           name="name"
           value={values.name}
           onChange={handleChange}
-          error={fieldErrors.name}
+          error={t(fieldErrors.name)}
           autoComplete="off"
         />
         <Field
-          label="Email"
+          label={t('Email')}
           name="email"
           type="email"
           value={values.email}
           onChange={handleChange}
-          error={fieldErrors.email}
+          error={t(fieldErrors.email)}
           autoComplete="off"
         />
         <Field
-          label="Phone"
+          label={t('Phone')}
           name="phone"
           type="tel"
           value={values.phone}
           onChange={handleChange}
-          error={fieldErrors.phone}
+          error={t(fieldErrors.phone)}
           autoComplete="off"
         />
         <Field
-          label="Date of birth"
+          label={t('Date of birth')}
           name="dateOfBirth"
           type="date"
           value={values.dateOfBirth}
           onChange={handleChange}
-          error={fieldErrors.dateOfBirth}
+          error={t(fieldErrors.dateOfBirth)}
         />
         <FormGroup switch>
           <Input id="active" name="active" type="switch" checked={values.active} onChange={handleChange} />
           <Label check for="active">
-            Active member
+            {t('Active member')}
           </Label>
         </FormGroup>
       </fieldset>

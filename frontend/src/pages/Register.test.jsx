@@ -1,6 +1,7 @@
-import { screen } from '@testing-library/react';
+import { act, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it } from 'vitest';
+import { setLanguage } from '../i18n';
 import { customer, jsonResponse, mockFetch, problem, renderApp, sentBody } from '../test/utils';
 
 async function fillForm({ libraryCardId } = {}) {
@@ -51,5 +52,22 @@ describe('Registration page', () => {
 
     expect(await screen.findByText('No library card matches this ID with your email or phone number', { selector: '.invalid-feedback' }))
       .toBeInTheDocument();
+  });
+
+  it('shows its validation messages in the language chosen after submitting', async () => {
+    mockFetch({
+      'GET /api/auth/me': () => problem(401, 'Not signed in'),
+      'GET /api/auth/demo': { enabled: false, registrationOpen: true, accounts: [] },
+    });
+
+    renderApp('/register');
+    await userEvent.click(await screen.findByRole('button', { name: 'Create account' }));
+    expect(await screen.findByText('Name is required.')).toBeInTheDocument();
+    expect(screen.getByText('Use at least 10 characters.')).toBeInTheDocument();
+
+    act(() => setLanguage('id'));
+
+    expect(screen.getByText('Nama wajib diisi.')).toBeInTheDocument();
+    expect(screen.getByText('Gunakan minimal 10 karakter.')).toBeInTheDocument();
   });
 });

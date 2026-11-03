@@ -17,6 +17,7 @@ services:
         - scripts/**
         - .github/**
         - src/test/**
+        - e2e/**
         - "frontend/src/**/*.test.jsx"
         - "frontend/src/**/*.test.js"
         - frontend/src/test/**

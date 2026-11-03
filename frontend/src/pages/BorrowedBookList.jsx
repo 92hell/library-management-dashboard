@@ -1,6 +1,7 @@
 import { useState } from 'react';
-import { Link, useSearchParams } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { Button, ButtonGroup, Col, Input, Label, Row } from 'reactstrap';
+import { focusPageHeading } from '../a11y';
 import { api } from '../api';
 import { ErrorAlert } from '../components/Feedback';
 import BookCover from '../components/BookCover';
@@ -10,15 +11,19 @@ import PageHeader from '../components/PageHeader';
 import SearchBox from '../components/SearchBox';
 import { formatDate } from '../format';
 import { useAction, useDebouncedValue, usePagedList } from '../hooks';
+import { msg, useT } from '../i18n';
 
 const STATUSES = [
-  { value: 'all', label: 'All' },
-  { value: 'pending', label: 'Pending requests' },
-  { value: 'active', label: 'On loan' },
-  { value: 'overdue', label: 'Overdue' },
-  { value: 'returned', label: 'Returned' },
-  { value: 'rejected', label: 'Declined' },
-  { value: 'cancelled', label: 'Cancelled' },
+  { value: 'all', label: msg('All') },
+  { value: 'pending', label: msg('Pending requests') },
+  { value: 'waitlisted', label: msg('In queue') },
+  { value: 'ready', label: msg('Ready for pickup') },
+  { value: 'active', label: msg('On loan') },
+  { value: 'overdue', label: msg('Overdue') },
+  { value: 'returned', label: msg('Returned') },
+  { value: 'rejected', label: msg('Declined') },
+  { value: 'cancelled', label: msg('Cancelled') },
+  { value: 'expired', label: msg('Not collected') },
 ];
 const EDITABLE = ['ACTIVE', 'RETURNED'];
 
@@ -31,16 +36,42 @@ export default function BorrowedBookList() {
   const q = useDebouncedValue(search.trim());
   const loans = usePagedList('/api/borrowed-books', { q, borrowDate, status });
   const action = useAction();
+  const navigate = useNavigate();
+  const [returnBarcode, setReturnBarcode] = useState('');
+  const [returned, setReturned] = useState(null);
+  const t = useT();
+
+  /** Desk return: scan the copy and its loan is closed. */
+  async function returnScanned(event) {
+    event.preventDefault();
+    const barcode = returnBarcode.trim();
+    if (!barcode) return;
+    setReturned(null);
+    let result = null;
+    if (await action.run(async () => {
+      result = await api.post('/api/borrowed-books/return-by-barcode', { barcode });
+    })) {
+      setReturned(result);
+      setReturnBarcode('');
+      loans.reload();
+    }
+  }
 
   function setStatus(value) {
     setSearchParams(value === 'all' ? {} : { status: value }, { replace: true });
   }
 
-  /** Runs a workflow action; under a narrowed filter the row leaves the list, like a deletion. */
-  async function perform(call) {
+  /**
+   * Runs a workflow action. `leavesFilter`: the action moves the loan out of a narrowed filter (or,
+   * for a deletion, out of every list), so the list is refreshed like after a deletion - stepping back
+   * a page when it was the last row. Focus moves to the page heading, as the pressed button may be gone.
+   */
+  async function perform(call, { leavesFilter = status !== 'all' } = {}) {
+    setReturned(null);
     if (await action.run(call)) {
-      if (status === 'all') loans.reload();
-      else loans.refreshAfterRemoval();
+      if (leavesFilter) loans.refreshAfterRemoval();
+      else loans.reload();
+      focusPageHeading();
     }
   }
 
@@ -49,9 +80,30 @@ export default function BorrowedBookList() {
   }
 
   function reject(loan) {
-    const reason = window.prompt(`Decline the request for "${loan.book.title}"? Optional reason for ${loan.member.name}:`, '');
+    const reason = window.prompt(
+      t('Decline the request for "{title}"? Optional reason for {name}:', { title: loan.book.title, name: loan.member.name }),
+      '',
+    );
     if (reason === null) return;
     perform(() => api.post(`/api/borrowed-books/${loan.id}/reject`, { reason: reason.trim() || null }));
+  }
+
+  function handOver(loan) {
+    perform(() => api.post(`/api/borrowed-books/${loan.id}/checkout`));
+  }
+
+  /** A renewed loan keeps its status, so it stays in the list. */
+  function renew(loan) {
+    perform(() => api.post(`/api/borrowed-books/${loan.id}/renew`), { leavesFilter: false });
+  }
+
+  /** Issues (or reuses) the loan's receipt and opens it for printing. */
+  async function openReceipt(loan) {
+    setReturned(null);
+    let receipt = null;
+    if (await action.run(async () => {
+      receipt = await api.post(`/api/borrowed-books/${loan.id}/receipt`);
+    })) navigate(`/receipts/${receipt.number}`);
   }
 
   function markReturned(loan) {
@@ -59,37 +111,68 @@ export default function BorrowedBookList() {
   }
 
   function remove(loan) {
-    if (!window.confirm(`Delete the record of "${loan.book.title}" for ${loan.member.name}?`)) return;
-    perform(() => api.delete(`/api/borrowed-books/${loan.id}`));
+    if (!window.confirm(t('Delete the record of "{title}" for {name}?', { title: loan.book.title, name: loan.member.name }))) return;
+    perform(() => api.delete(`/api/borrowed-books/${loan.id}`), { leavesFilter: true });
   }
 
   return (
     <>
-      <PageHeader title="Loans" addLabel="Lend a book" addTo="/borrowed-books/new" />
+      <PageHeader title={t('Loans')} addLabel={t('Lend a book')} addTo="/borrowed-books/new" />
+      <form className="d-flex gap-2 mb-3" onSubmit={returnScanned}>
+        <Label for="return-barcode" className="visually-hidden">
+          {t('Return by barcode')}
+        </Label>
+        <Input
+          id="return-barcode"
+          placeholder={t('Return by barcode: scan or type, then Enter')}
+          value={returnBarcode}
+          onChange={(e) => setReturnBarcode(e.target.value)}
+          autoComplete="off"
+        />
+        <Button color="success" type="submit" disabled={action.pending || !returnBarcode.trim()}>
+          {t('Return')}
+        </Button>
+      </form>
+      <div role="status">
+        {returned && (
+          <div className="alert alert-success d-flex justify-content-between align-items-start">
+            <span>
+              {returned.copy
+                ? t('Returned "{title}" from {name} ({barcode}).', {
+                    title: returned.book.title,
+                    name: returned.member.name,
+                    barcode: returned.copy.barcode,
+                  })
+                : t('Returned "{title}" from {name}.', { title: returned.book.title, name: returned.member.name })}
+            </span>
+            <button type="button" className="btn-close" aria-label={t('Dismiss')} onClick={() => setReturned(null)} />
+          </div>
+        )}
+      </div>
       <Row className="g-2 mb-3">
         <Col md={6}>
           <SearchBox
             id="loan-search"
-            label="Search loans"
-            placeholder="Search by member, library card ID, book or author"
+            label={t('Search loans')}
+            placeholder={t('Search by member, library card ID, book or author')}
             value={search}
             onChange={setSearch}
           />
         </Col>
         <Col xs={6} md={3}>
           <Label for="loan-borrow-date" className="visually-hidden">
-            Borrow date
+            {t('Borrow date')}
           </Label>
-          <Input id="loan-borrow-date" type="date" value={borrowDate} onChange={(e) => setBorrowDate(e.target.value)} title="Borrow date" />
+          <Input id="loan-borrow-date" type="date" value={borrowDate} onChange={(e) => setBorrowDate(e.target.value)} title={t('Borrow date')} />
         </Col>
         <Col xs={6} md={3}>
           <Label for="loan-status" className="visually-hidden">
-            Status
+            {t('Status')}
           </Label>
           <Input id="loan-status" type="select" value={status} onChange={(e) => setStatus(e.target.value)}>
             {STATUSES.map(({ value, label }) => (
               <option key={value} value={value}>
-                {label}
+                {t(label)}
               </option>
             ))}
           </Input>
@@ -98,8 +181,8 @@ export default function BorrowedBookList() {
       <ErrorAlert error={action.error} onDismiss={action.clearError} />
       <PagedTable
         list={loans}
-        headers={['Book', 'Member', 'Borrowed', 'Due', 'Status', 'Actions']}
-        emptyMessage="No loans found."
+        headers={[t('Book'), t('Member'), t('Borrowed'), t('Due'), t('Status'), t('Actions')]}
+        emptyMessage={t('No loans found.')}
         renderRow={(loan) => (
           <tr key={loan.id}>
             <td>
@@ -107,12 +190,15 @@ export default function BorrowedBookList() {
                 <BookCover title={loan.book.title} />
                 <div>
                   <span className="fw-semibold">{loan.book.title}</span>
-                  <span className="d-block small text-muted">{loan.book.authorName}</span>
+                  <span className="d-block small text-muted">
+                    {loan.book.authorName}
+                    {loan.copy && <span className="font-monospace ms-2">{loan.copy.barcode}</span>}
+                  </span>
                 </div>
               </div>
             </td>
             <td>{loan.member.name}</td>
-            <td className="text-nowrap">{loan.status === 'PENDING' ? 'Requested' : formatDate(loan.borrowDate)}</td>
+            <td className="text-nowrap">{loan.status === 'PENDING' ? t('Requested') : formatDate(loan.borrowDate)}</td>
             <td className="text-nowrap">{formatDate(loan.dueDate)}</td>
             <td>
               <LoanStatus loan={loan} />
@@ -120,27 +206,40 @@ export default function BorrowedBookList() {
             <td className="text-nowrap">
               <ButtonGroup size="sm">
                 {loan.status === 'PENDING' && (
-                  <>
-                    <Button color="success" onClick={() => approve(loan)} disabled={action.pending}>
-                      Approve
-                    </Button>
-                    <Button color="secondary" onClick={() => reject(loan)} disabled={action.pending}>
-                      Reject
-                    </Button>
-                  </>
+                  <Button color="success" onClick={() => approve(loan)} disabled={action.pending}>
+                    {t('Approve')}
+                  </Button>
+                )}
+                {loan.status === 'READY' && (
+                  <Button color="success" onClick={() => handOver(loan)} disabled={action.pending}>
+                    {t('Hand over')}
+                  </Button>
+                )}
+                {['PENDING', 'WAITLISTED', 'READY'].includes(loan.status) && (
+                  <Button color="secondary" onClick={() => reject(loan)} disabled={action.pending}>
+                    {t('Reject')}
+                  </Button>
                 )}
                 {loan.status === 'ACTIVE' && (
                   <Button color="success" onClick={() => markReturned(loan)} disabled={action.pending}>
-                    Mark returned
+                    {t('Mark returned')}
+                  </Button>
+                )}
+                {loan.canRenew && (
+                  <Button color="primary" outline onClick={() => renew(loan)} disabled={action.pending}>
+                    {t('Renew')}
                   </Button>
                 )}
                 {EDITABLE.includes(loan.status) && (
                   <Button color="primary" tag={Link} to={`/borrowed-books/${loan.id}`}>
-                    Edit
+                    {t('Edit')}
                   </Button>
                 )}
+                <Button color="secondary" outline onClick={() => openReceipt(loan)} disabled={action.pending}>
+                  {t('Receipt')}
+                </Button>
                 <Button color="danger" outline onClick={() => remove(loan)} disabled={action.pending}>
-                  Delete
+                  {t('Delete')}
                 </Button>
               </ButtonGroup>
             </td>

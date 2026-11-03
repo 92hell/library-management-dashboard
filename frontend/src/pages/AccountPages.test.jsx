@@ -1,6 +1,7 @@
-import { screen } from '@testing-library/react';
+import { act, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it } from 'vitest';
+import { setLanguage } from '../i18n';
 import { customer, problem, renderApp, signedInAs } from '../test/utils';
 
 const profile = {
@@ -22,6 +23,20 @@ describe('Profile page', () => {
     await userEvent.type(screen.getByLabelText('New password'), 'a-brand-new-password');
     await userEvent.click(screen.getByRole('button', { name: 'Change password' }));
     expect(await screen.findByText('is not correct')).toBeInTheDocument();
+  });
+
+  it('checks the new password length in the language chosen afterwards', async () => {
+    signedInAs(customer, { 'GET /api/profile': profile });
+
+    renderApp('/profile');
+    await userEvent.type(await screen.findByLabelText('Current password'), 'old-password');
+    await userEvent.type(screen.getByLabelText('New password'), 'short');
+    await userEvent.click(screen.getByRole('button', { name: 'Change password' }));
+    expect(await screen.findByText('Use at least 10 characters.')).toBeInTheDocument();
+
+    act(() => setLanguage('id'));
+
+    expect(screen.getByText('Gunakan minimal 10 karakter.')).toBeInTheDocument();
   });
 });
 

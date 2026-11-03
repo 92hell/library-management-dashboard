@@ -53,6 +53,17 @@
             <groupId>org.flywaydb</groupId>
             <artifactId>flyway-mysql</artifactId>
         </dependency>
+        <!-- Loan receipts: PDF (OpenPDF, LGPL/MPL) and the QR code that links to the verification page. -->
+        <dependency>
+            <groupId>com.github.librepdf</groupId>
+            <artifactId>openpdf</artifactId>
+            <version>2.0.3</version>
+        </dependency>
+        <dependency>
+            <groupId>com.google.zxing</groupId>
+            <artifactId>core</artifactId>
+            <version>3.5.3</version>
+        </dependency>
         <dependency>
             <groupId>org.mariadb.jdbc</groupId>
             <artifactId>mariadb-java-client</artifactId>
@@ -85,6 +96,12 @@
             <groupId>com.h2database</groupId>
             <artifactId>h2</artifactId>
             <scope>runtime</scope>
+        </dependency>
+        <!-- mvn -Pmariadb verify: the same tests against a real MariaDB in Docker (see the profile). -->
+        <dependency>
+            <groupId>org.testcontainers</groupId>
+            <artifactId>mariadb</artifactId>
+            <scope>test</scope>
         </dependency>
     </dependencies>
 
@@ -119,6 +136,27 @@
     </build>
 
     <profiles>
+        <!--
+          mvn -Pmariadb verify : runs the whole test suite against MariaDB 11.4 in a Docker container
+          (Testcontainers JDBC URL) instead of H2, so SQL that only H2 accepts is caught. Needs Docker.
+        -->
+        <profile>
+            <id>mariadb</id>
+            <build>
+                <plugins>
+                    <plugin>
+                        <artifactId>maven-surefire-plugin</artifactId>
+                        <configuration>
+                            <systemPropertyVariables>
+                                <spring.datasource.url>jdbc:tc:mariadb:11.4:///library</spring.datasource.url>
+                                <test.isolated-db.prefix>jdbc:tc:mariadb:11.4:///</test.isolated-db.prefix>
+                                <test.isolated-db.suffix></test.isolated-db.suffix>
+                            </systemPropertyVariables>
+                        </configuration>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
         <!-- mvn -Pfullstack package : also builds the React app (needs Node 20+) and bundles it into the jar -->
         <profile>
             <id>fullstack</id>

@@ -14,22 +14,64 @@ React 18 · Vite · React Router 6 · Bootstrap 5 / reactstrap.
 
 **Customers (members with an online account)**
 - Register online, or link an existing library card from the desk (card ID + the email or phone on file)
-- Browse and search the catalogue with live availability; request books
-- *My loans*: pending requests, books on loan with due dates, overdue warnings, history; cancel a request
-- Notifications: request approved / declined (with reason), book due soon, book overdue
+- Browse and search the catalogue (title, author, publisher, category or ISBN) with live
+  availability; filter by category, author or "on the shelf now" and sort by title, publication
+  date or newest additions (filters live in the address, so a filtered list can be shared); each book has its own page with cover, description, shelf and queue; request books
+- *My loans*: pending requests, place in the queue, holds ready for pickup, books on loan with due
+  dates, overdue warnings, history; cancel a request or hold; renew a loan
+- Late fees: what an overdue book costs so far, the balance owed and the fee history
+- Notifications: hold ready for pickup, joined the waiting list, hold expired, request declined
+  (with reason), book due soon, book overdue, late fee charged
 - Profile: contact details, library card ID, password change
 
 **Librarians (staff)**
 - Dashboard: pending requests, overdue loans, due today, books on loan
-- Approve or decline borrow requests; mark books returned
+- Approve or decline borrow requests; approval sets a copy aside ("ready for pickup") or puts the
+  member on the waiting list when every copy is out; hand the copy over at the desk
+- Holds queue: a returned or newly added copy goes to the next member in line, first come first
+  served; uncollected holds expire and pass to the next member
+- Renew loans; mark books returned
+- Reports for any date range (up to a year): books lent and returned, late-return rate, active
+  and new members, fines charged and collected, most borrowed titles, most active members;
+  CSV downloads (spreadsheet-safe: formulas in data are neutralised; every export is audited)
+- Fines desk: late fees charged on return; record a payment or waive a fee with a reason (audited)
 - Desk checkout for walk-in members who have no online account; record past loans
+- Physical copies with barcodes: a title can have several copies ("2 of 3 on shelf"); lend a
+  scanned copy, return by barcode, look up who has a copy, add or withdraw copies
+- Add a book by ISBN: look it up at Open Library to fill in title, author, publisher, year and
+  categories; covers come from Open Library (a drawn spine when there is none)
 - Manage books, authors, members (each with a library card ID) and librarian accounts
 - Notified of every new borrow request
 
+**For everyone**
+- English and Bahasa Indonesia: follows the browser language at first, switch any time (EN / ID in
+  the menu and on the sign-in page; remembered). Dates and amounts follow the language. Messages
+  from the server are in English for now.
+- Accessibility: WCAG 2.1 AA checked automatically (axe) on every main page in the browser tests;
+  skip link, focus moves to the page on navigation, form errors and hints read with their field
+
+**Loan receipts (printable evidence)**
+- Every status change of a loan is recorded (who, when, what): requested, approved, lent,
+  collected, renewed, returned, late fee charged / paid / waived, corrections
+- A receipt is a numbered snapshot (R-2026-000123) of the loan and that history, printable from
+  the browser or downloadable as a bilingual PDF (English / Bahasa Indonesia) with the library
+  stamp and a QR code. Librarians issue them for any loan, members for their own.
+- Each receipt is signed (Ed25519) over its exact text; the QR code opens a public page that
+  re-checks the signature and shows the library's record (member name masked). The public key is
+  at `/api/receipts/public-key`, so anyone can verify a receipt without trusting the app.
+- This proves the receipt came from the library and was not altered. It is *not* a certified
+  electronic signature under UU ITE: that needs a Kominfo-registered provider (PSrE, e.g. BSrE or
+  Privy), which can be added as another `ReceiptSigner`.
+
 **Rules enforced by the API**
-- A book can only be lent to one member at a time (row lock against races)
+- A copy can only be lent to one member at a time; a title with several copies can be lent to
+  several members (row lock against races)
 - At most 3 open requests/loans per customer; no duplicate request for the same book
 - Due date defaults to 14 days; dates are validated (no future borrow date, no return before borrow)
+- Holds are kept for 3 days; a loan can be renewed once, not when overdue and not while someone is
+  waiting for the book
+- Late returns cost IDR 1,000 a day, at most IDR 30,000 per loan; a member owing IDR 20,000 or more
+  cannot request, borrow or collect a hold until they pay
 - Soft deletes; authors with books, books on loan and members with open loans cannot be deleted
 - Deleting a member disables their online account
 
@@ -96,7 +138,13 @@ environment variables:
 | `LIBRARIAN_USERNAME`, `LIBRARIAN_PASSWORD` | `librarian`, generated | Owner account: created if missing and re-enabled on every start; when `LIBRARIAN_PASSWORD` is set its password is reset to it (recovery). Without it a password is generated and printed to the console only. **Always set it when hosting.** |
 | `DEMO_MODE`, `DEMO_PASSWORD`, `DEMO_RESET_CRON` | `false`, `demo-password`, `0 0 3 * * *` | Public demo - see [Demo mode](#demo-mode) |
 | `LOAN_PERIOD_DAYS`, `LOAN_MAX_OPEN_PER_MEMBER`, `LOAN_DUE_SOON_DAYS` | `14`, `3`, `2` | Lending rules |
-| `LOAN_REMINDER_CRON` | `0 0 8 * * *` | Daily due-soon / overdue reminder job (`-` disables) |
+| `LOAN_PICKUP_DAYS`, `LOAN_MAX_RENEWALS` | `3`, `1` | How long a hold waits at the desk; renewals per loan |
+| `BOOK_COVERS`, `ISBN_LOOKUP_URL`, `ISBN_LOOKUP_TIMEOUT` | `true`, `https://openlibrary.org`, `5s` | Open Library covers and ISBN lookup (blank URL turns the lookup off) |
+| `LIBRARY_NAME`, `PUBLIC_URL` | `Community Library`, request address | Name on receipts and their stamp; base of the QR verification link |
+| `RECEIPT_PRIVATE_KEY`, `RECEIPT_PUBLIC_KEY` | generated, kept in the database | Ed25519 receipt signing key (base64 PKCS#8 / X.509); set both in production to keep the key out of the database |
+| `library.reports.max-csv-rows` | `20000` | Largest CSV export; a bigger range asks for a shorter one |
+| `FINE_PER_DAY`, `FINE_MAX_PER_LOAN`, `FINE_BLOCK_AT`, `FINE_CURRENCY` | `1000`, `30000`, `20000`, `IDR` | Late fees (whole currency units; `FINE_BLOCK_AT=0` never blocks) |
+| `LOAN_REMINDER_CRON` | `0 0 8 * * *` | Daily job: expire uncollected holds, due-soon / overdue reminders (`-` disables) |
 | `APP_BASE_URL` | `http://localhost:8080` | Used for links in emails / messages |
 | `NOTIFY_EMAIL_ENABLED`, `NOTIFY_EMAIL_FROM` + `SPRING_MAIL_HOST`, `SPRING_MAIL_PORT`, `SPRING_MAIL_USERNAME`, `SPRING_MAIL_PASSWORD` | off | Email notifications over SMTP |
 | `NOTIFY_SMS_*`, `NOTIFY_WHATSAPP_*` (`ENABLED`, `PROVIDER`, `SENDER`, `API_URL`, `API_KEY`) | off | SMS / WhatsApp channels - dry run (logged) until a provider is integrated |
@@ -166,6 +214,16 @@ are replaced so user input cannot forge log lines.
 - Request DTOs with validation (clients cannot set ids, flags or audit fields); RFC 7807 errors without internals
 - Content-Security-Policy, `X-Frame-Options: DENY`, `nosniff`, strict referrer policy
 - Linking a walk-in card needs the card ID **and** matching email/phone; wrong attempts count towards the lockout
+- Lending is consistent under concurrent requests: every change to a loan, its copy or its fee takes
+  the book's (or fine's) row lock first and re-reads under it, at READ COMMITTED isolation (tested
+  with two threads against real MariaDB)
+- Receipts: a receipt opens only for the member named on it (or librarians); the signed text is bound
+  to its own row; with a configured signing key no other key is trusted; demo receipts are marked
+  and watermarked "DEMO - NOT A REAL RECEIPT"
+- CSV exports quote every text cell and neutralise formulas (also for `;`-separated Excel), and are
+  capped at 20,000 rows; ISBN lookups are cached and limited to 2 at a time
+- Privacy note: book covers load from Open Library / archive.org, which then see the visitor's IP
+  address and the ISBN; set `BOOK_COVERS=false` to turn covers off
 
 ## Project layout
 
@@ -179,6 +237,8 @@ src/main/java/com/helmifr/library/
   common/                             errors, paging, request logging, audit, helpers
 src/main/resources/db/migration/      Flyway migrations (V1 = original schema)
 frontend/src/                         pages/, components/, api.js (fetch + CSRF), auth.jsx
+frontend/src/i18n/                    language switch; Indonesian texts in id/*.js (English text is the key)
+e2e/tests/                            Playwright journeys and WCAG scans (axe)
 ```
 
 ## Tests
@@ -189,6 +249,21 @@ mvn clean verify
 
 ```bash
 cd frontend && npm test && npm run lint
+```
+
+The same backend tests against a real MariaDB 11.4 in Docker (Testcontainers starts and removes
+the containers; needs Docker):
+
+```bash
+mvn -Pmariadb clean verify
+```
+
+End-to-end journeys in a real browser (Chromium), against the packaged app on a fresh in-memory
+database (the test runner starts it):
+
+```bash
+mvn -Pfullstack package -DskipTests
+cd e2e && npm ci && npx playwright install chromium && npm test
 ```
 
 The backend tests boot the whole application against H2 in MariaDB mode with the real migrations

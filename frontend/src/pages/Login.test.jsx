@@ -1,7 +1,7 @@
-import { screen } from '@testing-library/react';
+import { screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it } from 'vitest';
-import { customer, jsonResponse, mockFetch, problem, renderApp, sentBody } from '../test/utils';
+import { currentLocation, customer, jsonResponse, mockFetch, page, problem, renderApp, sentBody } from '../test/utils';
 
 const demo = {
   enabled: true,
@@ -54,5 +54,29 @@ describe('Login page', () => {
 
     expect(await screen.findByRole('alert')).toHaveTextContent('Invalid username or password');
     expect(screen.getByRole('heading', { name: 'Sign in' })).toBeInTheDocument();
+  });
+
+  it('returns to the page that needed a sign-in, query string included', async () => {
+    let signedIn = false;
+    mockFetch({
+      'GET /api/auth/me': () => (signedIn ? jsonResponse(customer) : problem(401, 'Not signed in')),
+      'GET /api/auth/demo': { enabled: false, accounts: [] },
+      'POST /api/auth/login': () => {
+        signedIn = true;
+        return jsonResponse(customer);
+      },
+      'GET /api/notifications/unread-count': { count: 0 },
+      'GET /api/books': page([]),
+      'GET /api/books/categories': ['Fiction', 'Poetry'],
+      'GET /api/authors/options': [],
+    });
+
+    renderApp('/catalogue?category=Poetry', { withLocation: true });
+    await userEvent.type(await screen.findByLabelText('Username'), 'siti');
+    await userEvent.type(screen.getByLabelText('Password'), 'a-long-password');
+    await userEvent.click(screen.getByRole('button', { name: 'Sign in' }));
+
+    expect(await screen.findByRole('heading', { name: 'Catalogue' })).toBeInTheDocument();
+    await waitFor(() => expect(currentLocation()).toBe('/catalogue?category=Poetry'));
   });
 });

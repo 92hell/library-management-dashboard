@@ -1,13 +1,16 @@
 import { Table } from 'reactstrap';
+import { useT } from '../i18n';
 import { ErrorAlert, Loading } from './Feedback';
 import Pager from './Pager';
 
 /**
  * Renders a list returned by usePagedList: loading and error states, an empty message,
- * the table itself and the pager.
+ * the table itself and the pager. Pass `headers` and `emptyMessage` already translated; a column
+ * without a visible heading still needs a name, e.g. <span className="visually-hidden">…</span>.
  */
 export default function PagedTable({ list, headers, renderRow, emptyMessage }) {
   const { data, error, loading, page, setPage } = list;
+  const t = useT();
 
   if (error) return <ErrorAlert error={error} />;
   if (!data) return <Loading />;
@@ -20,8 +23,8 @@ export default function PagedTable({ list, headers, renderRow, emptyMessage }) {
       <Table responsive hover className={`align-middle shadow-sm ${loading ? 'opacity-50' : ''}`} aria-busy={loading}>
         <thead className="table-library">
           <tr>
-            {headers.map((header) => (
-              <th key={header} scope="col">
+            {headers.map((header, i) => (
+              <th key={i} scope="col">
                 {header}
               </th>
             ))}
@@ -30,7 +33,7 @@ export default function PagedTable({ list, headers, renderRow, emptyMessage }) {
         <tbody>{data.content.map(renderRow)}</tbody>
       </Table>
       <div className="d-flex flex-column flex-sm-row align-items-center justify-content-between gap-2">
-        <span className="text-muted small">{data.totalElements} total</span>
+        <span className="text-muted small">{t('{count} total', { count: data.totalElements })}</span>
         <Pager page={page} totalPages={data.totalPages} onPageChange={setPage} />
       </div>
     </>

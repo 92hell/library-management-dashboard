@@ -1,5 +1,6 @@
-import { render } from '@testing-library/react';
-import { MemoryRouter } from 'react-router-dom';
+import { render, screen } from '@testing-library/react';
+import { StrictMode } from 'react';
+import { MemoryRouter, useLocation } from 'react-router-dom';
 import { vi } from 'vitest';
 import { AppRoutes } from '../App';
 import { AuthProvider } from '../auth';
@@ -30,15 +31,35 @@ export function mockFetch(routes) {
   return fetchMock;
 }
 
-/** Renders the full app at `path`. */
-export function renderApp(path) {
-  return render(
+/** Shows the router's current address (path + query) for currentLocation(). */
+function LocationProbe() {
+  const { pathname, search } = useLocation();
+  return (
+    <output data-testid="location" hidden>
+      {pathname + search}
+    </output>
+  );
+}
+
+/**
+ * Renders the full app at `path`. `strict` wraps it in React.StrictMode (effects run twice on mount);
+ * `withLocation` adds a probe so currentLocation() can read the address.
+ */
+export function renderApp(path, { strict = false, withLocation = false } = {}) {
+  const app = (
     <AuthProvider>
       <MemoryRouter initialEntries={[path]}>
         <AppRoutes />
+        {withLocation && <LocationProbe />}
       </MemoryRouter>
-    </AuthProvider>,
+    </AuthProvider>
   );
+  return render(strict ? <StrictMode>{app}</StrictMode> : app);
+}
+
+/** The address the app is at (needs renderApp(path, { withLocation: true })). */
+export function currentLocation() {
+  return screen.getByTestId('location').textContent;
 }
 
 export const emptyPage = { content: [], page: 0, size: 20, totalElements: 0, totalPages: 0 };
@@ -57,6 +78,7 @@ export function signedInAs(user, routes = {}) {
     'GET /api/notifications/unread-count': { count: 0 },
     'GET /api/dashboard': { pendingRequests: 0, activeLoans: 0, overdueLoans: 0, dueToday: 0, books: 0, members: 0 },
     'GET /api/my/loans': [],
+    'GET /api/my/fines': { balance: 0, currency: 'IDR', blocked: false, blockAt: 20000, fines: [] },
     'GET /api/auth/demo': { enabled: false, registrationOpen: true, accounts: [] },
     ...routes,
   });

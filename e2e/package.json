@@ -1,0 +1,13 @@
+{
+  "name": "library-dashboard-e2e",
+  "private": true,
+  "type": "module",
+  "description": "Browser tests of whole user journeys against the real app (jar + in-memory H2).",
+  "scripts": {
+    "test": "playwright test"
+  },
+  "devDependencies": {
+    "@axe-core/playwright": "^4.10.2",
+    "@playwright/test": "1.63.0"
+  }
+}

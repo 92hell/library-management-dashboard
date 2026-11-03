@@ -7,10 +7,12 @@ import Field from '../components/Field';
 import FormActions from '../components/FormActions';
 import { emptyToNull, todayIso } from '../format';
 import { useAction, useApi, useFormFields } from '../hooks';
+import { msg, useT } from '../i18n';
 
 function toFormValues(loan) {
   return {
     bookId: String(loan.book.id),
+    copyBarcode: '',
     memberId: String(loan.member.id),
     borrowDate: loan.borrowDate ?? '',
     dueDate: loan.dueDate ?? '',
@@ -18,16 +20,17 @@ function toFormValues(loan) {
   };
 }
 
+/** Client-side checks; the messages are translated where they are shown, so they follow a language switch. */
 function validate(values) {
   const errors = {};
-  if (!values.bookId) errors.bookId = 'Please select a book.';
-  if (!values.memberId) errors.memberId = 'Please select a member.';
-  if (!values.borrowDate) errors.borrowDate = 'Borrow date is required.';
+  if (!values.bookId && !values.copyBarcode.trim()) errors.bookId = msg('Scan a barcode or select a book.');
+  if (!values.memberId) errors.memberId = msg('Please select a member.');
+  if (!values.borrowDate) errors.borrowDate = msg('Borrow date is required.');
   if (values.returnDate && values.borrowDate && values.returnDate < values.borrowDate) {
-    errors.returnDate = 'Return date cannot be before the borrow date.';
+    errors.returnDate = msg('Return date cannot be before the borrow date.');
   }
   if (values.dueDate && values.borrowDate && values.dueDate < values.borrowDate) {
-    errors.dueDate = 'Due date cannot be before the borrow date.';
+    errors.dueDate = msg('Due date cannot be before the borrow date.');
   }
   return errors;
 }
@@ -56,12 +59,13 @@ export default function BorrowedBookEdit() {
 function LoanForm({ loan, readOnly }) {
   const navigate = useNavigate();
   const [values, , handleChange] = useFormFields(
-    loan ? toFormValues(loan) : { bookId: '', memberId: '', borrowDate: todayIso(), dueDate: '', returnDate: '' },
+    loan ? toFormValues(loan) : { bookId: '', copyBarcode: '', memberId: '', borrowDate: todayIso(), dueDate: '', returnDate: '' },
   );
   const books = useApi('/api/books/options');
   const members = useApi('/api/members/options');
   const save = useAction();
   const { fieldErrors } = save;
+  const t = useT();
 
   const bookOptions = withCurrent(books.data, loan?.book);
   const memberOptions = withCurrent(members.data, loan?.member);
@@ -69,7 +73,8 @@ function LoanForm({ loan, readOnly }) {
   async function handleSubmit(event) {
     event.preventDefault();
     const body = {
-      bookId: Number(values.bookId),
+      bookId: values.bookId ? Number(values.bookId) : null,
+      copyBarcode: values.copyBarcode.trim() || null,
       memberId: Number(values.memberId),
       borrowDate: values.borrowDate,
       dueDate: emptyToNull(values.dueDate),
@@ -82,7 +87,7 @@ function LoanForm({ loan, readOnly }) {
     if (saved) navigate('/borrowed-books');
   }
 
-  const title = readOnly ? 'Loan' : loan ? 'Edit loan' : 'Lend a book at the desk';
+  const title = readOnly ? t('Loan') : loan ? t('Edit loan') : t('Lend a book at the desk');
   const optionsError = books.error ?? members.error;
 
   return (
@@ -91,36 +96,51 @@ function LoanForm({ loan, readOnly }) {
       <ErrorAlert error={save.error ?? optionsError} onDismiss={save.error ? save.clearError : undefined} />
       <fieldset disabled={readOnly}>
         <Field
-          label="Book"
+          label={t('Scan a barcode (or choose the book below)')}
+          name="copyBarcode"
+          placeholder={loan?.copy ? t('Currently {barcode}', { barcode: loan.copy.barcode }) : t('e.g. BC-7KQ2XM9P')}
+          value={values.copyBarcode}
+          onChange={handleChange}
+          error={t(fieldErrors.copyBarcode)}
+          autoComplete="off"
+          hint={t('With a barcode, that exact copy is lent; with only a book, any copy on the shelf.')}
+        />
+        <Field
+          label={t('Book')}
           name="bookId"
           type="select"
           value={values.bookId}
           onChange={handleChange}
-          error={fieldErrors.bookId}
+          error={t(fieldErrors.bookId)}
           disabled={books.loading}
         >
-          <option value="">{books.loading ? 'Loading books…' : 'Select a book'}</option>
+          <option value="">{books.loading ? t('Loading books…') : t('Select a book')}</option>
           {bookOptions.map((book) => {
             // The book on this record is "on loan" because of this very loan, so it stays selectable.
             const unavailable = book.onLoan && book.id !== loan?.book.id;
-            const label = book.authorName ? `${book.title} by ${book.authorName}` : book.title;
+            const label = book.authorName ? t('{title} by {author}', { title: book.title, author: book.authorName }) : book.title;
+            let text = label;
+            if (unavailable) text = t('{book} (all copies on loan)', { book: label });
+            else if (book.totalCopies != null) {
+              text = t('{book} ({available} of {total} on shelf)', { book: label, available: book.availableCopies, total: book.totalCopies });
+            }
             return (
               <option key={book.id} value={book.id} disabled={unavailable}>
-                {unavailable ? `${label} (on loan)` : label}
+                {text}
               </option>
             );
           })}
         </Field>
         <Field
-          label="Member"
+          label={t('Member')}
           name="memberId"
           type="select"
           value={values.memberId}
           onChange={handleChange}
-          error={fieldErrors.memberId}
+          error={t(fieldErrors.memberId)}
           disabled={members.loading}
         >
-          <option value="">{members.loading ? 'Loading members…' : 'Select a member'}</option>
+          <option value="">{members.loading ? t('Loading members…') : t('Select a member')}</option>
           {memberOptions.map((member) => (
             <option key={member.id} value={member.id}>
               {member.name}
@@ -128,28 +148,28 @@ function LoanForm({ loan, readOnly }) {
           ))}
         </Field>
         <Field
-          label="Borrow date"
+          label={t('Borrow date')}
           name="borrowDate"
           type="date"
           value={values.borrowDate}
           onChange={handleChange}
-          error={fieldErrors.borrowDate}
+          error={t(fieldErrors.borrowDate)}
         />
         <Field
-          label="Due date (optional, defaults to the loan period)"
+          label={t('Due date (optional, defaults to the loan period)')}
           name="dueDate"
           type="date"
           value={values.dueDate}
           onChange={handleChange}
-          error={fieldErrors.dueDate}
+          error={t(fieldErrors.dueDate)}
         />
         <Field
-          label="Return date (optional)"
+          label={t('Return date (optional)')}
           name="returnDate"
           type="date"
           value={values.returnDate}
           onChange={handleChange}
-          error={fieldErrors.returnDate}
+          error={t(fieldErrors.returnDate)}
         />
       </fieldset>
       <FormActions readOnly={readOnly} saving={save.pending} backTo="/borrowed-books" />

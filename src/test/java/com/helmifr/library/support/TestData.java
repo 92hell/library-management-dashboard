@@ -7,6 +7,8 @@ import com.helmifr.library.author.Author;
 import com.helmifr.library.author.AuthorRepository;
 import com.helmifr.library.book.Book;
 import com.helmifr.library.book.BookRepository;
+import com.helmifr.library.book.Copy;
+import com.helmifr.library.book.CopyRepository;
 import com.helmifr.library.loan.Loan;
 import com.helmifr.library.loan.LoanRepository;
 import com.helmifr.library.loan.LoanStatus;
@@ -29,11 +31,13 @@ public class TestData {
     private final BookRepository books;
     private final MemberRepository members;
     private final LoanRepository loans;
+    private final CopyRepository copies;
     private final UserAccountRepository accounts;
     private final PasswordEncoder passwordEncoder;
 
     public TestData(AuthorRepository authors, BookRepository books, MemberRepository members, LoanRepository loans,
-                    UserAccountRepository accounts, PasswordEncoder passwordEncoder) {
+                    CopyRepository copies, UserAccountRepository accounts, PasswordEncoder passwordEncoder) {
+        this.copies = copies;
         this.authors = authors;
         this.books = books;
         this.members = members;
@@ -59,7 +63,25 @@ public class TestData {
         b.setTitle(title);
         b.setPublishedDate(LocalDate.of(2020, 1, 1));
         b.setAuthor(author);
-        return books.save(b);
+        b = books.save(b);
+        copy(b);
+        return b;
+    }
+
+    /** Adds a physical copy (books created here start with one). */
+    public Copy copy(Book book) {
+        Copy c = new Copy();
+        c.setBook(book);
+        c.setBarcode("TB-" + SEQ.incrementAndGet());
+        return copies.save(c);
+    }
+
+    public Book bookWithCopies(String title, int count) {
+        Book b = book(title);
+        for (int i = 1; i < count; i++) {
+            copy(b);
+        }
+        return b;
     }
 
     // ---- People --------------------------------------------------------------------------------
@@ -103,8 +125,11 @@ public class TestData {
         return loan(book, member, LoanStatus.ACTIVE, borrowDate, dueDate, null);
     }
 
+    /** An online request, as a customer makes it (queue order follows the request time). */
     public Loan pendingRequest(Book book, Member member) {
-        return loan(book, member, LoanStatus.PENDING, null, null, null);
+        Loan l = loan(book, member, LoanStatus.PENDING, null, null, null);
+        l.setRequestedAt(java.time.Instant.now());
+        return loans.save(l);
     }
 
     public Loan loan(Book book, Member member, LoanStatus status, LocalDate borrowDate, LocalDate dueDate,
@@ -112,11 +137,22 @@ public class TestData {
         Loan l = new Loan();
         l.setBook(book);
         l.setMember(member);
+        if (status == LoanStatus.ACTIVE || status == LoanStatus.RETURNED) {
+            l.setCopy(freeCopyOf(book, status));
+        }
         l.setStatus(status);
         l.setBorrowDate(borrowDate);
         l.setDueDate(dueDate);
         l.setReturnDate(returnDate);
         return loans.save(l);
+    }
+
+    /** A copy of the book that is not on an active loan (any copy for a returned loan). */
+    private Copy freeCopyOf(Book book, LoanStatus status) {
+        return copies.findAllByBookIdAndDeletedFalseOrderByIdAsc(book.getId()).stream()
+                .filter(c -> status == LoanStatus.RETURNED || !loans.isCopyOnLoan(c.getId(), null))
+                .findFirst()
+                .orElseThrow(() -> new IllegalStateException("No free copy of " + book.getTitle()));
     }
 
     public Loan reload(Loan loan) {

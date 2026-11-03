@@ -1,6 +1,7 @@
 package com.helmifr.library.loan;
 
 import com.helmifr.library.book.Book;
+import com.helmifr.library.book.Copy;
 import com.helmifr.library.member.Member;
 import jakarta.persistence.*;
 import java.time.Instant;
@@ -23,6 +24,11 @@ public class Loan {
     @JoinColumn(name = "book_id", nullable = false)
     private Book book;
 
+    /** The physical copy lent; null while the request has not been handed over. */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "copy_id")
+    private Copy copy;
+
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "member_id", nullable = false)
     private Member member;
@@ -44,6 +50,13 @@ public class Loan {
 
     @Column(name = "return_date")
     private LocalDate returnDate;
+
+    /** READY holds: the member must collect the copy by this date. */
+    @Column(name = "ready_until")
+    private LocalDate readyUntil;
+
+    @Column(name = "renewal_count", nullable = false)
+    private int renewalCount;
 
     /** Username of the librarian who approved or rejected the request. */
     @Column(name = "decided_by", length = 50)

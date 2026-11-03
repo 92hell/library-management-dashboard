@@ -14,19 +14,18 @@ Items marked *(hook ready)* already have an extension point in the code.
 3. **Notification preferences** - let customers choose channels (in-app / email / SMS / WhatsApp)
    and opt out of reminders; respect quiet hours.
 4. **Password reset by email** and **email verification** on registration.
-5. **Reservations / holds queue** - when a requested book is on loan, queue requests in order
-   and notify the next customer when it comes back ("ready for pickup", with a pickup deadline).
-6. **Renewals** - customers extend a loan once if nobody is waiting for the book.
 
 ## Library operations
 
-- Multiple copies per title (barcode per physical copy) instead of one book = one copy
-- Fines for overdue books, payments and receipts
+- Holds: skip members who are blocked by fines or inactive when setting a copy aside
+- Past loans recorded at the desk as returned late are not charged a fee (decide whether they should be)
+- Notifications and receipt history details written in the reader's language (today English)
+- Certified e-signature for receipts via a PSrE (BSrE / Privy) as a `ReceiptSigner`; key rotation UI
+- Fines: partial payments, printed receipts, online payment (e.g. Midtrans / Xendit)
 - Member card expiry and renewal; card replacement keeps history
 - Merge duplicate member records (e.g. someone registered online before linking their card)
-- Book covers, descriptions and ISBN lookup (Open Library / Google Books API)
-- Catalogue filters (category, author, availability) and sorting; book detail pages
-- Librarian reports: most borrowed, overdue rate, active members; CSV export
+- Fallback ISBN lookup (Google Books) when Open Library has no record
+- Reports: charts over time, scheduled monthly report by email
 - Branches / locations and inter-branch transfers
 
 ## Security follow-ups (from the security review)
@@ -40,7 +39,7 @@ Items marked *(hook ready)* already have an extension point in the code.
 
 - Rate limiting on all public endpoints; distributed lockout store (Redis) for several instances
 - Structured JSON logs and metrics (Micrometer + Prometheus/Grafana); alerting on error rate
-- Testcontainers-based tests against real MariaDB in CI (today: H2 in MariaDB mode)
-- End-to-end browser tests (Playwright) in CI
-- Accessibility review (WCAG 2.1 AA) and internationalisation (Bahasa Indonesia / English)
+- End-to-end: more journeys (registration and card linking, notifications), mobile viewport
+- Server messages (validation, conflicts) in Bahasa Indonesia via Accept-Language
+- Manual screen-reader pass (NVDA / VoiceOver) beyond the automated WCAG checks
 - Deployment: container registry + one-click deploy (Render / Fly.io / Railway), HTTPS, backups

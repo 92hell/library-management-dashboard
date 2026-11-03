@@ -1,0 +1,57 @@
+import { expect, test } from '@playwright/test';
+import { apiAs, createBook, isoDaysFromToday, LIBRARIAN, signIn, unique } from './support.js';
+
+test('a late return by barcode charges a fee, which the librarian records as paid', async ({ page, baseURL }) => {
+  const librarianApi = await apiAs(baseURL, LIBRARIAN.username, LIBRARIAN.password);
+  const title = `Cantik Itu Luka ${unique()}`;
+  const book = await createBook(librarianApi, title);
+  const member = await librarianApi.post('/api/members', {
+    name: `Ani ${unique()}`, dateOfBirth: '1990-01-01', email: `ani-${unique()}@example.com`, phone: '081200000001',
+  });
+  await librarianApi.post('/api/borrowed-books', {
+    bookId: book.id, memberId: member.id, borrowDate: isoDaysFromToday(-20), dueDate: isoDaysFromToday(-6),
+  });
+  const [copy] = await librarianApi.get(`/api/books/${book.id}/copies`);
+
+  page.on('dialog', (dialog) => dialog.accept());
+  await signIn(page, LIBRARIAN.username, LIBRARIAN.password);
+  await page.getByRole('navigation').getByRole('link', { name: 'Loans' }).click();
+  await page.getByLabel('Return by barcode').fill(copy.barcode);
+  await page.keyboard.press('Enter');
+  await expect(page.getByRole('status').filter({ hasText: `Returned "${title}"` })).toBeVisible();
+
+  await page.getByRole('navigation').getByRole('link', { name: 'Fines' }).click();
+  const fine = page.locator('tr', { hasText: title });
+  await expect(fine).toContainText('6 days late');
+  await expect(fine).toContainText('IDR 6,000');
+  await fine.getByRole('button', { name: 'Record payment' }).click();
+  await expect(fine).toHaveCount(0);
+  await page.getByLabel('Status').selectOption({ label: 'Paid' });
+  await expect(page.locator('tr', { hasText: title })).toContainText(`Paid by ${LIBRARIAN.username}`);
+
+  await librarianApi.dispose();
+});
+
+test('reports show the period and download a CSV of loans', async ({ page, baseURL }) => {
+  const librarianApi = await apiAs(baseURL, LIBRARIAN.username, LIBRARIAN.password);
+  const title = `Supernova ${unique()}`;
+  const book = await createBook(librarianApi, title);
+  const member = await librarianApi.post('/api/members', {
+    name: `Bayu ${unique()}`, dateOfBirth: '1990-01-01', email: `bayu-${unique()}@example.com`, phone: '081200000002',
+  });
+  await librarianApi.post('/api/borrowed-books', { bookId: book.id, memberId: member.id });
+
+  await signIn(page, LIBRARIAN.username, LIBRARIAN.password);
+  await page.getByRole('navigation').getByRole('link', { name: 'Reports' }).click();
+  await expect(page.getByRole('table', { name: 'Most borrowed' })).toContainText(title);
+  const [download] = await Promise.all([
+    page.waitForEvent('download'),
+    page.getByRole('link', { name: 'Download loans (CSV)' }).click(),
+  ]);
+  expect(download.suggestedFilename()).toMatch(/^loans-\d{4}-\d{2}-\d{2}-to-\d{4}-\d{2}-\d{2}\.csv$/);
+  const csv = await (await import('node:fs/promises')).readFile(await download.path(), 'utf8');
+  expect(csv).toContain('"Loan ID","Borrowed","Due"');
+  expect(csv).toContain(title);
+
+  await librarianApi.dispose();
+});

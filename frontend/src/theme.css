@@ -76,9 +76,11 @@ h1, h2, h3, .h1, .h2, .h3, .h4, .h5, .display-6, .navbar-brand {
   --bs-btn-color: var(--lib-muted); --bs-btn-border-color: #cbbd9f;
   --bs-btn-hover-bg: #efe6d3; --bs-btn-hover-color: var(--lib-ink); --bs-btn-hover-border-color: #cbbd9f;
 }
+/* #6e665a keeps white text above the WCAG AA 4.5:1 contrast ratio (about 5.7:1). */
 .btn-secondary {
-  --bs-btn-bg: #8a7f6c; --bs-btn-border-color: #8a7f6c;
-  --bs-btn-hover-bg: #6f6656; --bs-btn-hover-border-color: #6f6656;
+  --bs-btn-bg: #6e665a; --bs-btn-border-color: #6e665a;
+  --bs-btn-hover-bg: #574f44; --bs-btn-hover-border-color: #574f44;
+  --bs-btn-active-bg: #574f44; --bs-btn-active-border-color: #574f44;
 }
 
 /* ---- Navbar ----------------------------------------------------------------------------- */
@@ -143,6 +145,10 @@ main form.border, main .border.rounded { background-color: var(--lib-card); bord
 }
 .book-cover-sm { width: 2.1rem; height: 2.9rem; font-size: 0.8rem; }
 .book-cover-md { width: 3rem; height: 4.2rem; font-size: 1.05rem; }
+.book-cover-lg { width: 10rem; height: 15rem; font-size: 2.6rem; }
+.book-cover-img { object-fit: cover; background: var(--lib-card); }
+.book-details dt { font-weight: 600; color: var(--bs-secondary-color); font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.04em; }
+.book-details dd { margin-bottom: 0.6rem; }
 
 /* ---- Library card (profile) ---------------------------------------------------------------- */
 .library-card {
@@ -200,4 +206,29 @@ main form.border, main .border.rounded { background-color: var(--lib-card); bord
 .demo-banner {
   background: #efe2c4; color: #5a4520; border-bottom: 1px solid #d8c49b;
   text-align: center; font-size: 0.9rem; padding: 0.4rem 1rem;
+}
+
+/* ---- Accessibility ---------------------------------------------------------------------------- */
+.skip-link {
+  position: absolute; left: 0.75rem; top: 0.5rem; z-index: 1100;
+  background: var(--bs-body-bg); color: var(--bs-body-color); padding: 0.5rem 0.9rem; border-radius: 0.4rem;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+}
+main:focus { outline: none; }
+
+/* ---- Loan receipts ---------------------------------------------------------------------------- */
+.receipt { background: var(--lib-card); border: 1px solid var(--lib-rule); border-radius: 0.5rem; padding: 2rem; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06); }
+.receipt-library { font-family: 'Lora', Georgia, serif; font-size: 1.25rem; color: var(--lib-green); font-weight: 600; }
+.receipt-details { display: grid; grid-template-columns: repeat(auto-fill, minmax(13rem, 1fr)); gap: 0.25rem 1.5rem; }
+.receipt-details dt { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.04em; color: var(--lib-muted); font-weight: 600; }
+.receipt-details dd { margin-bottom: 0.5rem; }
+.receipt-stamp { color: var(--lib-burgundy); opacity: 0.85; flex-shrink: 0; }
+.receipt-signature { border-top: 1px dashed var(--lib-rule); padding-top: 0.75rem; margin-top: 1rem; }
+
+@media print {
+  .library-nav, .demo-banner, .skip-link, .d-print-none { display: none !important; }
+  body, main { background: #fff !important; }
+  main.container { max-width: none; padding: 0; }
+  .receipt { border: none; box-shadow: none; padding: 0; background: #fff; }
+  .receipt-stamp { opacity: 1; }
 }

@@ -4,18 +4,27 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.validation.constraints.AssertTrue;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.PastOrPresent;
+import jakarta.validation.constraints.Size;
 import java.time.LocalDate;
 
 /**
- * A loan recorded or edited by a librarian. borrowDate defaults to today and dueDate to
- * borrowDate + the loan period; a returnDate makes it a RETURNED loan.
+ * A loan recorded or edited by a librarian. Give the scanned {@code copyBarcode} to lend that exact
+ * copy, or just the {@code bookId} to lend any copy on the shelf. borrowDate defaults to today and
+ * dueDate to borrowDate + the loan period; a returnDate makes it a RETURNED loan.
  */
 public record LoanRequest(
-        @NotNull Long bookId,
+        Long bookId,
+        @Size(max = 40) String copyBarcode,
         @NotNull Long memberId,
         @PastOrPresent LocalDate borrowDate,
         LocalDate dueDate,
         @PastOrPresent LocalDate returnDate) {
+
+    @JsonIgnore
+    @AssertTrue(message = "choose a book or scan a copy's barcode")
+    public boolean isBookIdOrCopyBarcodeGiven() {
+        return bookId != null || (copyBarcode != null && !copyBarcode.isBlank());
+    }
 
     @JsonIgnore
     @AssertTrue(message = "must not be before the borrow date")

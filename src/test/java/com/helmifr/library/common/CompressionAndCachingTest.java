@@ -20,7 +20,7 @@ import org.springframework.test.context.TestPropertySource;
  */
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @ActiveProfiles("test")
-@TestPropertySource(properties = "spring.datasource.url=jdbc:h2:mem:caching;MODE=MariaDB;DATABASE_TO_LOWER=TRUE;DB_CLOSE_DELAY=-1")
+@TestPropertySource(properties = "spring.datasource.url=${test.isolated-db.prefix}caching${test.isolated-db.suffix}")
 @DisplayName("Compression and browser caching")
 class CompressionAndCachingTest {
 

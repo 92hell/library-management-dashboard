@@ -14,6 +14,8 @@ public interface AuthorRepository extends JpaRepository<Author, Long> {
 
     List<Author> findAllByDeletedFalseOrderByNameAsc();
 
+    Optional<Author> findFirstByNameIgnoreCaseAndDeletedFalse(String name);
+
     /** @param pattern from {@link com.helmifr.library.common.SearchPatterns}, or null for all */
     @Query("""
             SELECT a FROM Author a

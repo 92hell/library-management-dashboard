@@ -1,3 +1,10 @@
+# Tests whose app setup differs (e.g. demo mode wipes data) use their own database, named
+# prefix + name + suffix. `mvn -Pmariadb verify` switches both URLs to MariaDB containers.
+test:
+  isolated-db:
+    prefix: "jdbc:h2:mem:"
+    suffix: ";MODE=MariaDB;DATABASE_TO_LOWER=TRUE;DB_CLOSE_DELAY=-1"
+
 spring:
   datasource:
     url: jdbc:h2:mem:library;MODE=MariaDB;DATABASE_TO_LOWER=TRUE;DB_CLOSE_DELAY=-1

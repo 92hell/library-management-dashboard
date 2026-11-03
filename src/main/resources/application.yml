@@ -34,6 +34,11 @@ spring:
     url: ${DB_URL:jdbc:mariadb://localhost:3306/library_sandbox}
     username: ${DB_USERNAME:library}
     password: ${DB_PASSWORD:}
+    hikari:
+      # MariaDB defaults to REPEATABLE READ, where a transaction keeps reading the snapshot taken at its
+      # first query even after it waits for a row lock. READ COMMITTED makes reads after a lock see what
+      # the transaction that held the lock committed (loans/copies/fines rely on that).
+      transaction-isolation: TRANSACTION_READ_COMMITTED
   jpa:
     open-in-view: false
     hibernate:
@@ -64,8 +69,34 @@ library:
     period-days: ${LOAN_PERIOD_DAYS:14}
     max-open-per-member: ${LOAN_MAX_OPEN_PER_MEMBER:3}
     due-soon-days: ${LOAN_DUE_SOON_DAYS:2}
+    # Days a copy set aside for a member waits on the holds shelf before the hold expires.
+    pickup-days: ${LOAN_PICKUP_DAYS:3}
+    # Renewals per loan (each adds period-days); refused if someone is waiting or it is overdue.
+    max-renewals: ${LOAN_MAX_RENEWALS:1}
     # Daily reminder run (second minute hour day month weekday); "-" disables it.
     reminder-cron: ${LOAN_REMINDER_CRON:0 0 8 * * *}
+  catalogue:
+    # Cover images from Open Library for books with an ISBN (loaded by the browser).
+    covers: ${BOOK_COVERS:true}
+    # ISBN lookup to fill in the book form; blank disables it.
+    lookup-url: ${ISBN_LOOKUP_URL:https://openlibrary.org}
+    lookup-timeout: ${ISBN_LOOKUP_TIMEOUT:5s}
+  receipts:
+    # Shown on receipts and their stamp.
+    library-name: ${LIBRARY_NAME:Community Library}
+    # Base of the verification link in the QR code; blank = the address the receipt was issued from.
+    public-url: ${PUBLIC_URL:}
+    # Ed25519 signing key (base64 PKCS#8 private key and X.509 public key). Blank = a key is generated
+    # once and kept in the database. Set both in production so the key lives outside the database.
+    private-key: ${RECEIPT_PRIVATE_KEY:}
+    public-key: ${RECEIPT_PUBLIC_KEY:}
+  fines:
+    # Late fee per day a book is returned late, the most one loan can cost, and the unpaid total
+    # at which a member cannot borrow until they pay (0 = never). Whole units of the currency.
+    per-day: ${FINE_PER_DAY:1000}
+    max-per-loan: ${FINE_MAX_PER_LOAN:30000}
+    block-at: ${FINE_BLOCK_AT:20000}
+    currency: ${FINE_CURRENCY:IDR}
   notifications:
     # Public address of the app; links in emails/messages are built from it.
     base-url: ${APP_BASE_URL:http://localhost:8080}

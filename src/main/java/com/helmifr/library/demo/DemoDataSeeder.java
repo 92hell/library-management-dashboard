@@ -8,7 +8,16 @@ import com.helmifr.library.author.Author;
 import com.helmifr.library.author.AuthorRepository;
 import com.helmifr.library.book.Book;
 import com.helmifr.library.book.BookRepository;
+import com.helmifr.library.book.Copy;
+import com.helmifr.library.book.CopyBarcodes;
+import com.helmifr.library.book.CopyRepository;
+import com.helmifr.library.fine.Fine;
+import com.helmifr.library.fine.FineRepository;
 import com.helmifr.library.loan.Loan;
+import com.helmifr.library.loan.LoanEventRepository;
+import com.helmifr.library.loan.LoanEventType;
+import com.helmifr.library.loan.LoanEvents;
+import com.helmifr.library.receipt.ReceiptRepository;
 import com.helmifr.library.loan.LoanRepository;
 import com.helmifr.library.loan.LoanStatus;
 import com.helmifr.library.member.Member;
@@ -52,6 +61,12 @@ public class DemoDataSeeder {
     private final PasswordEncoder passwordEncoder;
     private final Clock clock;
     private final NotificationRepository notifications;
+    private final CopyRepository copies;
+    private final CopyBarcodes barcodes;
+    private final FineRepository fines;
+    private final ReceiptRepository receipts;
+    private final LoanEventRepository loanEventRows;
+    private final LoanEvents loanEvents;
     private final SecurityProperties securityProperties;
     private final EntityManager entityManager;
 
@@ -59,9 +74,13 @@ public class DemoDataSeeder {
     @Transactional
     public void reset() {
         notifications.deleteAllInBatch();
+        receipts.deleteAllInBatch();
+        loanEventRows.deleteAllInBatch();
+        fines.deleteAllInBatch();
         loans.deleteAllInBatch();
         accounts.deleteAllExcept(securityProperties.librarian().username());
         members.deleteAllInBatch();
+        copies.deleteAllInBatch();
         books.deleteAllInBatch();
         authors.deleteAllInBatch();
         entityManager.flush();
@@ -106,13 +125,21 @@ public class DemoDataSeeder {
         Author dee = author("Dee Lestari");
         Author tohari = author("Ahmad Tohari");
 
-        Book bumi = book("Bumi Manusia", pram, 1980, "Historical Fiction,Classics");
-        book("Anak Semua Bangsa", pram, 1980, "Historical Fiction,Classics");
-        Book laskar = book("Laskar Pelangi", hirata, 2005, "Fiction,Young Adult");
-        book("Sang Pemimpi", hirata, 2006, "Fiction,Young Adult");
-        Book cantik = book("Cantik Itu Luka", eka, 2002, "Fiction,Historical Fiction");
-        book("Supernova", dee, 2001, "Science Fiction,Fiction");
-        book("Ronggeng Dukuh Paruk", tohari, 1982, "Fiction,Classics");
+        // Popular titles have several copies, as in a real library.
+        Book bumi = book("Bumi Manusia", pram, 1980, "Historical Fiction,Classics", 2, "FIC PRA",
+                "Minke, a Javanese student at a Dutch school, falls in love with Annelies in colonial-era Surabaya.");
+        Book anak = book("Anak Semua Bangsa", pram, 1980, "Historical Fiction,Classics", 1, "FIC PRA",
+                "The second book of the Buru Quartet: Minke learns what colonial rule means for his own people.");
+        Book laskar = book("Laskar Pelangi", hirata, 2005, "Fiction,Young Adult", 3, "FIC HIR",
+                "Ten children and two devoted teachers keep a tiny village school on Belitung open against the odds.");
+        Book pemimpi = book("Sang Pemimpi", hirata, 2006, "Fiction,Young Adult", 2, "FIC HIR",
+                "Two cousins in a Belitung boarding school dream of studying in Paris.");
+        Book cantik = book("Cantik Itu Luka", eka, 2002, "Fiction,Historical Fiction", 1, "FIC KUR",
+                "A family saga across colonial rule, occupation and independence, told with dark humour.");
+        Book supernova = book("Supernova", dee, 2001, "Science Fiction,Fiction", 2, "SF LES",
+                "Two writers build a story that starts to blur into the lives of the people they write about.");
+        Book ronggeng = book("Ronggeng Dukuh Paruk", tohari, 1982, "Fiction,Classics", 1, "FIC TOH",
+                "Srintil becomes the dancer of a poor Central Javanese village, and its fate becomes hers.");
 
         LocalDate today = LocalDate.now(clock);
         Member walkIn = member("Budi Santoso", "budi@example.com", LocalDate.of(1988, 8, 2));
@@ -120,6 +147,64 @@ public class DemoDataSeeder {
         loan(cantik, walkIn, LoanStatus.ACTIVE, today.minusDays(20), today.minusDays(6));
         Loan request = loan(bumi, demoCustomer, LoanStatus.PENDING, null, null);
         request.setRequestedAt(clock.instant());
+        // A hold waiting at the desk, so the librarian's "ready for pickup" list is not empty.
+        Loan hold = loan(supernova, walkIn, LoanStatus.READY, null, null);
+        hold.setRequestedAt(clock.instant());
+        hold.setReadyUntil(today.plusDays(2));
+        // A book the demo customer brought back 3 days late, with its late fee still to pay.
+        Loan late = loan(anak, demoCustomer, LoanStatus.RETURNED, today.minusDays(30), today.minusDays(16));
+        late.setReturnDate(today.minusDays(13));
+        Fine fee = new Fine();
+        fee.setLoan(late);
+        fee.setMember(demoCustomer);
+        fee.setDaysLate(3);
+        fee.setAmount(3000);
+        fines.save(fee);
+
+        // Three months of past loans, all returned on time, so the reports have something to show.
+        Member rina = member("Rina Wulandari", "rina@example.com", LocalDate.of(2001, 5, 21));
+        Book[] popular = {laskar, laskar, bumi, pemimpi, laskar, supernova, bumi, ronggeng, laskar, pemimpi, cantik, bumi};
+        Member[] readers = {demoCustomer, walkIn, rina};
+        for (int i = 0; i < popular.length; i++) {
+            LocalDate borrowed = today.minusDays(88 - i * 6L);
+            Loan past = loan(popular[i], readers[i % readers.length], LoanStatus.RETURNED, borrowed, borrowed.plusDays(14));
+            past.setReturnDate(borrowed.plusDays(7 + i % 5));
+        }
+        seedHistory(demoCustomer);
+    }
+
+    /** Gives every seeded loan the history it would have had, so receipts show a real timeline. */
+    private void seedHistory(Member demoCustomer) {
+        for (Loan l : loans.findAll()) {
+            String member = l.getMember().getId().equals(demoCustomer.getId()) ? DEMO_CUSTOMER : "desk";
+            String barcode = l.getCopy() == null ? "-" : l.getCopy().getBarcode();
+            switch (l.getStatus()) {
+                case PENDING -> loanEvents.recordAt(l, LoanEventType.REQUESTED, LoanStatus.PENDING, null,
+                        clock.instant().minusSeconds(3600), member);
+                case READY -> {
+                    loanEvents.recordAt(l, LoanEventType.REQUESTED, LoanStatus.PENDING, null,
+                            clock.instant().minusSeconds(86_400), member);
+                    loanEvents.recordAt(l, LoanEventType.APPROVED, LoanStatus.READY,
+                            "Copy %s set aside until %s".formatted(barcode, l.getReadyUntil()), clock.instant(), DEMO_LIBRARIAN);
+                }
+                case ACTIVE -> loanEvents.recordAt(l, LoanEventType.LENT, LoanStatus.ACTIVE,
+                        "Copy %s, due %s".formatted(barcode, l.getDueDate()), at(l.getBorrowDate(), 10), DEMO_LIBRARIAN);
+                case RETURNED -> {
+                    loanEvents.recordAt(l, LoanEventType.LENT, LoanStatus.ACTIVE,
+                            "Copy %s, due %s".formatted(barcode, l.getDueDate()), at(l.getBorrowDate(), 10), DEMO_LIBRARIAN);
+                    loanEvents.recordAt(l, LoanEventType.RETURNED, LoanStatus.RETURNED, "Copy " + barcode,
+                            at(l.getReturnDate(), 15), DEMO_LIBRARIAN);
+                    fines.findByLoanId(l.getId()).ifPresent(f -> loanEvents.recordAt(l, LoanEventType.FINE_CHARGED,
+                            LoanStatus.RETURNED, "Late fee IDR %,d for %d days late".formatted(f.getAmount(), f.getDaysLate()),
+                            at(l.getReturnDate(), 15), DEMO_LIBRARIAN));
+                }
+                default -> { }
+            }
+        }
+    }
+
+    private java.time.Instant at(LocalDate date, int hour) {
+        return date.atTime(hour, 0).atZone(clock.getZone()).toInstant();
     }
 
     private Author author(String name) {
@@ -128,13 +213,23 @@ public class DemoDataSeeder {
         return authors.save(a);
     }
 
-    private Book book(String title, Author author, int year, String categories) {
+    private Book book(String title, Author author, int year, String categories, int copyCount, String shelf,
+                      String description) {
         Book b = new Book();
+        b.setDescription(description);
         b.setTitle(title);
         b.setAuthor(author);
         b.setPublishedDate(LocalDate.of(year, 1, 1));
         b.setCategories(categories);
-        return books.save(b);
+        b = books.save(b);
+        for (int i = 0; i < copyCount; i++) {
+            Copy c = new Copy();
+            c.setBook(b);
+            c.setBarcode(barcodes.next());
+            c.setShelfLocation(shelf);
+            copies.save(c);
+        }
+        return b;
     }
 
     private Member member(String name, String email, LocalDate dateOfBirth) {
@@ -154,6 +249,10 @@ public class DemoDataSeeder {
         l.setStatus(status);
         l.setBorrowDate(borrowDate);
         l.setDueDate(dueDate);
+        if (status.holdsCopy() || status == LoanStatus.RETURNED) {
+            // Seeded loans use different titles, so the first copy is free.
+            l.setCopy(copies.findAllByBookIdAndDeletedFalseOrderByIdAsc(book.getId()).get(0));
+        }
         return loans.save(l);
     }
 }

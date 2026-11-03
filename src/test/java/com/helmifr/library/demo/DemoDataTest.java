@@ -22,7 +22,7 @@ class DemoDataTest {
     @Autowired Api api;
 
     @Test
-    @DisplayName("seeding creates demo accounts and a sample catalogue, and is idempotent")
+    @DisplayName("seeding creates demo accounts, a sample catalogue and loans with their history, and is idempotent")
     void seed() {
         seeder.seed();
         long bookCount = books.count();
@@ -34,7 +34,13 @@ class DemoDataTest {
                 .isEqualTo(Role.CUSTOMER);
         assertThat(accounts.findByUsernameIgnoreCase(DemoDataSeeder.DEMO_LIBRARIAN).orElseThrow().getRole())
                 .isEqualTo(Role.LIBRARIAN);
+        // Every sample loan has a history, so its receipt shows a real timeline.
+        assertThat(loans.findAll()).isNotEmpty().allSatisfy(loan ->
+                assertThat(loanEvents.findAllByLoanIdOrderByIdAsc(loan.getId())).isNotEmpty());
     }
+
+    @Autowired com.helmifr.library.loan.LoanRepository loans;
+    @Autowired com.helmifr.library.loan.LoanEventRepository loanEvents;
 
     @Test
     @DisplayName("demo credentials are only advertised when demo mode is on (off in tests)")

@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 import BookCover, { coverColor, initials } from './BookCover';
 
@@ -17,5 +17,18 @@ describe('BookCover', () => {
   it('is decorative: hidden from screen readers', () => {
     render(<BookCover title="Saman" />);
     expect(screen.getByText('S').closest('[aria-hidden="true"]')).toBeInTheDocument();
+  });
+
+  it('shows the real cover when there is one, and falls back to the drawn spine if it fails to load', () => {
+    const { container } = render(<BookCover title="Saman" src="https://covers.example/saman.jpg" />);
+    const img = container.querySelector('img');
+    expect(img).toHaveAttribute('src', 'https://covers.example/saman.jpg');
+    expect(img).toHaveAttribute('alt', '');
+    expect(img).toHaveAttribute('loading', 'lazy');
+
+    fireEvent.error(img);
+
+    expect(container.querySelector('img')).toBeNull();
+    expect(screen.getByText('S')).toBeInTheDocument();
   });
 });

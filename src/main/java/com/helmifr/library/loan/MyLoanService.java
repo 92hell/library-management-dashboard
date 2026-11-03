@@ -4,6 +4,7 @@ import com.helmifr.library.book.Book;
 import com.helmifr.library.common.Audit;
 import com.helmifr.library.common.ConflictException;
 import com.helmifr.library.common.NotFoundException;
+import com.helmifr.library.fine.FineService;
 import com.helmifr.library.member.Member;
 import com.helmifr.library.member.MemberService;
 import com.helmifr.library.notification.NotificationService;
@@ -27,6 +28,10 @@ public class MyLoanService {
     private final NotificationService notifications;
     private final LoanPolicy policy;
     private final Clock clock;
+    private final HoldQueue holdQueue;
+    private final LoanViews views;
+    private final FineService fines;
+    private final LoanEvents history;
 
     public List<LoanResponse> list(Long memberId) {
         return loanService.findByMember(memberId);
@@ -38,6 +43,7 @@ public class MyLoanService {
         if (!member.isActive()) {
             throw new ConflictException("Your library card is inactive. Please contact the library.");
         }
+        fines.ensureCanBorrow(member, true);
         Book book = loanService.lockBook(bookId);
         if (loans.existsOpenForMemberAndBook(memberId, bookId)) {
             throw new ConflictException("You already have an open request or loan for this book.");
@@ -54,20 +60,37 @@ public class MyLoanService {
         loan = loans.save(loan);
 
         Audit.event("BORROW_REQUESTED", "loanId={} bookId={} memberId={}", loan.getId(), bookId, memberId);
+        history.record(loan, LoanEventType.REQUESTED);
         notifications.notifyLibrarians(NotificationType.BORROW_REQUESTED,
                 "%s requested \"%s\".".formatted(member.getName(), book.getTitle()), LoanService.PENDING_LINK);
-        return LoanResponse.from(loan, LocalDate.now(clock));
+        return views.of(loan);
     }
 
+    /** Cancels the member's own request, in the queue or set aside (the copy then goes to the next in line). */
     @Transactional
     public LoanResponse cancel(Long memberId, Long loanId) {
-        Loan loan = loans.findByIdAndMemberIdAndDeletedFalse(loanId, memberId)
-                .orElseThrow(() -> new NotFoundException("Loan", loanId));
-        if (loan.getStatus() != LoanStatus.PENDING) {
-            throw new ConflictException("Only pending requests can be cancelled.");
+        loans.findByIdAndMemberIdAndDeletedFalse(loanId, memberId).orElseThrow(() -> new NotFoundException("Loan", loanId));
+        Loan loan = loanService.lockLoan(loanId);
+        if (loan.getStatus() != LoanStatus.PENDING && loan.getStatus() != LoanStatus.WAITLISTED
+                && loan.getStatus() != LoanStatus.READY) {
+            throw new ConflictException("Only requests that are not yet collected can be cancelled.");
         }
+        Book book = loan.getBook();
+        boolean freesCopy = loan.getStatus() == LoanStatus.READY;
         loan.setStatus(LoanStatus.CANCELLED);
+        loan.setReadyUntil(null);
         Audit.event("REQUEST_CANCELLED", "loanId={} memberId={}", loanId, memberId);
-        return LoanResponse.from(loan, LocalDate.now(clock));
+        history.record(loan, LoanEventType.CANCELLED);
+        if (freesCopy) {
+            holdQueue.serve(book);
+        }
+        return views.of(loan);
+    }
+
+    /** Renews the member's own loan (once, if nobody is waiting and it is not overdue). */
+    @Transactional
+    public LoanResponse renew(Long memberId, Long loanId) {
+        loans.findByIdAndMemberIdAndDeletedFalse(loanId, memberId).orElseThrow(() -> new NotFoundException("Loan", loanId));
+        return loanService.renew(loanService.lockLoan(loanId));
     }
 }

@@ -1,5 +1,6 @@
 import { Input, Label } from 'reactstrap';
 
+/** A search input with a visually hidden label; pass `label` and `placeholder` already translated. */
 export default function SearchBox({ id, label, value, onChange, placeholder }) {
   return (
     <>
