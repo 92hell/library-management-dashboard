@@ -36,6 +36,6 @@ Items marked *(hook ready)* already have an extension point in the code.
 - Rate limiting on all public endpoints; distributed lockout store (Redis) for several instances
 - Structured JSON logs and metrics (Micrometer + Prometheus/Grafana); alerting on error rate
 - Testcontainers-based tests against real MariaDB in CI (today: H2 in MariaDB mode)
-- End-to-end browser tests (Playwright) in CI
+- End-to-end: more journeys (registration and card linking, notifications), mobile viewport
 - Accessibility review (WCAG 2.1 AA) and internationalisation (Bahasa Indonesia / English)
 - Deployment: container registry + one-click deploy (Render / Fly.io / Railway), HTTPS, backups

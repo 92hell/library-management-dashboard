@@ -204,6 +204,7 @@ src/main/java/com/helmifr/library/
   common/                             errors, paging, request logging, audit, helpers
 src/main/resources/db/migration/      Flyway migrations (V1 = original schema)
 frontend/src/                         pages/, components/, api.js (fetch + CSRF), auth.jsx
+e2e/tests/                            Playwright journeys (borrowing, desk returns and fines, catalogue, access)
 ```
 
 ## Tests
@@ -214,6 +215,14 @@ mvn clean verify
 
 ```bash
 cd frontend && npm test && npm run lint
+```
+
+End-to-end journeys in a real browser (Chromium), against the packaged app on a fresh in-memory
+database (the test runner starts it):
+
+```bash
+mvn -Pfullstack package -DskipTests
+cd e2e && npm ci && npx playwright install chromium && npm test
 ```
 
 The backend tests boot the whole application against H2 in MariaDB mode with the real migrations
