@@ -48,3 +48,13 @@ test('a shared link shows a preview: description and image for anonymous visitor
   expect(image.headers()['content-type']).toBe('image/png');
 });
 
+test('the library icon is served for tabs, bookmarks and phone home screens', async ({ request }) => {
+  for (const [path, type] of [['/favicon.svg', 'image/svg+xml'], ['/favicon.ico', 'image/x-icon'],
+    ['/apple-touch-icon.png', 'image/png'], ['/icon-512.png', 'image/png']]) {
+    const response = await request.get(path);
+    expect(response.status(), path).toBe(200);
+    expect(response.headers()['content-type'], path).toContain(type);
+  }
+  expect((await request.get('/site.webmanifest')).status()).toBe(200);
+});
+

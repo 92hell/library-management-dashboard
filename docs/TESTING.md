@@ -7,7 +7,7 @@ Run everything: `mvn clean verify` (backend; add `-Pmariadb` to run it on MariaD
 `cd frontend && npm test` (frontend), and after `mvn -Pfullstack package` also
 `cd e2e && npm test` (end-to-end, in a real browser).
 
-Totals: 215 backend test methods (parameterised ones run once per case), 140 frontend tests, 11 end-to-end journeys.
+Totals: 215 backend test methods (parameterised ones run once per case), 144 frontend tests, 12 end-to-end journeys.
 
 ## Backend (JUnit, `src/test/java`)
 
@@ -482,6 +482,15 @@ live in `support/`.
 - uses the agreed Indonesian wording
 - marks the page with the chosen language
 
+### `frontend/src/icons.test.js`
+
+**Site icons**
+
+- are linked from the page, SVG first with ICO and touch-icon fallbacks
+- draws the open book of the app logo on the library green
+- has an ICO with 16, 32 and 48 pixel images
+- has touch and home-screen icons in the right sizes, listed in the web manifest
+
 ### `frontend/src/linkPreview.test.js`
 
 **Link preview**
@@ -708,6 +717,7 @@ creates its own uniquely named data through the API, then works through the UI.
 - the catalogue filters by author and category, and the address keeps the filters
 - visitors must sign in, and customers cannot open staff pages
 - a shared link shows a preview: description and image for anonymous visitors
+- the library icon is served for tabs, bookmarks and phone home screens
 
 ### `e2e/tests/desk.spec.js`
 
