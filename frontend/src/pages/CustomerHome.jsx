@@ -8,13 +8,26 @@ export default function CustomerHome() {
   const { user } = useAuth();
   const { data: loans = [] } = useApi('/api/my/loans');
   const active = loans.filter((loan) => loan.status === 'ACTIVE');
-  const pending = loans.filter((loan) => loan.status === 'PENDING');
+  const pending = loans.filter((loan) => ['PENDING', 'WAITLISTED'].includes(loan.status));
   const overdue = active.filter((loan) => loan.overdue);
+  const ready = loans.filter((loan) => loan.status === 'READY');
 
   return (
     <>
       <h1 className="h3 mb-1">Welcome, {user.displayName}</h1>
       <p className="page-subtitle mb-4">Good to see you at the library. Find your next read, or check on the ones you have.</p>
+      {ready.length > 0 && (
+        <Alert color="success">
+          Ready for pickup at the desk:{' '}
+          {ready.map((loan, i) => (
+            <span key={loan.id}>
+              {i > 0 && ', '}
+              <strong>{loan.book.title}</strong> (collect by {formatDate(loan.readyUntil)})
+            </span>
+          ))}
+          .
+        </Alert>
+      )}
       {overdue.length > 0 && (
         <Alert color="danger">
           You have {overdue.length} overdue {overdue.length === 1 ? 'book' : 'books'}. Please return{' '}

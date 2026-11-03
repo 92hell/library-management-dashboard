@@ -14,11 +14,14 @@ import { useAction, useDebouncedValue, usePagedList } from '../hooks';
 const STATUSES = [
   { value: 'all', label: 'All' },
   { value: 'pending', label: 'Pending requests' },
+  { value: 'waitlisted', label: 'In queue' },
+  { value: 'ready', label: 'Ready for pickup' },
   { value: 'active', label: 'On loan' },
   { value: 'overdue', label: 'Overdue' },
   { value: 'returned', label: 'Returned' },
   { value: 'rejected', label: 'Declined' },
   { value: 'cancelled', label: 'Cancelled' },
+  { value: 'expired', label: 'Not collected' },
 ];
 const EDITABLE = ['ACTIVE', 'RETURNED'];
 
@@ -70,6 +73,14 @@ export default function BorrowedBookList() {
     const reason = window.prompt(`Decline the request for "${loan.book.title}"? Optional reason for ${loan.member.name}:`, '');
     if (reason === null) return;
     perform(() => api.post(`/api/borrowed-books/${loan.id}/reject`, { reason: reason.trim() || null }));
+  }
+
+  function handOver(loan) {
+    perform(() => api.post(`/api/borrowed-books/${loan.id}/checkout`));
+  }
+
+  function renew(loan) {
+    perform(() => api.post(`/api/borrowed-books/${loan.id}/renew`));
   }
 
   function markReturned(loan) {
@@ -165,18 +176,28 @@ export default function BorrowedBookList() {
             <td className="text-nowrap">
               <ButtonGroup size="sm">
                 {loan.status === 'PENDING' && (
-                  <>
-                    <Button color="success" onClick={() => approve(loan)} disabled={action.pending}>
-                      Approve
-                    </Button>
-                    <Button color="secondary" onClick={() => reject(loan)} disabled={action.pending}>
-                      Reject
-                    </Button>
-                  </>
+                  <Button color="success" onClick={() => approve(loan)} disabled={action.pending}>
+                    Approve
+                  </Button>
+                )}
+                {loan.status === 'READY' && (
+                  <Button color="success" onClick={() => handOver(loan)} disabled={action.pending}>
+                    Hand over
+                  </Button>
+                )}
+                {['PENDING', 'WAITLISTED', 'READY'].includes(loan.status) && (
+                  <Button color="secondary" onClick={() => reject(loan)} disabled={action.pending}>
+                    Reject
+                  </Button>
                 )}
                 {loan.status === 'ACTIVE' && (
                   <Button color="success" onClick={() => markReturned(loan)} disabled={action.pending}>
                     Mark returned
+                  </Button>
+                )}
+                {loan.canRenew && (
+                  <Button color="primary" outline onClick={() => renew(loan)} disabled={action.pending}>
+                    Renew
                   </Button>
                 )}
                 {EDITABLE.includes(loan.status) && (

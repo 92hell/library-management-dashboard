@@ -6,6 +6,7 @@ import { useApi } from '../hooks';
 
 const TILES = [
   { key: 'pendingRequests', label: 'Pending requests', to: '/borrowed-books?status=pending', highlight: 'primary' },
+  { key: 'readyForPickup', label: 'Ready for pickup', to: '/borrowed-books?status=ready', highlight: 'primary' },
   { key: 'overdueLoans', label: 'Overdue loans', to: '/borrowed-books?status=overdue', highlight: 'danger' },
   { key: 'dueToday', label: 'Due today', to: '/borrowed-books?status=active' },
   { key: 'activeLoans', label: 'Books on loan', to: '/borrowed-books?status=active' },
@@ -25,7 +26,7 @@ export default function LibrarianHome() {
       {summary.loading && !summary.data ? (
         <Loading />
       ) : (
-        <Row xs="2" md="3" lg="6" className="g-3">
+        <Row xs="2" md="4" lg="7" className="g-3">
           {TILES.map(({ key, label, to, highlight }) => {
             const value = summary.data?.[key] ?? 0;
             const tone = highlight && value > 0 ? (highlight === 'danger' ? 'tile-attention' : 'tile-info') : '';

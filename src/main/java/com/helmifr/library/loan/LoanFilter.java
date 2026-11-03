@@ -4,7 +4,7 @@ import java.util.Locale;
 
 /** Status filter for the librarian's loan list. OVERDUE is derived: ACTIVE and past the due date. */
 public enum LoanFilter {
-    ALL, PENDING, ACTIVE, OVERDUE, RETURNED, REJECTED, CANCELLED;
+    ALL, PENDING, WAITLISTED, READY, ACTIVE, OVERDUE, RETURNED, REJECTED, CANCELLED, EXPIRED;
 
     static LoanFilter parse(String value) {
         try {

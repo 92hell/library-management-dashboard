@@ -58,24 +58,28 @@ class BorrowRequestTest {
     }
 
     @Test
-    @DisplayName("approving lends the book: ACTIVE, borrowed today, due in 14 days")
+    @DisplayName("approving sets a copy aside; handing it over lends it: borrowed today, due in 14 days")
     void approve() throws Exception {
         String loan = requestAndGetLocation().replace("/api/my/loans", "/api/borrowed-books");
 
         api.as(librarian).post(loan + "/approve", "{}")
                 .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("READY"));
+        api.as(librarian).post(loan + "/checkout")
                 .andExpect(jsonPath("$.status").value("ACTIVE"))
                 .andExpect(jsonPath("$.borrowDate").value(TODAY.toString()))
                 .andExpect(jsonPath("$.dueDate").value(TODAY.plusDays(14).toString()));
     }
 
     @Test
-    @DisplayName("approval is refused while the book is lent to someone else (409)")
+    @DisplayName("approving while every copy is lent puts the request in the queue")
     void approveWhileOnLoan() throws Exception {
         String loan = requestAndGetLocation().replace("/api/my/loans", "/api/borrowed-books");
         data.activeLoan(book, data.member("Walk-in"), TODAY, TODAY.plusDays(14));
 
-        api.as(librarian).post(loan + "/approve", "{}").andExpect(status().isConflict());
+        api.as(librarian).post(loan + "/approve", "{}")
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("WAITLISTED"));
     }
 
     @Test

@@ -22,6 +22,7 @@ import java.util.Map;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -45,6 +46,7 @@ public class CopyService {
     private final LoanRepository loans;
     private final CopyBarcodes barcodes;
     private final Clock clock;
+    private final ApplicationEventPublisher events;
 
     public Map<Long, Availability> availability(Collection<Long> bookIds) {
         if (bookIds.isEmpty()) {
@@ -91,7 +93,8 @@ public class CopyService {
         copy.setShelfLocation(blankToNull(request.shelfLocation()));
         copy = copies.save(copy);
         Audit.event("COPY_ADDED", "bookId={} barcode={} by={}", bookId, copy.getBarcode(), CurrentUser.username());
-        return toResponse(copy, null);
+        events.publishEvent(new CopyAdded(book));
+        return toResponse(copy, loans.findActiveByCopies(List.of(copy.getId())).stream().findFirst().orElse(null));
     }
 
     /** Adds {@code count} copies with generated barcodes (new books). */
@@ -169,7 +172,8 @@ public class CopyService {
             return null;
         }
         return new CurrentLoan(loan.getId(), loan.getMember().getId(), loan.getMember().getName(), loan.getDueDate(),
-                loan.isOverdue(LocalDate.now(clock)));
+                loan.isOverdue(LocalDate.now(clock)), loan.getStatus() == com.helmifr.library.loan.LoanStatus.READY,
+                loan.getReadyUntil());
     }
 
     private static Map<Long, Long> toMap(List<Object[]> rows) {

@@ -18,8 +18,9 @@ import org.springframework.web.bind.annotation.RestController;
 @RequiredArgsConstructor
 public class DashboardController {
 
-    public record Summary(long pendingRequests, long activeLoans, long overdueLoans, long dueToday,
-                          long books, long members) {}
+    /** @param readyForPickup copies set aside on the holds shelf, waiting to be collected */
+    public record Summary(long pendingRequests, long readyForPickup, long activeLoans, long overdueLoans,
+                          long dueToday, long books, long members) {}
 
     private final LoanRepository loans;
     private final BookRepository books;
@@ -32,6 +33,7 @@ public class DashboardController {
         LocalDate today = LocalDate.now(clock);
         return new Summary(
                 loans.countByStatusAndDeletedFalse(LoanStatus.PENDING),
+                loans.countByStatusAndDeletedFalse(LoanStatus.READY),
                 loans.countByStatusAndDeletedFalse(LoanStatus.ACTIVE),
                 loans.countOverdue(today),
                 loans.countDueOn(today),

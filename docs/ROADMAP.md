@@ -14,13 +14,9 @@ Items marked *(hook ready)* already have an extension point in the code.
 3. **Notification preferences** - let customers choose channels (in-app / email / SMS / WhatsApp)
    and opt out of reminders; respect quiet hours.
 4. **Password reset by email** and **email verification** on registration.
-5. **Reservations / holds queue** - when a requested book is on loan, queue requests in order
-   and notify the next customer when it comes back ("ready for pickup", with a pickup deadline).
-6. **Renewals** - customers extend a loan once if nobody is waiting for the book.
 
 ## Library operations
 
-- Multiple copies per title (barcode per physical copy) instead of one book = one copy
 - Fines for overdue books, payments and receipts
 - Member card expiry and renewal; card replacement keeps history
 - Merge duplicate member records (e.g. someone registered online before linking their card)

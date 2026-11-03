@@ -118,7 +118,7 @@ public class DemoDataSeeder {
         Book laskar = book("Laskar Pelangi", hirata, 2005, "Fiction,Young Adult", 3, "FIC HIR");
         book("Sang Pemimpi", hirata, 2006, "Fiction,Young Adult", 2, "FIC HIR");
         Book cantik = book("Cantik Itu Luka", eka, 2002, "Fiction,Historical Fiction", 1, "FIC KUR");
-        book("Supernova", dee, 2001, "Science Fiction,Fiction", 2, "SF LES");
+        Book supernova = book("Supernova", dee, 2001, "Science Fiction,Fiction", 2, "SF LES");
         book("Ronggeng Dukuh Paruk", tohari, 1982, "Fiction,Classics", 1, "FIC TOH");
 
         LocalDate today = LocalDate.now(clock);
@@ -127,6 +127,10 @@ public class DemoDataSeeder {
         loan(cantik, walkIn, LoanStatus.ACTIVE, today.minusDays(20), today.minusDays(6));
         Loan request = loan(bumi, demoCustomer, LoanStatus.PENDING, null, null);
         request.setRequestedAt(clock.instant());
+        // A hold waiting at the desk, so the librarian's "ready for pickup" list is not empty.
+        Loan hold = loan(supernova, walkIn, LoanStatus.READY, null, null);
+        hold.setRequestedAt(clock.instant());
+        hold.setReadyUntil(today.plusDays(2));
     }
 
     private Author author(String name) {
@@ -169,7 +173,7 @@ public class DemoDataSeeder {
         l.setStatus(status);
         l.setBorrowDate(borrowDate);
         l.setDueDate(dueDate);
-        if (status == LoanStatus.ACTIVE) {
+        if (status.holdsCopy()) {
             // Seeded loans use different titles, so the first copy is free.
             l.setCopy(copies.findAllByBookIdAndDeletedFalseOrderByIdAsc(book.getId()).get(0));
         }

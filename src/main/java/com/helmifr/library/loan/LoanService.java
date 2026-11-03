@@ -40,27 +40,25 @@ public class LoanService {
     private final BookRepository books;
     private final MemberService memberService;
     private final CopyService copyService;
+    private final HoldQueue holdQueue;
+    private final LoanViews views;
     private final CopyRepository copies;
     private final NotificationService notifications;
     private final LoanPolicy policy;
     private final Clock clock;
 
     public PageResponse<LoanResponse> search(String q, LocalDate borrowDate, LoanFilter filter, Pageable pageable) {
-        LocalDate today = today();
         return PageResponse.of(loans.search(SearchPatterns.contains(q), borrowDate, filter.status(),
-                        filter == LoanFilter.OVERDUE, today, pageable)
-                .map(l -> LoanResponse.from(l, today)));
+                        filter == LoanFilter.OVERDUE, today(), pageable)
+                .map(views::of));
     }
 
     public List<LoanResponse> findByMember(Long memberId) {
-        LocalDate today = today();
-        return loans.findAllByMemberIdAndDeletedFalseOrderByIdDesc(memberId).stream()
-                .map(l -> LoanResponse.from(l, today))
-                .toList();
+        return views.ofAll(loans.findAllByMemberIdAndDeletedFalseOrderByIdDesc(memberId));
     }
 
     public LoanResponse get(Long id) {
-        return LoanResponse.from(require(id), today());
+        return views.of(require(id));
     }
 
     /** Desk checkout (or a past loan when a return date is given). */
@@ -76,7 +74,7 @@ public class LoanService {
                     "You borrowed \"%s\". Please return it by %s.".formatted(loan.getBook().getTitle(), loan.getDueDate()),
                     MY_LOANS_LINK);
         }
-        return LoanResponse.from(loan, today());
+        return views.of(loan);
     }
 
     /** Corrects an ACTIVE or RETURNED loan. Requests are handled with approve/reject instead. */
@@ -87,14 +85,41 @@ public class LoanService {
             throw new ConflictException("Only active or returned loans can be edited; this one is " + loan.getStatus() + ".");
         }
         apply(loan, request);
-        return LoanResponse.from(loan, today());
+        return views.of(loan);
     }
 
+    /**
+     * Approves a request: a free copy is set aside for the member (READY, to collect within the
+     * pickup period); if every copy is out, the request joins the queue (WAITLISTED).
+     */
     @Transactional
     public LoanResponse approve(Long id, Approval approval) {
         Loan loan = requireStatus(id, LoanStatus.PENDING);
+        if (!loan.getMember().isActive()) {
+            throw new ConflictException("The member's card is inactive.");
+        }
         Book book = lockBook(loan.getBook().getId());
-        loan.setCopy(availableCopy(book, loan.getId()));
+        loan.setDecidedBy(CurrentUser.username());
+        var free = holdQueue.freeCopy(book);
+        if (free.isPresent() && loans.findQueue(book.getId()).isEmpty()) {
+            holdQueue.setAside(loan, free.get(), NotificationType.REQUEST_APPROVED,
+                    "Your request for \"%s\" was approved and is ready for pickup until %s.");
+        } else {
+            loan.setStatus(LoanStatus.WAITLISTED);
+            Integer position = views.of(loan).queuePosition();
+            Audit.event("REQUEST_WAITLISTED", "loanId={} bookId={} memberId={} position={} by={}", loan.getId(),
+                    book.getId(), loan.getMember().getId(), position, CurrentUser.username());
+            notifications.notifyMember(loan.getMember().getId(), NotificationType.WAITLISTED,
+                    "Your request for \"%s\" was approved. All copies are out; you are number %d in the queue."
+                            .formatted(book.getTitle(), position), MY_LOANS_LINK);
+        }
+        return views.of(loan);
+    }
+
+    /** The member collects a copy set aside for them: the loan starts today. */
+    @Transactional
+    public LoanResponse checkout(Long id, Approval approval) {
+        Loan loan = requireStatus(id, LoanStatus.READY);
         if (!loan.getMember().isActive()) {
             throw new ConflictException("The member's card is inactive.");
         }
@@ -102,47 +127,89 @@ public class LoanService {
         loan.setStatus(LoanStatus.ACTIVE);
         loan.setBorrowDate(today);
         loan.setDueDate(approval != null && approval.dueDate() != null ? approval.dueDate() : today.plusDays(policy.periodDays()));
-        loan.setDecidedBy(CurrentUser.username());
-        Audit.event("REQUEST_APPROVED", "loanId={} bookId={} memberId={} due={} by={}", loan.getId(), book.getId(),
-                loan.getMember().getId(), loan.getDueDate(), CurrentUser.username());
-        notifications.notifyMember(loan.getMember().getId(), NotificationType.REQUEST_APPROVED,
-                "Your request for \"%s\" was approved. Please return it by %s.".formatted(book.getTitle(), loan.getDueDate()),
+        loan.setReadyUntil(null);
+        Audit.event("HOLD_COLLECTED", "loanId={} copy={} memberId={} due={} by={}", loan.getId(),
+                loan.getCopy().getBarcode(), loan.getMember().getId(), loan.getDueDate(), CurrentUser.username());
+        notifications.notifyMember(loan.getMember().getId(), NotificationType.LOAN_RECORDED,
+                "You borrowed \"%s\". Please return it by %s.".formatted(loan.getBook().getTitle(), loan.getDueDate()),
                 MY_LOANS_LINK);
-        return LoanResponse.from(loan, today);
+        return views.of(loan);
     }
 
+    /** Declines a request, also one in the queue or set aside (its copy then goes to the next in line). */
     @Transactional
     public LoanResponse reject(Long id, Rejection rejection) {
-        Loan loan = requireStatus(id, LoanStatus.PENDING);
+        Loan loan = require(id);
+        if (loan.getStatus() != LoanStatus.PENDING && loan.getStatus() != LoanStatus.WAITLISTED
+                && loan.getStatus() != LoanStatus.READY) {
+            throw new ConflictException("Only requests that are not yet lent can be declined; this one is "
+                    + loan.getStatus() + ".");
+        }
+        Book book = lockBook(loan.getBook().getId());
+        boolean freesCopy = loan.getStatus() == LoanStatus.READY;
         String reason = rejection == null || rejection.reason() == null || rejection.reason().isBlank()
                 ? null : rejection.reason().trim();
         loan.setStatus(LoanStatus.REJECTED);
         loan.setDecisionNote(reason);
         loan.setDecidedBy(CurrentUser.username());
+        loan.setReadyUntil(null);
         Audit.event("REQUEST_REJECTED", "loanId={} memberId={} by={}", loan.getId(), loan.getMember().getId(),
                 CurrentUser.username());
         notifications.notifyMember(loan.getMember().getId(), NotificationType.REQUEST_REJECTED,
                 "Your request for \"%s\" was declined%s".formatted(loan.getBook().getTitle(),
                         reason == null ? "." : ": " + reason),
                 MY_LOANS_LINK);
-        return LoanResponse.from(loan, today());
+        if (freesCopy) {
+            holdQueue.serve(book);
+        }
+        return views.of(loan);
     }
 
+    /** The book is back: the copy goes to the next in the queue, if anyone is waiting. */
     @Transactional
     public LoanResponse markReturned(Long id) {
         Loan loan = requireStatus(id, LoanStatus.ACTIVE);
+        Book book = lockBook(loan.getBook().getId());
         loan.setStatus(LoanStatus.RETURNED);
         loan.setReturnDate(today());
         Audit.event("LOAN_RETURNED", "loanId={} bookId={} memberId={} by={}", loan.getId(), loan.getBook().getId(),
                 loan.getMember().getId(), CurrentUser.username());
-        return LoanResponse.from(loan, today());
+        holdQueue.serve(book);
+        return views.of(loan);
+    }
+
+    /** Extends an active loan by one loan period, if the rules allow (see LoanViews.whyNotRenewable). */
+    @Transactional
+    public LoanResponse renew(Loan loan) {
+        lockBook(loan.getBook().getId());
+        String refusal = views.whyNotRenewable(loan, today());
+        if (refusal != null) {
+            throw new ConflictException(refusal);
+        }
+        loan.setDueDate(loan.getDueDate().plusDays(policy.periodDays()));
+        loan.setRenewalCount(loan.getRenewalCount() + 1);
+        loan.setDueSoonNotified(false);
+        loan.setOverdueNotified(false);
+        Audit.event("LOAN_RENEWED", "loanId={} memberId={} due={} by={}", loan.getId(), loan.getMember().getId(),
+                loan.getDueDate(), CurrentUser.username());
+        return views.of(loan);
+    }
+
+    @Transactional
+    public LoanResponse renew(Long id) {
+        return renew(require(id));
     }
 
     @Transactional
     public void delete(Long id) {
         Loan loan = require(id);
+        Book book = lockBook(loan.getBook().getId());
+        boolean freesCopy = loan.getStatus().holdsCopy();
         loan.setDeleted(true);
         Audit.event("LOAN_DELETED", "loanId={} by={}", loan.getId(), CurrentUser.username());
+        if (freesCopy) {
+            holdQueue.serve(book);
+        }
     }
 
     Loan require(Long id) {

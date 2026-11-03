@@ -32,4 +32,9 @@ public class MyLoanController {
     public LoanResponse cancel(@PathVariable Long id) {
         return myLoans.cancel(CurrentUser.memberId(), id);
     }
+
+    @PostMapping("/{id}/renew")
+    public LoanResponse renew(@PathVariable Long id) {
+        return myLoans.renew(CurrentUser.memberId(), id);
+    }
 }

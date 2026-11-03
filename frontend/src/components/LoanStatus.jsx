@@ -5,6 +5,17 @@ export default function LoanStatus({ loan }) {
   switch (loan.status) {
     case 'PENDING':
       return <span className="stamp stamp-pending">Requested</span>;
+    case 'WAITLISTED':
+      return <span className="stamp stamp-pending">{loan.queuePosition ? `#${loan.queuePosition} in queue` : 'In queue'}</span>;
+    case 'READY':
+      return (
+        <span>
+          <span className="stamp stamp-returned">Ready for pickup</span>
+          {loan.readyUntil && <span className="small text-muted ms-2">Collect by {formatDate(loan.readyUntil)}</span>}
+        </span>
+      );
+    case 'EXPIRED':
+      return <span className="stamp stamp-cancelled">Not collected</span>;
     case 'ACTIVE':
       return loan.overdue ? (
         <span className="stamp stamp-overdue">Overdue</span>

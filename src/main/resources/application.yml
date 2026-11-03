@@ -64,6 +64,10 @@ library:
     period-days: ${LOAN_PERIOD_DAYS:14}
     max-open-per-member: ${LOAN_MAX_OPEN_PER_MEMBER:3}
     due-soon-days: ${LOAN_DUE_SOON_DAYS:2}
+    # Days a copy set aside for a member waits on the holds shelf before the hold expires.
+    pickup-days: ${LOAN_PICKUP_DAYS:3}
+    # Renewals per loan (each adds period-days); refused if someone is waiting or it is overdue.
+    max-renewals: ${LOAN_MAX_RENEWALS:1}
     # Daily reminder run (second minute hour day month weekday); "-" disables it.
     reminder-cron: ${LOAN_REMINDER_CRON:0 0 8 * * *}
   notifications:

@@ -51,6 +51,13 @@ public class Loan {
     @Column(name = "return_date")
     private LocalDate returnDate;
 
+    /** READY holds: the member must collect the copy by this date. */
+    @Column(name = "ready_until")
+    private LocalDate readyUntil;
+
+    @Column(name = "renewal_count", nullable = false)
+    private int renewalCount;
+
     /** Username of the librarian who approved or rejected the request. */
     @Column(name = "decided_by", length = 50)
     private String decidedBy;

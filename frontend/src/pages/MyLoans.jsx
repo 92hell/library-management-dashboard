@@ -11,8 +11,13 @@ export default function MyLoans() {
   const action = useAction();
 
   async function cancel(loan) {
-    if (!window.confirm(`Cancel your request for "${loan.book.title}"?`)) return;
+    const what = loan.status === 'READY' ? 'the copy set aside for you' : 'your request';
+    if (!window.confirm(`Cancel ${what} for "${loan.book.title}"?`)) return;
     if (await action.run(() => api.post(`/api/my/loans/${loan.id}/cancel`))) loans.reload();
+  }
+
+  async function renew(loan) {
+    if (await action.run(() => api.post(`/api/my/loans/${loan.id}/renew`))) loans.reload();
   }
 
   if (loans.error) return <ErrorAlert error={loans.error} />;
@@ -53,9 +58,19 @@ export default function MyLoans() {
                   <LoanStatus loan={loan} />
                 </td>
                 <td className="text-end">
-                  {loan.status === 'PENDING' && (
+                  {loan.canRenew && (
+                    <Button size="sm" color="primary" outline onClick={() => renew(loan)} disabled={action.pending}>
+                      Renew
+                    </Button>
+                  )}
+                  {['PENDING', 'WAITLISTED'].includes(loan.status) && (
                     <Button size="sm" color="secondary" outline onClick={() => cancel(loan)} disabled={action.pending}>
                       Cancel request
+                    </Button>
+                  )}
+                  {loan.status === 'READY' && (
+                    <Button size="sm" color="secondary" outline onClick={() => cancel(loan)} disabled={action.pending}>
+                      Cancel hold
                     </Button>
                   )}
                 </td>

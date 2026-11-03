@@ -1,5 +1,6 @@
 package com.helmifr.library.loan;
 
+import com.helmifr.library.common.Audit;
 import com.helmifr.library.notification.NotificationService;
 import com.helmifr.library.notification.NotificationType;
 import java.time.Clock;
@@ -26,10 +27,33 @@ public class LoanReminderJob {
     private final NotificationService notifications;
     private final LoanPolicy policy;
     private final Clock clock;
+    private final HoldQueue holdQueue;
+    private final LoanService loanService;
 
     @Scheduled(cron = "${library.loans.reminder-cron}")
     public void run() {
-        sendReminders(LocalDate.now(clock));
+        LocalDate today = LocalDate.now(clock);
+        expireUncollectedHolds(today);
+        sendReminders(today);
+    }
+
+    /** Holds not collected by their pickup date expire; the copy goes to the next in the queue. */
+    @Transactional
+    public void expireUncollectedHolds(LocalDate today) {
+        List<Loan> expired = loans.findUncollectedHolds(today);
+        for (Loan loan : expired) {
+            loanService.lockBook(loan.getBook().getId());
+            loan.setStatus(LoanStatus.EXPIRED);
+            loan.setReadyUntil(null);
+            Audit.event("HOLD_EXPIRED", "loanId={} memberId={}", loan.getId(), loan.getMember().getId());
+            notifications.notifyMember(loan.getMember().getId(), NotificationType.HOLD_EXPIRED,
+                    "Your hold on \"%s\" expired because it was not collected in time.".formatted(loan.getBook().getTitle()),
+                    LoanService.MY_LOANS_LINK);
+            holdQueue.serve(loan.getBook());
+        }
+        if (!expired.isEmpty()) {
+            log.info("Expired {} uncollected hold(s) for {}", expired.size(), today);
+        }
     }
 
     @Transactional

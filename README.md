@@ -15,13 +15,19 @@ React 18 · Vite · React Router 6 · Bootstrap 5 / reactstrap.
 **Customers (members with an online account)**
 - Register online, or link an existing library card from the desk (card ID + the email or phone on file)
 - Browse and search the catalogue with live availability; request books
-- *My loans*: pending requests, books on loan with due dates, overdue warnings, history; cancel a request
-- Notifications: request approved / declined (with reason), book due soon, book overdue
+- *My loans*: pending requests, place in the queue, holds ready for pickup, books on loan with due
+  dates, overdue warnings, history; cancel a request or hold; renew a loan
+- Notifications: hold ready for pickup, joined the waiting list, hold expired, request declined
+  (with reason), book due soon, book overdue
 - Profile: contact details, library card ID, password change
 
 **Librarians (staff)**
 - Dashboard: pending requests, overdue loans, due today, books on loan
-- Approve or decline borrow requests; mark books returned
+- Approve or decline borrow requests; approval sets a copy aside ("ready for pickup") or puts the
+  member on the waiting list when every copy is out; hand the copy over at the desk
+- Holds queue: a returned or newly added copy goes to the next member in line, first come first
+  served; uncollected holds expire and pass to the next member
+- Renew loans; mark books returned
 - Desk checkout for walk-in members who have no online account; record past loans
 - Physical copies with barcodes: a title can have several copies ("2 of 3 on shelf"); lend a
   scanned copy, return by barcode, look up who has a copy, add or withdraw copies
@@ -33,6 +39,8 @@ React 18 · Vite · React Router 6 · Bootstrap 5 / reactstrap.
   several members (row lock against races)
 - At most 3 open requests/loans per customer; no duplicate request for the same book
 - Due date defaults to 14 days; dates are validated (no future borrow date, no return before borrow)
+- Holds are kept for 3 days; a loan can be renewed once, not when overdue and not while someone is
+  waiting for the book
 - Soft deletes; authors with books, books on loan and members with open loans cannot be deleted
 - Deleting a member disables their online account
 
@@ -99,7 +107,8 @@ environment variables:
 | `LIBRARIAN_USERNAME`, `LIBRARIAN_PASSWORD` | `librarian`, generated | Owner account: created if missing and re-enabled on every start; when `LIBRARIAN_PASSWORD` is set its password is reset to it (recovery). Without it a password is generated and printed to the console only. **Always set it when hosting.** |
 | `DEMO_MODE`, `DEMO_PASSWORD`, `DEMO_RESET_CRON` | `false`, `demo-password`, `0 0 3 * * *` | Public demo - see [Demo mode](#demo-mode) |
 | `LOAN_PERIOD_DAYS`, `LOAN_MAX_OPEN_PER_MEMBER`, `LOAN_DUE_SOON_DAYS` | `14`, `3`, `2` | Lending rules |
-| `LOAN_REMINDER_CRON` | `0 0 8 * * *` | Daily due-soon / overdue reminder job (`-` disables) |
+| `LOAN_PICKUP_DAYS`, `LOAN_MAX_RENEWALS` | `3`, `1` | How long a hold waits at the desk; renewals per loan |
+| `LOAN_REMINDER_CRON` | `0 0 8 * * *` | Daily job: expire uncollected holds, due-soon / overdue reminders (`-` disables) |
 | `APP_BASE_URL` | `http://localhost:8080` | Used for links in emails / messages |
 | `NOTIFY_EMAIL_ENABLED`, `NOTIFY_EMAIL_FROM` + `SPRING_MAIL_HOST`, `SPRING_MAIL_PORT`, `SPRING_MAIL_USERNAME`, `SPRING_MAIL_PASSWORD` | off | Email notifications over SMTP |
 | `NOTIFY_SMS_*`, `NOTIFY_WHATSAPP_*` (`ENABLED`, `PROVIDER`, `SENDER`, `API_URL`, `API_KEY`) | off | SMS / WhatsApp channels - dry run (logged) until a provider is integrated |

@@ -125,8 +125,11 @@ public class TestData {
         return loan(book, member, LoanStatus.ACTIVE, borrowDate, dueDate, null);
     }
 
+    /** An online request, as a customer makes it (queue order follows the request time). */
     public Loan pendingRequest(Book book, Member member) {
-        return loan(book, member, LoanStatus.PENDING, null, null, null);
+        Loan l = loan(book, member, LoanStatus.PENDING, null, null, null);
+        l.setRequestedAt(java.time.Instant.now());
+        return loans.save(l);
     }
 
     public Loan loan(Book book, Member member, LoanStatus status, LocalDate borrowDate, LocalDate dueDate,

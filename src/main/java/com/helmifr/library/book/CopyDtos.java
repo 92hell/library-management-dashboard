@@ -16,7 +16,9 @@ public final class CopyDtos {
 
     public enum CopyStatus { AVAILABLE, ON_LOAN }
 
-    public record CurrentLoan(Long id, Long memberId, String memberName, LocalDate dueDate, boolean overdue) {}
+    /** @param held set aside on the holds shelf (READY) rather than lent; then readyUntil is set */
+    public record CurrentLoan(Long id, Long memberId, String memberName, LocalDate dueDate, boolean overdue,
+                              boolean held, LocalDate readyUntil) {}
 
     public record CopyResponse(Long id, String barcode, String shelfLocation, CopyStatus status, CurrentLoan loan) {}
 

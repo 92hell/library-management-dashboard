@@ -59,6 +59,17 @@ public class LoanController {
     public record BarcodeRequest(@jakarta.validation.constraints.NotBlank
                                  @jakarta.validation.constraints.Size(max = 40) String barcode) {}
 
+    /** The member collects a copy that was set aside for them. */
+    @PostMapping("/{id}/checkout")
+    public LoanResponse checkout(@PathVariable Long id, @Valid @RequestBody(required = false) Approval approval) {
+        return loanService.checkout(id, approval);
+    }
+
+    @PostMapping("/{id}/renew")
+    public LoanResponse renew(@PathVariable Long id) {
+        return loanService.renew(id);
+    }
+
     /** Desk return by scanning the copy. */
     @PostMapping("/return-by-barcode")
     public LoanResponse returnByBarcode(@Valid @RequestBody BarcodeRequest request) {

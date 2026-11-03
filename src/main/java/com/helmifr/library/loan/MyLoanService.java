@@ -27,6 +27,8 @@ public class MyLoanService {
     private final NotificationService notifications;
     private final LoanPolicy policy;
     private final Clock clock;
+    private final HoldQueue holdQueue;
+    private final LoanViews views;
 
     public List<LoanResponse> list(Long memberId) {
         return loanService.findByMember(memberId);
@@ -56,18 +58,34 @@ public class MyLoanService {
         Audit.event("BORROW_REQUESTED", "loanId={} bookId={} memberId={}", loan.getId(), bookId, memberId);
         notifications.notifyLibrarians(NotificationType.BORROW_REQUESTED,
                 "%s requested \"%s\".".formatted(member.getName(), book.getTitle()), LoanService.PENDING_LINK);
-        return LoanResponse.from(loan, LocalDate.now(clock));
+        return views.of(loan);
     }
 
+    /** Cancels the member's own request, in the queue or set aside (the copy then goes to the next in line). */
     @Transactional
     public LoanResponse cancel(Long memberId, Long loanId) {
         Loan loan = loans.findByIdAndMemberIdAndDeletedFalse(loanId, memberId)
                 .orElseThrow(() -> new NotFoundException("Loan", loanId));
-        if (loan.getStatus() != LoanStatus.PENDING) {
-            throw new ConflictException("Only pending requests can be cancelled.");
+        if (loan.getStatus() != LoanStatus.PENDING && loan.getStatus() != LoanStatus.WAITLISTED
+                && loan.getStatus() != LoanStatus.READY) {
+            throw new ConflictException("Only requests that are not yet collected can be cancelled.");
         }
+        Book book = loanService.lockBook(loan.getBook().getId());
+        boolean freesCopy = loan.getStatus() == LoanStatus.READY;
         loan.setStatus(LoanStatus.CANCELLED);
+        loan.setReadyUntil(null);
         Audit.event("REQUEST_CANCELLED", "loanId={} memberId={}", loanId, memberId);
-        return LoanResponse.from(loan, LocalDate.now(clock));
+        if (freesCopy) {
+            holdQueue.serve(book);
+        }
+        return views.of(loan);
+    }
+
+    /** Renews the member's own loan (once, if nobody is waiting and it is not overdue). */
+    @Transactional
+    public LoanResponse renew(Long memberId, Long loanId) {
+        Loan loan = loans.findByIdAndMemberIdAndDeletedFalse(loanId, memberId)
+                .orElseThrow(() -> new NotFoundException("Loan", loanId));
+        return loanService.renew(loan);
     }
 }
