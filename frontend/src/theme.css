@@ -215,3 +215,20 @@ main form.border, main .border.rounded { background-color: var(--lib-card); bord
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
 }
 main:focus { outline: none; }
+
+/* ---- Loan receipts ---------------------------------------------------------------------------- */
+.receipt { background: var(--lib-card); border: 1px solid var(--lib-rule); border-radius: 0.5rem; padding: 2rem; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06); }
+.receipt-library { font-family: 'Lora', Georgia, serif; font-size: 1.25rem; color: var(--lib-green); font-weight: 600; }
+.receipt-details { display: grid; grid-template-columns: repeat(auto-fill, minmax(13rem, 1fr)); gap: 0.25rem 1.5rem; }
+.receipt-details dt { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.04em; color: var(--lib-muted); font-weight: 600; }
+.receipt-details dd { margin-bottom: 0.5rem; }
+.receipt-stamp { color: var(--lib-burgundy); opacity: 0.85; flex-shrink: 0; }
+.receipt-signature { border-top: 1px dashed var(--lib-rule); padding-top: 0.75rem; margin-top: 1rem; }
+
+@media print {
+  .library-nav, .demo-banner, .skip-link, .d-print-none { display: none !important; }
+  body, main { background: #fff !important; }
+  main.container { max-width: none; padding: 0; }
+  .receipt { border: none; box-shadow: none; padding: 0; background: #fff; }
+  .receipt-stamp { opacity: 1; }
+}

@@ -2,9 +2,10 @@ import admin from './admin';
 import common from './common';
 import customer from './customer';
 import desk from './desk';
+import receipts from './receipts';
 
 /** Indonesian translations, keyed by the English text. Each area of the app has its own file. */
-const parts = [common, customer, desk, admin];
+const parts = [common, customer, desk, admin, receipts];
 
 const ID = {};
 for (const part of parts) {

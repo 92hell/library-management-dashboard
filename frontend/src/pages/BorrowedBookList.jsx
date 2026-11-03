@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Link, useSearchParams } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { Button, ButtonGroup, Col, Input, Label, Row } from 'reactstrap';
 import { api } from '../api';
 import { ErrorAlert } from '../components/Feedback';
@@ -35,6 +35,7 @@ export default function BorrowedBookList() {
   const q = useDebouncedValue(search.trim());
   const loans = usePagedList('/api/borrowed-books', { q, borrowDate, status });
   const action = useAction();
+  const navigate = useNavigate();
   const [returnBarcode, setReturnBarcode] = useState('');
   const [returned, setReturned] = useState(null);
   const t = useT();
@@ -86,6 +87,14 @@ export default function BorrowedBookList() {
 
   function renew(loan) {
     perform(() => api.post(`/api/borrowed-books/${loan.id}/renew`));
+  }
+
+  /** Issues (or reuses) the loan's receipt and opens it for printing. */
+  async function openReceipt(loan) {
+    let receipt = null;
+    if (await action.run(async () => {
+      receipt = await api.post(`/api/borrowed-books/${loan.id}/receipt`);
+    })) navigate(`/receipts/${receipt.number}`);
   }
 
   function markReturned(loan) {
@@ -215,6 +224,9 @@ export default function BorrowedBookList() {
                     {t('Edit')}
                   </Button>
                 )}
+                <Button color="secondary" outline onClick={() => openReceipt(loan)} disabled={action.pending}>
+                  {t('Receipt')}
+                </Button>
                 <Button color="danger" outline onClick={() => remove(loan)} disabled={action.pending}>
                   {t('Delete')}
                 </Button>

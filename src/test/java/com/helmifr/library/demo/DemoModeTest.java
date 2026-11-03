@@ -114,4 +114,24 @@ class DemoModeTest {
         assertThat(passwordEncoder.matches(demo.password(), librarian.getPasswordHash())).isTrue();
         assertThat(accounts.findByUsernameIgnoreCase("librarian")).isPresent();
     }
+
+    @Test
+    @DisplayName("the reset also clears loan histories and receipts that visitors created")
+    void resetClearsHistoryAndReceipts() throws Exception {
+        var book = data.book("Visitor's book");
+        String created = api.as(demoLibrarian).post("/api/borrowed-books",
+                        "{\"bookId\": %d, \"memberId\": %d}".formatted(book.getId(), demoCustomer.getMember().getId()))
+                .andReturn().getResponse().getContentAsString();
+        long loanId = com.jayway.jsonpath.JsonPath.parse(created).read("$.id", Long.class);
+        api.as(demoLibrarian).post("/api/borrowed-books/" + loanId + "/receipt")
+                .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.status().isOk());
+
+        seeder.reset();
+
+        assertThat(receipts.count()).isZero();
+        assertThat(loanEvents.findAllByLoanIdOrderByIdAsc(loanId)).isEmpty();
+    }
+
+    @Autowired com.helmifr.library.receipt.ReceiptRepository receipts;
+    @Autowired com.helmifr.library.loan.LoanEventRepository loanEvents;
 }

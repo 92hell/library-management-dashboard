@@ -7,7 +7,7 @@ Run everything: `mvn clean verify` (backend; add `-Pmariadb` to run it on MariaD
 `cd frontend && npm test` (frontend), and after `mvn -Pfullstack package` also
 `cd e2e && npm test` (end-to-end, in a real browser).
 
-Totals: 171 backend test methods (parameterised ones run once per case), 86 frontend tests, 9 end-to-end journeys.
+Totals: 182 backend test methods (parameterised ones run once per case), 92 frontend tests, 10 end-to-end journeys.
 
 ## Backend (JUnit, `src/test/java`)
 
@@ -156,7 +156,7 @@ live in `support/`.
 ### Demo data
 `src/test/java/com/helmifr/library/demo/DemoDataTest.java`
 
-- seeding creates demo accounts and a sample catalogue, and is idempotent
+- seeding creates demo accounts, a sample catalogue and loans with their history, and is idempotent
 - demo credentials are only advertised when demo mode is on (off in tests)
 
 ### Demo mode is safe to publish
@@ -168,6 +168,7 @@ live in `support/`.
 - the session tells the UI which accounts are restricted demo accounts
 - registration is off, so no real personal data ends up on a public demo
 - the nightly reset restores demo accounts and sample data, keeping the owner's account
+- the reset also clears loan histories and receipts that visitors created
 
 ### Overdue fines
 `src/test/java/com/helmifr/library/fine/FinesTest.java`
@@ -260,6 +261,20 @@ live in `support/`.
 - one failing channel does not stop the others
 - links are made absolute with the configured base URL
 - nothing is sent for an unknown or disabled account
+
+### Loan receipts
+`src/test/java/com/helmifr/library/receipt/ReceiptsTest.java`
+
+- every status change of a loan is recorded with who did it and when
+- a receipt has a yearly number, the loan, its history, the fee, a signature and a verification link
+- issuing again without changes gives the same receipt; after a change, a new one
+- anyone with the QR link can check a receipt; it shows the record with the member's name masked
+- a receipt whose stored record was altered no longer verifies
+- altering the record and recomputing its hash is still caught: only the library's key can sign
+- the signature checks out with the published public key, without trusting the app
+- the PDF carries the receipt number, the book, the history, the stamp and the signature details
+- customers get receipts for their own loans only
+- a desk loan starts its history as recorded by the librarian; a renewal and an edit are recorded too
 
 ### Reports and CSV export
 `src/test/java/com/helmifr/library/report/ReportsTest.java`
@@ -514,6 +529,19 @@ live in `support/`.
 - offers one button per demo account and signs in with it
 - shows an error for bad credentials and stays on the form
 
+### `frontend/src/pages/ReceiptPages.test.jsx`
+
+**Loan receipts**
+
+- a librarian opens a printable receipt from the loans list
+- a customer gets a receipt for their own loan
+- shows the receipt in Bahasa Indonesia
+**Checking a receipt (public)**
+
+- confirms a genuine receipt without signing in, and shows the record with the name masked
+- warns loudly when the record does not match its signature
+- says so when the number or code is wrong
+
 ### `frontend/src/pages/Register.test.jsx`
 
 **Registration page**
@@ -555,3 +583,7 @@ creates its own uniquely named data through the API, then works through the UI.
 
 - a late return by barcode charges a fee, which the librarian records as paid
 - reports show the period and download a CSV of loans
+
+### `e2e/tests/receipts.spec.js`
+
+- a librarian prints a signed receipt and anyone can check it with the QR link

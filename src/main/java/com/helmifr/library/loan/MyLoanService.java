@@ -31,6 +31,7 @@ public class MyLoanService {
     private final HoldQueue holdQueue;
     private final LoanViews views;
     private final FineService fines;
+    private final LoanEvents history;
 
     public List<LoanResponse> list(Long memberId) {
         return loanService.findByMember(memberId);
@@ -59,6 +60,7 @@ public class MyLoanService {
         loan = loans.save(loan);
 
         Audit.event("BORROW_REQUESTED", "loanId={} bookId={} memberId={}", loan.getId(), bookId, memberId);
+        history.record(loan, LoanEventType.REQUESTED);
         notifications.notifyLibrarians(NotificationType.BORROW_REQUESTED,
                 "%s requested \"%s\".".formatted(member.getName(), book.getTitle()), LoanService.PENDING_LINK);
         return views.of(loan);
@@ -78,6 +80,7 @@ public class MyLoanService {
         loan.setStatus(LoanStatus.CANCELLED);
         loan.setReadyUntil(null);
         Audit.event("REQUEST_CANCELLED", "loanId={} memberId={}", loanId, memberId);
+        history.record(loan, LoanEventType.CANCELLED);
         if (freesCopy) {
             holdQueue.serve(book);
         }

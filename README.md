@@ -50,6 +50,19 @@ React 18 · Vite · React Router 6 · Bootstrap 5 / reactstrap.
 - Accessibility: WCAG 2.1 AA checked automatically (axe) on every main page in the browser tests;
   skip link, focus moves to the page on navigation, form errors and hints read with their field
 
+**Loan receipts (printable evidence)**
+- Every status change of a loan is recorded (who, when, what): requested, approved, lent,
+  collected, renewed, returned, late fee charged / paid / waived, corrections
+- A receipt is a numbered snapshot (R-2026-000123) of the loan and that history, printable from
+  the browser or downloadable as a bilingual PDF (English / Bahasa Indonesia) with the library
+  stamp and a QR code. Librarians issue them for any loan, members for their own.
+- Each receipt is signed (Ed25519) over its exact text; the QR code opens a public page that
+  re-checks the signature and shows the library's record (member name masked). The public key is
+  at `/api/receipts/public-key`, so anyone can verify a receipt without trusting the app.
+- This proves the receipt came from the library and was not altered. It is *not* a certified
+  electronic signature under UU ITE: that needs a Kominfo-registered provider (PSrE, e.g. BSrE or
+  Privy), which can be added as another `ReceiptSigner`.
+
 **Rules enforced by the API**
 - A copy can only be lent to one member at a time; a title with several copies can be lent to
   several members (row lock against races)
@@ -127,6 +140,8 @@ environment variables:
 | `LOAN_PERIOD_DAYS`, `LOAN_MAX_OPEN_PER_MEMBER`, `LOAN_DUE_SOON_DAYS` | `14`, `3`, `2` | Lending rules |
 | `LOAN_PICKUP_DAYS`, `LOAN_MAX_RENEWALS` | `3`, `1` | How long a hold waits at the desk; renewals per loan |
 | `BOOK_COVERS`, `ISBN_LOOKUP_URL`, `ISBN_LOOKUP_TIMEOUT` | `true`, `https://openlibrary.org`, `5s` | Open Library covers and ISBN lookup (blank URL turns the lookup off) |
+| `LIBRARY_NAME`, `PUBLIC_URL` | `Community Library`, request address | Name on receipts and their stamp; base of the QR verification link |
+| `RECEIPT_PRIVATE_KEY`, `RECEIPT_PUBLIC_KEY` | generated, kept in the database | Ed25519 receipt signing key (base64 PKCS#8 / X.509); set both in production to keep the key out of the database |
 | `FINE_PER_DAY`, `FINE_MAX_PER_LOAN`, `FINE_BLOCK_AT`, `FINE_CURRENCY` | `1000`, `30000`, `20000`, `IDR` | Late fees (whole currency units; `FINE_BLOCK_AT=0` never blocks) |
 | `LOAN_REMINDER_CRON` | `0 0 8 * * *` | Daily job: expire uncollected holds, due-soon / overdue reminders (`-` disables) |
 | `APP_BASE_URL` | `http://localhost:8080` | Used for links in emails / messages |

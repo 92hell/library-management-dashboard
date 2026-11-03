@@ -14,6 +14,10 @@ import com.helmifr.library.book.CopyRepository;
 import com.helmifr.library.fine.Fine;
 import com.helmifr.library.fine.FineRepository;
 import com.helmifr.library.loan.Loan;
+import com.helmifr.library.loan.LoanEventRepository;
+import com.helmifr.library.loan.LoanEventType;
+import com.helmifr.library.loan.LoanEvents;
+import com.helmifr.library.receipt.ReceiptRepository;
 import com.helmifr.library.loan.LoanRepository;
 import com.helmifr.library.loan.LoanStatus;
 import com.helmifr.library.member.Member;
@@ -60,6 +64,9 @@ public class DemoDataSeeder {
     private final CopyRepository copies;
     private final CopyBarcodes barcodes;
     private final FineRepository fines;
+    private final ReceiptRepository receipts;
+    private final LoanEventRepository loanEventRows;
+    private final LoanEvents loanEvents;
     private final SecurityProperties securityProperties;
     private final EntityManager entityManager;
 
@@ -67,6 +74,8 @@ public class DemoDataSeeder {
     @Transactional
     public void reset() {
         notifications.deleteAllInBatch();
+        receipts.deleteAllInBatch();
+        loanEventRows.deleteAllInBatch();
         fines.deleteAllInBatch();
         loans.deleteAllInBatch();
         accounts.deleteAllExcept(securityProperties.librarian().username());
@@ -161,6 +170,41 @@ public class DemoDataSeeder {
             Loan past = loan(popular[i], readers[i % readers.length], LoanStatus.RETURNED, borrowed, borrowed.plusDays(14));
             past.setReturnDate(borrowed.plusDays(7 + i % 5));
         }
+        seedHistory(demoCustomer);
+    }
+
+    /** Gives every seeded loan the history it would have had, so receipts show a real timeline. */
+    private void seedHistory(Member demoCustomer) {
+        for (Loan l : loans.findAll()) {
+            String member = l.getMember().getId().equals(demoCustomer.getId()) ? DEMO_CUSTOMER : "desk";
+            String barcode = l.getCopy() == null ? "-" : l.getCopy().getBarcode();
+            switch (l.getStatus()) {
+                case PENDING -> loanEvents.recordAt(l, LoanEventType.REQUESTED, LoanStatus.PENDING, null,
+                        clock.instant().minusSeconds(3600), member);
+                case READY -> {
+                    loanEvents.recordAt(l, LoanEventType.REQUESTED, LoanStatus.PENDING, null,
+                            clock.instant().minusSeconds(86_400), member);
+                    loanEvents.recordAt(l, LoanEventType.APPROVED, LoanStatus.READY,
+                            "Copy %s set aside until %s".formatted(barcode, l.getReadyUntil()), clock.instant(), DEMO_LIBRARIAN);
+                }
+                case ACTIVE -> loanEvents.recordAt(l, LoanEventType.LENT, LoanStatus.ACTIVE,
+                        "Copy %s, due %s".formatted(barcode, l.getDueDate()), at(l.getBorrowDate(), 10), DEMO_LIBRARIAN);
+                case RETURNED -> {
+                    loanEvents.recordAt(l, LoanEventType.LENT, LoanStatus.ACTIVE,
+                            "Copy %s, due %s".formatted(barcode, l.getDueDate()), at(l.getBorrowDate(), 10), DEMO_LIBRARIAN);
+                    loanEvents.recordAt(l, LoanEventType.RETURNED, LoanStatus.RETURNED, "Copy " + barcode,
+                            at(l.getReturnDate(), 15), DEMO_LIBRARIAN);
+                    fines.findByLoanId(l.getId()).ifPresent(f -> loanEvents.recordAt(l, LoanEventType.FINE_CHARGED,
+                            LoanStatus.RETURNED, "Late fee IDR %,d for %d days late".formatted(f.getAmount(), f.getDaysLate()),
+                            at(l.getReturnDate(), 15), DEMO_LIBRARIAN));
+                }
+                default -> { }
+            }
+        }
+    }
+
+    private java.time.Instant at(LocalDate date, int hour) {
+        return date.atTime(hour, 0).atZone(clock.getZone()).toInstant();
     }
 
     private Author author(String name) {

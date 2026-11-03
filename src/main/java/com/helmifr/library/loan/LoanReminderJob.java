@@ -29,6 +29,7 @@ public class LoanReminderJob {
     private final Clock clock;
     private final HoldQueue holdQueue;
     private final LoanService loanService;
+    private final LoanEvents history;
 
     @Scheduled(cron = "${library.loans.reminder-cron}")
     public void run() {
@@ -46,6 +47,7 @@ public class LoanReminderJob {
             loan.setStatus(LoanStatus.EXPIRED);
             loan.setReadyUntil(null);
             Audit.event("HOLD_EXPIRED", "loanId={} memberId={}", loan.getId(), loan.getMember().getId());
+            history.record(loan, LoanEventType.EXPIRED, "Not collected in time");
             notifications.notifyMember(loan.getMember().getId(), NotificationType.HOLD_EXPIRED,
                     "Your hold on \"%s\" expired because it was not collected in time.".formatted(loan.getBook().getTitle()),
                     LoanService.MY_LOANS_LINK);

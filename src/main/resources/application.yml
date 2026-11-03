@@ -76,6 +76,15 @@ library:
     # ISBN lookup to fill in the book form; blank disables it.
     lookup-url: ${ISBN_LOOKUP_URL:https://openlibrary.org}
     lookup-timeout: ${ISBN_LOOKUP_TIMEOUT:5s}
+  receipts:
+    # Shown on receipts and their stamp.
+    library-name: ${LIBRARY_NAME:Community Library}
+    # Base of the verification link in the QR code; blank = the address the receipt was issued from.
+    public-url: ${PUBLIC_URL:}
+    # Ed25519 signing key (base64 PKCS#8 private key and X.509 public key). Blank = a key is generated
+    # once and kept in the database. Set both in production so the key lives outside the database.
+    private-key: ${RECEIPT_PRIVATE_KEY:}
+    public-key: ${RECEIPT_PUBLIC_KEY:}
   fines:
     # Late fee per day a book is returned late, the most one loan can cost, and the unpaid total
     # at which a member cannot borrow until they pay (0 = never). Whole units of the currency.

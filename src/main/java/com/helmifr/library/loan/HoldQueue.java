@@ -30,6 +30,7 @@ public class HoldQueue {
     private final LoanPolicy policy;
     private final NotificationService notifications;
     private final Clock clock;
+    private final LoanEvents history;
 
     /** The caller must hold the book's lock (LoanService.lockBook) or be in a transaction that does. */
     @Transactional
@@ -42,6 +43,8 @@ public class HoldQueue {
             }
             setAside(next, free.get(), NotificationType.HOLD_READY,
                     "A copy of \"%s\" is ready for pickup until %s.");
+            history.record(next, LoanEventType.READY, "Copy %s set aside until %s".formatted(
+                    free.get().getBarcode(), next.getReadyUntil()));
         }
     }
 

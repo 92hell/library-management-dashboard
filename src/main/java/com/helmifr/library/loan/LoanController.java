@@ -20,6 +20,7 @@ import org.springframework.web.bind.annotation.*;
 public class LoanController {
 
     private final LoanService loanService;
+    private final LoanEvents loanEvents;
 
     @GetMapping
     public PageResponse<LoanResponse> list(
@@ -74,6 +75,13 @@ public class LoanController {
     @PostMapping("/return-by-barcode")
     public LoanResponse returnByBarcode(@Valid @RequestBody BarcodeRequest request) {
         return loanService.returnByBarcode(request.barcode());
+    }
+
+    /** The loan's history, oldest first. */
+    @GetMapping("/{id}/events")
+    public java.util.List<LoanEvents.View> events(@PathVariable Long id) {
+        loanService.get(id);
+        return loanEvents.of(id);
     }
 
     @PostMapping("/{id}/return")

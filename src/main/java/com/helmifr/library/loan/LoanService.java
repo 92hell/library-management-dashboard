@@ -46,6 +46,7 @@ public class LoanService {
     private final CopyRepository copies;
     private final NotificationService notifications;
     private final FineService fines;
+    private final LoanEvents history;
     private final LoanPolicy policy;
     private final Clock clock;
 
@@ -71,6 +72,9 @@ public class LoanService {
         loan = loans.save(loan);
         Audit.event("LOAN_RECORDED", "loanId={} bookId={} memberId={} status={} by={}", loan.getId(),
                 loan.getBook().getId(), loan.getMember().getId(), loan.getStatus(), CurrentUser.username());
+        history.record(loan, LoanEventType.LENT, loan.getStatus() == LoanStatus.ACTIVE
+                ? "Copy %s, due %s".formatted(barcodeOf(loan), loan.getDueDate())
+                : "Past loan, returned %s".formatted(loan.getReturnDate()));
         if (loan.getStatus() == LoanStatus.ACTIVE) {
             notifications.notifyMember(loan.getMember().getId(), NotificationType.LOAN_RECORDED,
                     "You borrowed \"%s\". Please return it by %s.".formatted(loan.getBook().getTitle(), loan.getDueDate()),
@@ -87,7 +91,14 @@ public class LoanService {
             throw new ConflictException("Only active or returned loans can be edited; this one is " + loan.getStatus() + ".");
         }
         apply(loan, request);
+        history.record(loan, LoanEventType.EDITED, "Copy %s, borrowed %s, due %s%s".formatted(barcodeOf(loan),
+                loan.getBorrowDate(), loan.getDueDate(),
+                loan.getReturnDate() == null ? "" : ", returned " + loan.getReturnDate()));
         return views.of(loan);
+    }
+
+    private static String barcodeOf(Loan loan) {
+        return loan.getCopy() == null ? "-" : loan.getCopy().getBarcode();
     }
 
     /**
@@ -106,11 +117,14 @@ public class LoanService {
         if (free.isPresent() && loans.findQueue(book.getId()).isEmpty()) {
             holdQueue.setAside(loan, free.get(), NotificationType.REQUEST_APPROVED,
                     "Your request for \"%s\" was approved and is ready for pickup until %s.");
+            history.record(loan, LoanEventType.APPROVED,
+                    "Copy %s set aside until %s".formatted(barcodeOf(loan), loan.getReadyUntil()));
         } else {
             loan.setStatus(LoanStatus.WAITLISTED);
             Integer position = views.of(loan).queuePosition();
             Audit.event("REQUEST_WAITLISTED", "loanId={} bookId={} memberId={} position={} by={}", loan.getId(),
                     book.getId(), loan.getMember().getId(), position, CurrentUser.username());
+            history.record(loan, LoanEventType.WAITLISTED, "Number %d in the queue".formatted(position));
             notifications.notifyMember(loan.getMember().getId(), NotificationType.WAITLISTED,
                     "Your request for \"%s\" was approved. All copies are out; you are number %d in the queue."
                             .formatted(book.getTitle(), position), MY_LOANS_LINK);
@@ -133,6 +147,7 @@ public class LoanService {
         loan.setReadyUntil(null);
         Audit.event("HOLD_COLLECTED", "loanId={} copy={} memberId={} due={} by={}", loan.getId(),
                 loan.getCopy().getBarcode(), loan.getMember().getId(), loan.getDueDate(), CurrentUser.username());
+        history.record(loan, LoanEventType.COLLECTED, "Copy %s, due %s".formatted(barcodeOf(loan), loan.getDueDate()));
         notifications.notifyMember(loan.getMember().getId(), NotificationType.LOAN_RECORDED,
                 "You borrowed \"%s\". Please return it by %s.".formatted(loan.getBook().getTitle(), loan.getDueDate()),
                 MY_LOANS_LINK);
@@ -158,6 +173,7 @@ public class LoanService {
         loan.setReadyUntil(null);
         Audit.event("REQUEST_REJECTED", "loanId={} memberId={} by={}", loan.getId(), loan.getMember().getId(),
                 CurrentUser.username());
+        history.record(loan, LoanEventType.REJECTED, reason);
         notifications.notifyMember(loan.getMember().getId(), NotificationType.REQUEST_REJECTED,
                 "Your request for \"%s\" was declined%s".formatted(loan.getBook().getTitle(),
                         reason == null ? "." : ": " + reason),
@@ -177,6 +193,7 @@ public class LoanService {
         loan.setReturnDate(today());
         Audit.event("LOAN_RETURNED", "loanId={} bookId={} memberId={} by={}", loan.getId(), loan.getBook().getId(),
                 loan.getMember().getId(), CurrentUser.username());
+        history.record(loan, LoanEventType.RETURNED, "Copy %s".formatted(barcodeOf(loan)));
         fines.chargeIfLate(loan);
         holdQueue.serve(book);
         return views.of(loan);
@@ -196,6 +213,7 @@ public class LoanService {
         loan.setOverdueNotified(false);
         Audit.event("LOAN_RENEWED", "loanId={} memberId={} due={} by={}", loan.getId(), loan.getMember().getId(),
                 loan.getDueDate(), CurrentUser.username());
+        history.record(loan, LoanEventType.RENEWED, "New due date %s".formatted(loan.getDueDate()));
         return views.of(loan);
     }
 
@@ -211,6 +229,7 @@ public class LoanService {
         boolean freesCopy = loan.getStatus().holdsCopy();
         loan.setDeleted(true);
         Audit.event("LOAN_DELETED", "loanId={} by={}", loan.getId(), CurrentUser.username());
+        history.record(loan, LoanEventType.DELETED);
         if (freesCopy) {
             holdQueue.serve(book);
         }

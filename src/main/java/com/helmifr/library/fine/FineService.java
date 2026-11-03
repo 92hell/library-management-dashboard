@@ -9,6 +9,8 @@ import com.helmifr.library.fine.FineDtos.FineResponse;
 import com.helmifr.library.fine.FineDtos.LoanFine;
 import com.helmifr.library.fine.FineDtos.MyFines;
 import com.helmifr.library.loan.Loan;
+import com.helmifr.library.loan.LoanEventType;
+import com.helmifr.library.loan.LoanEvents;
 import com.helmifr.library.loan.LoanStatus;
 import com.helmifr.library.member.Member;
 import com.helmifr.library.notification.NotificationService;
@@ -38,6 +40,7 @@ public class FineService {
     private final FinePolicy policy;
     private final NotificationService notifications;
     private final Clock clock;
+    private final LoanEvents history;
 
     /** Called when a loan is returned: charges the late fee, if any, and tells the member. */
     @Transactional
@@ -55,6 +58,8 @@ public class FineService {
         fines.save(fine);
         Audit.event("FINE_CHARGED", "fineId={} loanId={} memberId={} amount={} daysLate={}", fine.getId(),
                 loan.getId(), loan.getMember().getId(), amount, daysLate);
+        history.record(loan, LoanEventType.FINE_CHARGED, "Late fee %s for %d day%s late".formatted(
+                policy.format(amount), daysLate, daysLate == 1 ? "" : "s"));
         notifications.notifyMember(loan.getMember().getId(), NotificationType.FINE_ISSUED,
                 "\"%s\" came back %d day%s late: a late fee of %s. Please pay at the desk.".formatted(
                         loan.getBook().getTitle(), daysLate, daysLate == 1 ? "" : "s", policy.format(amount)),
@@ -112,6 +117,7 @@ public class FineService {
         settle(fine, FineStatus.PAID, null);
         Audit.event("FINE_PAID", "fineId={} memberId={} amount={} by={}", id, fine.getMember().getId(),
                 fine.getAmount(), CurrentUser.username());
+        history.record(fine.getLoan(), LoanEventType.FINE_PAID, "Paid " + policy.format(fine.getAmount()));
         return view(fine);
     }
 
@@ -121,6 +127,8 @@ public class FineService {
         settle(fine, FineStatus.WAIVED, reason.trim());
         Audit.event("FINE_WAIVED", "fineId={} memberId={} amount={} by={}", id, fine.getMember().getId(),
                 fine.getAmount(), CurrentUser.username());
+        history.record(fine.getLoan(), LoanEventType.FINE_WAIVED,
+                "Waived %s: %s".formatted(policy.format(fine.getAmount()), reason.trim()));
         return view(fine);
     }
 

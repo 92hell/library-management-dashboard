@@ -19,9 +19,11 @@ import MemberList from './pages/MemberList';
 import MyLoans from './pages/MyLoans';
 import Notifications from './pages/Notifications';
 import Profile from './pages/Profile';
+import ReceiptPage from './pages/ReceiptPage';
 import Register from './pages/Register';
 import ReportsPage from './pages/ReportsPage';
 import Users from './pages/Users';
+import VerifyReceipt from './pages/VerifyReceipt';
 
 const Librarian = () => (
   <RequireRole role="LIBRARIAN">
@@ -39,6 +41,7 @@ export function AppRoutes() {
     <Routes>
       <Route path="/login" element={<Login />} />
       <Route path="/register" element={<Register />} />
+      <Route path="/verify/:number" element={<VerifyReceipt />} />
       <Route
         element={
           <RequireAuth>
@@ -50,6 +53,7 @@ export function AppRoutes() {
         <Route path="profile" element={<Profile />} />
         <Route path="notifications" element={<Notifications />} />
         <Route path="catalogue/:id" element={<BookDetail />} />
+        <Route path="receipts/:number" element={<ReceiptPage />} />
 
         <Route element={<Customer />}>
           <Route path="catalogue" element={<Catalogue />} />

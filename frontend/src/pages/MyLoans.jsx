@@ -1,3 +1,4 @@
+import { useNavigate } from 'react-router-dom';
 import { Button, Table } from 'reactstrap';
 import { api } from '../api';
 import { ErrorAlert, Loading } from '../components/Feedback';
@@ -12,6 +13,7 @@ export default function MyLoans() {
   const loans = useApi('/api/my/loans');
   const fines = useApi('/api/my/fines');
   const action = useAction();
+  const navigate = useNavigate();
   const t = useT();
 
   async function cancel(loan) {
@@ -22,6 +24,14 @@ export default function MyLoans() {
         : t('Cancel your request for "{title}"?', { title });
     if (!window.confirm(question)) return;
     if (await action.run(() => api.post(`/api/my/loans/${loan.id}/cancel`))) loans.reload();
+  }
+
+  /** Issues (or reuses) the receipt for this loan and opens it for printing. */
+  async function openReceipt(loan) {
+    let receipt = null;
+    if (await action.run(async () => {
+      receipt = await api.post(`/api/my/loans/${loan.id}/receipt`);
+    })) navigate(`/receipts/${receipt.number}`);
   }
 
   async function renew(loan) {
@@ -82,6 +92,9 @@ export default function MyLoans() {
                       {t('Cancel hold')}
                     </Button>
                   )}
+                  <Button size="sm" color="secondary" outline className="ms-1" onClick={() => openReceipt(loan)} disabled={action.pending}>
+                    {t('Receipt')}
+                  </Button>
                 </td>
               </tr>
             ))}

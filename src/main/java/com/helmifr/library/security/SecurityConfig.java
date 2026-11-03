@@ -80,6 +80,9 @@ public class SecurityConfig {
                 .securityContext(sc -> sc.securityContextRepository(securityContextRepository))
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/api/auth/**", "/actuator/health").permitAll()
+                        // Receipt verification (QR link) and the signing public key are public.
+                        .requestMatchers(HttpMethod.GET, "/api/receipts/verify/**", "/api/receipts/public-key").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/receipts/**").authenticated()
                         .requestMatchers(HttpMethod.GET, "/api/profile").authenticated()
                         .requestMatchers("/api/profile/**", "/api/profile")
                         .access(AuthorizationManagers.allOf(AuthenticatedAuthorizationManager.authenticated(), notDemoAccount))
