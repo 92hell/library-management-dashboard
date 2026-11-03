@@ -22,7 +22,7 @@ Items marked *(hook ready)* already have an extension point in the code.
 - Fines: online payment (e.g. Midtrans / Xendit)
 - Card expiry reminder by email/SMS a month ahead (the profile already warns); printable member card
 - Fallback ISBN lookup (Google Books) when Open Library has no record
-- Reports: charts over time, scheduled monthly report by email
+- Reports: scheduled monthly report by email
 - Branches / locations and inter-branch transfers
 
 ## Security follow-ups (from the security review)

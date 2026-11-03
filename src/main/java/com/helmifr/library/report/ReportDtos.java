@@ -20,8 +20,17 @@ public final class ReportDtos {
      * @param newMembers     members added in the range
      * @param finesCharged   late fees charged in the range
      * @param finesCollected late fees paid in the range
+     * @param weekly         books lent per week, for the chart
+     * @param monthly        returns per month, on time and late, for the chart
      */
     public record Summary(LocalDate from, LocalDate to, long loans, long returns, long dueInPeriod, long lateInPeriod,
                           Double lateRate, long activeMembers, long newMembers, long finesCharged, long finesCollected,
-                          String currency, List<TitleCount> mostBorrowed, List<MemberCount> mostActiveMembers) {}
+                          String currency, List<TitleCount> mostBorrowed, List<MemberCount> mostActiveMembers,
+                          List<WeekLoans> weekly, List<MonthReturns> monthly) {}
+
+    /** Books lent in one week of the range (Monday to Sunday, cut to the range at its ends). */
+    public record WeekLoans(LocalDate start, LocalDate end, long loans) {}
+
+    /** Books returned in one month of the range (cut to the range at its ends): on time and late. */
+    public record MonthReturns(LocalDate start, LocalDate end, long onTime, long late) {}
 }

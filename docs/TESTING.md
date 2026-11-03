@@ -7,7 +7,7 @@ Run everything: `mvn clean verify` (backend; add `-Pmariadb` to run it on MariaD
 `cd frontend && npm test` (frontend), and after `mvn -Pfullstack package` also
 `cd e2e && npm test` (end-to-end, in a real browser).
 
-Totals: 250 backend test methods (parameterised ones run once per case), 161 frontend tests, 15 end-to-end journeys.
+Totals: 253 backend test methods (parameterised ones run once per case), 166 frontend tests, 15 end-to-end journeys.
 
 ## Backend (JUnit, `src/test/java`)
 
@@ -360,6 +360,9 @@ live in `support/`.
 
 - the summary counts loans, returns, late returns and active members in the last 30 days
 - fines charged and collected in the range are totalled
+- books lent are counted per week (Monday to Sunday), including weeks with none
+- weeks and months at the edges of the range are cut to the range
+- returns are counted per month, on time and late, including months with none
 - the late rate is empty, not zero, when nothing fell due
 - most borrowed titles and most active members are ranked for the chosen range
 - requests, holds and deleted loans are not counted as lending
@@ -484,6 +487,12 @@ live in `support/`.
 - always gives the same title the same colour
 - is decorative: hidden from screen readers
 - shows the real cover when there is one, and falls back to the drawn spine if it fails to load
+
+### `frontend/src/components/ColumnChart.test.jsx`
+
+**Chart axis ticks**
+
+- uses clean steps of 1, 2 or 5 and reaches the largest value
 
 ### `frontend/src/components/DemoMode.test.jsx`
 
@@ -782,6 +791,12 @@ live in `support/`.
 - says so when nothing fell due, instead of a 0% late rate
 - formats the tile numbers for the language
 - is in the librarian menu
+**Report charts**
+
+- draws books lent per week and returns per month, with a legend only where there are two series
+- has the same numbers as a table
+- reads one column at a time with the arrow keys
+- reads in Bahasa Indonesia
 
 ## End-to-end (Playwright, `e2e/tests`)
 

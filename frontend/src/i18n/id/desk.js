@@ -167,4 +167,12 @@ export default {
   'Merge into this member': 'Gabungkan ke anggota ini',
   'Merge "{duplicate}" into "{name}"? Their loans, fines, receipts and online account move to {name}, and the other record is removed. This cannot be undone.':
     'Gabungkan "{duplicate}" ke "{name}"? Pinjaman, denda, bukti pinjam, dan akun daringnya pindah ke {name}, lalu data lainnya dihapus. Tindakan ini tidak dapat dibatalkan.',
+  // Report charts
+  'Books lent per week': 'Buku dipinjamkan per minggu',
+  'Returns per month': 'Pengembalian per bulan',
+  'Returned on time': 'Dikembalikan tepat waktu',
+  Legend: 'Keterangan',
+  Period: 'Periode',
+  'Show the numbers': 'Tampilkan angkanya',
+  '{title}: use the left and right arrow keys to read each column.': '{title}: gunakan tombol panah kiri dan kanan untuk membaca setiap kolom.',
 };

@@ -45,7 +45,9 @@ public class ReportService {
         return new Summary(r.from(), r.to(), queries.loans(r), queries.returns(r), due, late, lateRate,
                 queries.activeMembers(r), queries.newMembers(start, end), queries.finesCharged(start, end),
                 queries.finesCollected(start, end), finePolicy.currency(),
-                queries.mostBorrowed(r, TOP), queries.mostActiveMembers(r, TOP));
+                queries.mostBorrowed(r, TOP), queries.mostActiveMembers(r, TOP),
+                Trends.weekly(r, queries.loansPerDay(r)),
+                Trends.monthly(r, queries.returnsPerDay(r, false), queries.returnsPerDay(r, true)));
     }
 
     public byte[] loansCsv(ReportRange r) {

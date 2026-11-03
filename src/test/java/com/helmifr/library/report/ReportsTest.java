@@ -113,6 +113,64 @@ class ReportsTest {
     }
 
     @Test
+    @DisplayName("books lent are counted per week (Monday to Sunday), including weeks with none")
+    void loansPerWeek() throws Exception {
+        LocalDate monday = TODAY.minusDays(21).with(java.time.temporal.TemporalAdjusters.previousOrSame(java.time.DayOfWeek.MONDAY));
+        loan(laskar, siti, (int) java.time.temporal.ChronoUnit.DAYS.between(monday, TODAY), 0);
+        loan(bumi, bayu, (int) java.time.temporal.ChronoUnit.DAYS.between(monday.plusDays(3), TODAY), 0);
+        loan(laskar, bayu, (int) java.time.temporal.ChronoUnit.DAYS.between(monday.plusDays(16), TODAY), null);
+        loan(bumi, siti, (int) java.time.temporal.ChronoUnit.DAYS.between(monday.minusDays(1), TODAY), 0); // the Sunday before
+
+        api.as(librarian).get("/api/reports/summary", "from", monday.toString(), "to", monday.plusDays(20).toString())
+                .andExpect(jsonPath("$.weekly.length()").value(3))
+                .andExpect(jsonPath("$.weekly[0].start").value(monday.toString()))
+                .andExpect(jsonPath("$.weekly[0].end").value(monday.plusDays(6).toString()))
+                .andExpect(jsonPath("$.weekly[0].loans").value(2))
+                .andExpect(jsonPath("$.weekly[1].loans").value(0))
+                .andExpect(jsonPath("$.weekly[2].start").value(monday.plusDays(14).toString()))
+                .andExpect(jsonPath("$.weekly[2].loans").value(1));
+    }
+
+    @Test
+    @DisplayName("weeks and months at the edges of the range are cut to the range")
+    void bucketsCutToRange() throws Exception {
+        LocalDate wednesday = TODAY.minusDays(40).with(java.time.temporal.TemporalAdjusters.previousOrSame(java.time.DayOfWeek.WEDNESDAY));
+        LocalDate to = wednesday.plusDays(8); // the Thursday of the next week
+
+        api.as(librarian).get("/api/reports/summary", "from", wednesday.toString(), "to", to.toString())
+                .andExpect(jsonPath("$.weekly.length()").value(2))
+                .andExpect(jsonPath("$.weekly[0].start").value(wednesday.toString()))
+                .andExpect(jsonPath("$.weekly[0].end").value(wednesday.plusDays(4).toString()))
+                .andExpect(jsonPath("$.weekly[1].start").value(wednesday.plusDays(5).toString()))
+                .andExpect(jsonPath("$.weekly[1].end").value(to.toString()))
+                .andExpect(jsonPath("$.monthly[0].start").value(wednesday.toString()))
+                .andExpect(jsonPath("$.monthly[%d].end".formatted(wednesday.getMonth() == to.getMonth() ? 0 : 1))
+                        .value(to.toString()));
+    }
+
+    @Test
+    @DisplayName("returns are counted per month, on time and late, including months with none")
+    void returnsPerMonth() throws Exception {
+        LocalDate first = TODAY.withDayOfMonth(1).minusMonths(2);
+        data.loan(laskar, siti, LoanStatus.RETURNED, first.minusDays(10), first.plusDays(4), first.plusDays(2));  // on time
+        data.loan(bumi, bayu, LoanStatus.RETURNED, first.minusDays(10), first.plusDays(4), first.plusDays(9));    // late
+        data.loan(laskar, bayu, LoanStatus.RETURNED, TODAY.minusDays(15), TODAY.minusDays(1), TODAY);           // late
+        data.loan(bumi, siti, LoanStatus.RETURNED, first.minusDays(40), first.minusDays(26), first.minusDays(20)); // before
+
+        api.as(librarian).get("/api/reports/summary", "from", first.toString(), "to", TODAY.toString())
+                .andExpect(jsonPath("$.monthly.length()").value(3))
+                .andExpect(jsonPath("$.monthly[0].start").value(first.toString()))
+                .andExpect(jsonPath("$.monthly[0].end").value(first.plusMonths(1).minusDays(1).toString()))
+                .andExpect(jsonPath("$.monthly[0].onTime").value(1))
+                .andExpect(jsonPath("$.monthly[0].late").value(1))
+                .andExpect(jsonPath("$.monthly[1].onTime").value(0))
+                .andExpect(jsonPath("$.monthly[1].late").value(0))
+                .andExpect(jsonPath("$.monthly[2].start").value(TODAY.withDayOfMonth(1).toString()))
+                .andExpect(jsonPath("$.monthly[2].end").value(TODAY.toString()))
+                .andExpect(jsonPath("$.monthly[2].late").value(1));
+    }
+
+    @Test
     @DisplayName("the late rate is empty, not zero, when nothing fell due")
     void noLateRateWithoutDueLoans() throws Exception {
         loan(bumi, siti, 3, null);

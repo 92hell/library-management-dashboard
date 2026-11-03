@@ -62,6 +62,12 @@ test('reports show the period and download a CSV of loans', async ({ page, baseU
   await signIn(page, LIBRARIAN.username, LIBRARIAN.password);
   await page.getByRole('navigation').getByRole('link', { name: 'Reports' }).click();
   await expect(page.getByRole('table', { name: 'Most borrowed' })).toContainText(title);
+  // The weekly chart counts the loan just made; its numbers are also a table.
+  const weekly = page.getByRole('figure', { name: 'Books lent per week' });
+  await weekly.getByText('Show the numbers').click();
+  await expect(weekly.getByRole('table').locator('tbody tr').last()).not.toContainText(/\b0$/);
+  await expect(page.getByRole('figure', { name: 'Returns per month' }).getByRole('list', { name: 'Legend' }))
+    .toContainText('Returned late');
   const [download] = await Promise.all([
     page.waitForEvent('download'),
     page.getByRole('link', { name: 'Download loans (CSV)' }).click(),

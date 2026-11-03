@@ -33,6 +33,8 @@ React 18 · Vite · React Router 6 · Bootstrap 5 / reactstrap.
 - Renew loans; mark books returned
 - Reports for any date range (up to a year): books lent and returned, late-return rate, active
   and new members, fines charged and collected, most borrowed titles, most active members;
+  charts of books lent per week and returns per month (on time / late), readable by keyboard and
+  with the same numbers as a table;
   CSV downloads (spreadsheet-safe: formulas in data are neutralised; every export is audited)
 - Fines desk: late fees charged on return; record a payment (all of it or part of it, as often as
   needed) or waive what is left with a reason (audited); print the signed receipt after a payment

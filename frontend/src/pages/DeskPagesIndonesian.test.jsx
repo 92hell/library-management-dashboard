@@ -120,15 +120,18 @@ describe('Desk pages in Bahasa Indonesia', () => {
         currency: 'IDR',
         mostBorrowed: [{ bookId: 3, title: 'Laskar Pelangi', authorName: 'Andrea Hirata', loans: 4 }],
         mostActiveMembers: [],
+        weekly: [{ start: '2026-10-05', end: '2026-10-11', loans: 12 }],
+        monthly: [{ start: '2026-10-05', end: '2026-10-31', onTime: 7, late: 2 }],
       },
     });
     setLanguage('id');
 
     renderApp('/reports');
 
-    expect(await screen.findByText('Buku dipinjamkan')).toBeInTheDocument();
+    const tile = (label) => screen.getAllByText(label).find((el) => el.closest('.tile')).closest('.card');
+    expect((await screen.findAllByText('Buku dipinjamkan')).length).toBeGreaterThan(0);
     expect(screen.getByRole('heading', { name: 'Laporan' })).toBeInTheDocument();
-    expect(screen.getByText('Dikembalikan terlambat').closest('.card')).toHaveTextContent(/67%.*2 dari 3 peminjaman yang jatuh tempo/);
+    expect(tile('Dikembalikan terlambat')).toHaveTextContent(/67%.*2 dari 3 peminjaman yang jatuh tempo/);
     expect(screen.getByText('Denda dikenakan').closest('.card')).toHaveTextContent(/Rp7\.000.*Rp4\.000 terkumpul/);
     expect(screen.getByText('Anggota aktif').closest('.card')).toHaveTextContent('2 baru');
     expect(screen.getByLabelText('Dari')).toBeInTheDocument();

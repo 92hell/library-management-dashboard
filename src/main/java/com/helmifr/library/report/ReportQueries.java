@@ -6,7 +6,9 @@ import com.helmifr.library.report.ReportDtos.TitleCount;
 import jakarta.persistence.EntityManager;
 import java.time.Instant;
 import java.time.LocalDate;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Repository;
 
@@ -45,6 +47,27 @@ class ReportQueries {
                         + " AND (l.status = com.helmifr.library.loan.LoanStatus.ACTIVE OR l.returnDate > l.dueDate)", Long.class)
                 .setParameter("from", r.from()).setParameter("to", r.to()).setParameter("today", today)
                 .getSingleResult();
+    }
+
+    /** Books lent on each day of the range that had any. */
+    Map<LocalDate, Long> loansPerDay(ReportRange r) {
+        return perDay("SELECT l.borrowDate, COUNT(l) FROM Loan l WHERE " + BORROWED_IN + " GROUP BY l.borrowDate", r);
+    }
+
+    /** Books returned on each day of the range that had any; only those returned after their due date if {@code lateOnly}. */
+    Map<LocalDate, Long> returnsPerDay(ReportRange r, boolean lateOnly) {
+        return perDay("SELECT l.returnDate, COUNT(l) FROM Loan l WHERE " + LENT
+                + " AND l.status = com.helmifr.library.loan.LoanStatus.RETURNED AND l.returnDate BETWEEN :from AND :to"
+                + (lateOnly ? " AND l.returnDate > l.dueDate" : "") + " GROUP BY l.returnDate", r);
+    }
+
+    private Map<LocalDate, Long> perDay(String jpql, ReportRange r) {
+        Map<LocalDate, Long> counts = new HashMap<>();
+        for (Object[] row : em.createQuery(jpql, Object[].class)
+                .setParameter("from", r.from()).setParameter("to", r.to()).getResultList()) {
+            counts.put((LocalDate) row[0], (Long) row[1]);
+        }
+        return counts;
     }
 
     long activeMembers(ReportRange r) {

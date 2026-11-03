@@ -3,9 +3,10 @@ import { Link } from 'react-router-dom';
 import { Button, ButtonGroup, Card, CardBody, Col, Input, Label, Row } from 'reactstrap';
 import { buildUrl } from '../api';
 import { ErrorAlert, Loading } from '../components/Feedback';
-import { formatDate, formatMoney, formatNumber, todayIso } from '../format';
+import { formatDate, formatDateParts, formatMoney, formatNumber, todayIso } from '../format';
 import { useApi, useDebouncedValue } from '../hooks';
 import { msg, useT } from '../i18n';
+import ColumnChart from '../components/ColumnChart';
 import ResponsiveTable from '../components/ResponsiveTable';
 
 /** "YYYY-MM-DD" for `days` days before today. */
@@ -87,6 +88,7 @@ export default function ReportsPage() {
               small
             />
           </Row>
+          <Trends report={r} />
           <Row className="g-4">
             <Col lg={7}>
               <Ranking
@@ -140,6 +142,46 @@ export default function ReportsPage() {
         </div>
       )}
     </>
+  );
+}
+
+/** "Nov 3 – Nov 9, 2026" (both ends shown, as the first and last bucket may be cut to the range). */
+function period(bucket) {
+  return `${formatDate(bucket.start)} – ${formatDate(bucket.end)}`;
+}
+
+/** Books lent per week and returns per month (on time / late) over the report's range. */
+function Trends({ report }) {
+  const t = useT();
+  const spansYears = report.from.slice(0, 4) !== report.to.slice(0, 4);
+  const weeks = report.weekly.map((w) => ({
+    key: w.start, label: formatDateParts(w.start, { month: 'short', day: 'numeric' }), title: period(w), values: [w.loans],
+  }));
+  const months = report.monthly.map((m) => ({
+    key: m.start,
+    label: formatDateParts(m.start, spansYears ? { month: 'short', year: '2-digit' } : { month: 'short' }),
+    title: period(m),
+    values: [m.onTime, m.late],
+  }));
+  return (
+    <Row className="g-4 mb-4">
+      <Col lg={7}>
+        <Card className="h-100 shadow-sm">
+          <CardBody>
+            <ColumnChart title={t('Books lent per week')} buckets={weeks}
+              series={[{ name: t('Books lent'), color: 'var(--chart-1)' }]} />
+          </CardBody>
+        </Card>
+      </Col>
+      <Col lg={5}>
+        <Card className="h-100 shadow-sm">
+          <CardBody>
+            <ColumnChart title={t('Returns per month')} buckets={months}
+              series={[{ name: t('Returned on time'), color: 'var(--chart-1)' }, { name: t('Returned late'), color: 'var(--chart-2)' }]} />
+          </CardBody>
+        </Card>
+      </Col>
+    </Row>
   );
 }
 
