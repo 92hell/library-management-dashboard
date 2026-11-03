@@ -8,11 +8,13 @@ import com.helmifr.library.common.NotFoundException;
 import com.helmifr.library.common.PageResponse;
 import com.helmifr.library.common.SearchPatterns;
 import com.helmifr.library.loan.LoanRepository;
+import java.util.Arrays;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -29,8 +31,20 @@ public class BookService {
     private final CopyRepository copies;
     private final CatalogueProperties catalogue;
 
-    public PageResponse<BookResponse> search(String q, Pageable pageable) {
-        Page<Book> page = books.search(SearchPatterns.contains(q), pageable);
+    /** Catalogue filters; null/false means "no filter". */
+    public record Filter(String q, String category, Long authorId, boolean availableOnly, BookOrder order) {}
+
+    public PageResponse<BookResponse> search(Filter filter, Pageable pageable) {
+        if (pageable.getSort().isSorted()) {
+            throw new FieldValidationException("sort", "Books are sorted with order= (added, title, newest, oldest)");
+        }
+        if (filter.category() != null && !BookCategories.ALL.contains(filter.category())) {
+            throw new FieldValidationException("category", "Unknown category: " + filter.category());
+        }
+        Page<Book> page = books.search(SearchPatterns.contains(filter.q()),
+                filter.category() == null ? null : "%," + filter.category() + ",%",
+                filter.authorId(), filter.availableOnly(),
+                PageRequest.of(pageable.getPageNumber(), pageable.getPageSize(), filter.order().sort()));
         Map<Long, Availability> availability = availabilityOf(page.getContent());
         return PageResponse.of(page.map(b -> BookResponse.from(b, availability.get(b.getId()), catalogue.coverUrl(b.getIsbn()))));
     }
@@ -53,8 +67,18 @@ public class BookService {
                 .toList();
     }
 
-    public List<String> categories() {
-        return BookCategories.ALL;
+    /** Every category, or (inUse) only those some book in the catalogue has, A-Z. */
+    public List<String> categories(boolean inUse) {
+        if (!inUse) {
+            return BookCategories.ALL;
+        }
+        return books.findAllCategoryStrings().stream()
+                .flatMap(s -> Arrays.stream(s.split(",")))
+                .map(String::trim)
+                .filter(c -> !c.isEmpty())
+                .distinct()
+                .sorted()
+                .toList();
     }
 
     public BookResponse get(Long id) {

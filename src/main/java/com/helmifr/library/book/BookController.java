@@ -20,13 +20,19 @@ public class BookController {
 
     @GetMapping
     public PageResponse<BookResponse> list(@RequestParam(required = false) String q,
+                                           @RequestParam(required = false) String category,
+                                           @RequestParam(required = false) Long authorId,
+                                           @RequestParam(defaultValue = "false") boolean available,
+                                           @RequestParam(required = false) String order,
                                            @PageableDefault(size = 20) Pageable pageable) {
-        return bookService.search(q, pageable);
+        String cat = category == null || category.isBlank() ? null : category.trim();
+        return bookService.search(new BookService.Filter(q, cat, authorId, available, BookOrder.parse(order)), pageable);
     }
 
+    /** All categories, or with ?inUse=true only those some book has (for the catalogue filter). */
     @GetMapping("/categories")
-    public List<String> categories() {
-        return bookService.categories();
+    public List<String> categories(@RequestParam(defaultValue = "false") boolean inUse) {
+        return bookService.categories(inUse);
     }
 
     @GetMapping("/options")

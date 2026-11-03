@@ -45,7 +45,8 @@ export default function BookDetail() {
         <Col>
           <h1 className="h3 mb-1">{b.title}</h1>
           <p className="page-subtitle mb-3">
-            by <span>{b.author.name}</span>
+            by{' '}
+            {isLibrarian ? <span>{b.author.name}</span> : <Link to={`/catalogue?authorId=${b.author.id}`}>{b.author.name}</Link>}
             {year && <> · {year}</>}
           </p>
           {b.description && <p className="lead fs-6 mb-4">{b.description}</p>}
@@ -61,7 +62,16 @@ export default function BookDetail() {
             {b.categories.length > 0 && (
               <>
                 <dt>Categories</dt>
-                <dd>{b.categories.join(', ')}</dd>
+                <dd>
+                  {isLibrarian
+                    ? b.categories.join(', ')
+                    : b.categories.map((c, i) => (
+                        <span key={c}>
+                          {i > 0 && ', '}
+                          <Link to={`/catalogue?${new URLSearchParams({ category: c })}`}>{c}</Link>
+                        </span>
+                      ))}
+                </dd>
               </>
             )}
             {b.publisherName && (
