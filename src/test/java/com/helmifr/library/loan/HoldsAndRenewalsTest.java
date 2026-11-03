@@ -194,4 +194,57 @@ class HoldsAndRenewalsTest {
         api.as(librarian).post("/api/borrowed-books/" + waiting.getId() + "/reject", "{\"reason\": \"Reference only\"}")
                 .andExpect(jsonPath("$.status").value("REJECTED"));
     }
+
+    // ---- Members who cannot collect are skipped -------------------------------------------------
+
+    /** Gives the member unpaid fines above the borrowing limit (a book returned 25 days late). */
+    private long blockByFines(UserAccount customer) throws Exception {
+        LocalDate due = TODAY.minusDays(25);
+        Loan late = data.activeLoan(data.book("Overdue " + System.nanoTime()), customer.getMember(), due.minusDays(14), due);
+        api.as(librarian).post("/api/borrowed-books/" + late.getId() + "/return").andExpect(status().isOk());
+        String fines = api.as(customer).get("/api/my/fines").andReturn().getResponse().getContentAsString();
+        return com.jayway.jsonpath.JsonPath.parse(fines).read("$.fines[0].id", Long.class);
+    }
+
+    @Test
+    @DisplayName("a returned copy skips a member blocked by fines (they keep their place) and goes to the next in line")
+    void returnSkipsBlockedMember() throws Exception {
+        Loan lent = data.activeLoan(book, data.member("Walk-in"), TODAY.minusDays(5), TODAY.plusDays(9));
+        Loan first = request(siti);
+        Loan second = request(bayu);
+        approve(first);
+        approve(second);
+        blockByFines(siti);
+
+        api.as(librarian).post("/api/borrowed-books/" + lent.getId() + "/return").andExpect(status().isOk());
+
+        api.as(siti).get("/api/my/loans").andExpect(jsonPath("$[?(@.id == %d)].status".formatted(first.getId())).value("WAITLISTED"));
+        api.as(bayu).get("/api/my/loans").andExpect(jsonPath("$[0].status").value("READY"));
+    }
+
+    @Test
+    @DisplayName("once a skipped member pays, the next free copy is set aside for them")
+    void servedAfterPaying() throws Exception {
+        Loan lent = data.activeLoan(book, data.member("Walk-in"), TODAY.minusDays(5), TODAY.plusDays(9));
+        Loan mine = request(siti);
+        approve(mine);
+        long fineId = blockByFines(siti);
+        api.as(librarian).post("/api/borrowed-books/" + lent.getId() + "/return").andExpect(status().isOk());
+        api.as(siti).get("/api/my/loans").andExpect(jsonPath("$[?(@.id == %d)].status".formatted(mine.getId())).value("WAITLISTED"));
+
+        api.as(librarian).post("/api/fines/" + fineId + "/pay").andExpect(status().isOk());
+
+        api.as(siti).get("/api/my/loans").andExpect(jsonPath("$[?(@.id == %d)].status".formatted(mine.getId())).value("READY"));
+    }
+
+    @Test
+    @DisplayName("a request from a member who is blocked by fines cannot be approved")
+    void approvalRefusedWhileBlocked() throws Exception {
+        Loan mine = request(siti);
+        blockByFines(siti);
+
+        api.as(librarian).post("/api/borrowed-books/" + mine.getId() + "/approve", "{}")
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.detail", containsString("unpaid fines")));
+    }
 }

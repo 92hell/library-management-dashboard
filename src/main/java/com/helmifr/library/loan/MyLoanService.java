@@ -49,7 +49,7 @@ public class MyLoanService {
             throw new ConflictException("You already have an open request or loan for this book.");
         }
         if (loans.countOpenByMember(memberId) >= policy.maxOpenPerMember()) {
-            throw new ConflictException("You can have at most %d open requests or loans.".formatted(policy.maxOpenPerMember()));
+            throw new ConflictException("You can have at most {0} open requests or loans.", policy.maxOpenPerMember());
         }
 
         Loan loan = new Loan();
@@ -61,8 +61,8 @@ public class MyLoanService {
 
         Audit.event("BORROW_REQUESTED", "loanId={} bookId={} memberId={}", loan.getId(), bookId, memberId);
         history.record(loan, LoanEventType.REQUESTED);
-        notifications.notifyLibrarians(NotificationType.BORROW_REQUESTED,
-                "%s requested \"%s\".".formatted(member.getName(), book.getTitle()), LoanService.PENDING_LINK);
+        notifications.notifyLibrarians(NotificationType.BORROW_REQUESTED, LoanService.PENDING_LINK,
+                "{0} requested \"{1}\".", member.getName(), book.getTitle());
         return views.of(loan);
     }
 

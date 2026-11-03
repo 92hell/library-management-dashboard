@@ -139,12 +139,12 @@ class Ed25519ReceiptSigner implements ReceiptSigner {
             k.setPublicKey(Base64.getEncoder().encodeToString(pair.getPublic().getEncoded()));
             k.setPrivateKey(Base64.getEncoder().encodeToString(pair.getPrivate().getEncoded()));
             k.setCreatedAt(clock.instant());
-            String message = "No receipt signing key configured; generated key {} and stored it in the database, where "
+            String warning = "No receipt signing key configured; generated key {} and stored it in the database, where "
                     + "anyone who can read a backup could forge receipts. Set RECEIPT_PRIVATE_KEY / RECEIPT_PUBLIC_KEY.";
             if (demo.enabled()) {
-                log.warn(message, k.getKeyId());
+                log.warn(warning, k.getKeyId());
             } else {
-                log.error(message, k.getKeyId());
+                log.error(warning, k.getKeyId());
             }
             return keys.save(k);
         } catch (GeneralSecurityException e) {

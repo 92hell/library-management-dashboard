@@ -1,5 +1,6 @@
 package com.helmifr.library.loan;
 
+import com.helmifr.library.common.ConflictException;
 import com.helmifr.library.fine.FineService;
 import java.time.Clock;
 import java.time.LocalDate;
@@ -26,19 +27,19 @@ class LoanViews {
         return list.stream().map(this::of).toList();
     }
 
-    /** Why a loan cannot be renewed, or null if it can. */
-    String whyNotRenewable(Loan loan, LocalDate today) {
+    /** Why a loan cannot be renewed (the refusal to throw), or null if it can. */
+    ConflictException whyNotRenewable(Loan loan, LocalDate today) {
         if (loan.getStatus() != LoanStatus.ACTIVE) {
-            return "Only books on loan can be renewed.";
+            return new ConflictException("Only books on loan can be renewed.");
         }
         if (loan.isOverdue(today)) {
-            return "Overdue loans cannot be renewed; please return the book.";
+            return new ConflictException("Overdue loans cannot be renewed; please return the book.");
         }
         if (loan.getRenewalCount() >= policy.maxRenewals()) {
-            return "This loan has already been renewed the maximum number of times.";
+            return new ConflictException("This loan has already been renewed the maximum number of times.");
         }
         if (loans.anyoneWaitingFor(loan.getBook().getId())) {
-            return "Someone is waiting for this book, so it cannot be renewed.";
+            return new ConflictException("Someone is waiting for this book, so it cannot be renewed.");
         }
         return null;
     }

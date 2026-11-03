@@ -8,7 +8,6 @@ package com.helmifr.library.common;
 public final class PhoneNumbers {
     /** Accepted input: optional +, then digits with spaces, dashes or brackets (e.g. "+62 812-3456-7890"). */
     public static final String PATTERN = "^\\+?[0-9][0-9 ()-]{4,24}$";
-    public static final String PATTERN_MESSAGE = "must be a phone number: digits, spaces or dashes, optionally starting with +";
 
     private static final int MIN_MATCHING_DIGITS = 8;
 

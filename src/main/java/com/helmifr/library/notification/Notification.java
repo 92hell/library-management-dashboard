@@ -30,6 +30,14 @@ public class Notification {
     @Column(name = "link")
     private String link;
 
+    /** The English template of the message ({0}-style values in messageArgs); null for older rows. */
+    @Column(name = "message_key", length = 500)
+    private String messageKey;
+
+    /** The template's values as a JSON array of strings. */
+    @Column(name = "message_args", length = 1000)
+    private String messageArgs;
+
     @Column(name = "is_read", nullable = false)
     private boolean read;
 

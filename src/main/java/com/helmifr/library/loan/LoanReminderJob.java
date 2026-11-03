@@ -69,9 +69,8 @@ public class LoanReminderJob {
         loan.setReadyUntil(null);
         Audit.event("HOLD_EXPIRED", "loanId={} memberId={}", loan.getId(), loan.getMember().getId());
         history.record(loan, LoanEventType.EXPIRED, "Not collected in time");
-        notifications.notifyMember(loan.getMember().getId(), NotificationType.HOLD_EXPIRED,
-                "Your hold on \"%s\" expired because it was not collected in time.".formatted(loan.getBook().getTitle()),
-                LoanService.MY_LOANS_LINK);
+        notifications.notifyMember(loan.getMember().getId(), NotificationType.HOLD_EXPIRED, LoanService.MY_LOANS_LINK,
+                "Your hold on \"{0}\" expired because it was not collected in time.", loan.getBook().getTitle());
         holdQueue.serve(loan.getBook());
         return true;
     }
@@ -80,15 +79,15 @@ public class LoanReminderJob {
     public void sendReminders(LocalDate today) {
         List<Loan> dueSoon = loans.findDueSoonNotYetNotified(today, today.plusDays(policy.dueSoonDays()));
         for (Loan loan : dueSoon) {
-            notifications.notifyMember(loan.getMember().getId(), NotificationType.DUE_SOON,
-                    "\"%s\" is due on %s.".formatted(loan.getBook().getTitle(), loan.getDueDate()), LoanService.MY_LOANS_LINK);
+            notifications.notifyMember(loan.getMember().getId(), NotificationType.DUE_SOON, LoanService.MY_LOANS_LINK,
+                    "\"{0}\" is due on {1}.", loan.getBook().getTitle(), loan.getDueDate());
             loan.setDueSoonNotified(true);
         }
         List<Loan> overdue = loans.findOverdueNotYetNotified(today);
         for (Loan loan : overdue) {
-            notifications.notifyMember(loan.getMember().getId(), NotificationType.OVERDUE,
-                    "\"%s\" was due on %s. Please return it as soon as possible."
-                            .formatted(loan.getBook().getTitle(), loan.getDueDate()), LoanService.MY_LOANS_LINK);
+            notifications.notifyMember(loan.getMember().getId(), NotificationType.OVERDUE, LoanService.MY_LOANS_LINK,
+                    "\"{0}\" was due on {1}. Please return it as soon as possible.", loan.getBook().getTitle(),
+                    loan.getDueDate());
             loan.setOverdueNotified(true);
             loan.setDueSoonNotified(true);
         }

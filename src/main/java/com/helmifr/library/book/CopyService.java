@@ -124,7 +124,7 @@ public class CopyService {
         Copy copy = require(copyId);
         lockBook(copy.getBook().getId());
         if (loans.isCopyOnLoan(copyId, null)) {
-            throw new ConflictException("Copy " + copy.getBarcode() + " is on loan. Record its return first.");
+            throw new ConflictException("Copy {0} is on loan. Record its return first.", copy.getBarcode());
         }
         copy.setDeleted(true);
         Audit.event("COPY_WITHDRAWN", "copyId={} barcode={} by={}", copyId, copy.getBarcode(), CurrentUser.username());
@@ -142,7 +142,7 @@ public class CopyService {
     public Copy requireByBarcode(String barcode) {
         String normalized = CopyBarcodes.normalize(barcode);
         return copies.findByBarcodeAndDeletedFalse(normalized)
-                .orElseThrow(() -> new NotFoundException("No copy has barcode " + normalized));
+                .orElseThrow(() -> new NotFoundException("No copy has barcode {0}", normalized));
     }
 
     private String requireFreeBarcode(String barcode, Long exceptCopyId) {

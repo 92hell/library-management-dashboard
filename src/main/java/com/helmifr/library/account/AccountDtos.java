@@ -14,22 +14,20 @@ public final class AccountDtos {
     private AccountDtos() {}
 
     static final String USERNAME_REGEX = "^[A-Za-z0-9._-]{3,50}$";
-    static final String USERNAME_MESSAGE = "must be 3-50 letters, digits, dots, dashes or underscores";
     static final String PHONE_REGEX = PhoneNumbers.PATTERN;
-    static final String PHONE_MESSAGE = PhoneNumbers.PATTERN_MESSAGE;
 
     /** Self-registration. With libraryCardId, an existing (walk-in) member record is linked instead of created. */
     public record RegisterRequest(
-            @NotBlank @Pattern(regexp = USERNAME_REGEX, message = USERNAME_MESSAGE) String username,
+            @NotBlank @Pattern(regexp = USERNAME_REGEX, message = "{library.validation.username}") String username,
             @NotBlank @Size(min = 10, max = 200) String password,
             @NotBlank @Size(max = 255) String name,
             @NotBlank @Email @Size(max = 255) String email,
-            @NotBlank @Pattern(regexp = PHONE_REGEX, message = PHONE_MESSAGE) String phone,
+            @NotBlank @Pattern(regexp = PHONE_REGEX, message = "{library.validation.phone}") String phone,
             @NotNull @Past LocalDate dateOfBirth,
             @Size(max = 20) String libraryCardId) {}
 
     public record NewLibrarianRequest(
-            @NotBlank @Pattern(regexp = USERNAME_REGEX, message = USERNAME_MESSAGE) String username,
+            @NotBlank @Pattern(regexp = USERNAME_REGEX, message = "{library.validation.username}") String username,
             @NotBlank @Size(min = 10, max = 200) String password,
             @NotBlank @Size(max = 255) String displayName,
             @Email @Size(max = 255) String email) {}
@@ -37,7 +35,7 @@ public final class AccountDtos {
     public record ProfileUpdateRequest(
             @NotBlank @Size(max = 255) String displayName,
             @NotBlank @Email @Size(max = 255) String email,
-            @Pattern(regexp = PHONE_REGEX, message = PHONE_MESSAGE) String phone) {}
+            @Pattern(regexp = PHONE_REGEX, message = "{library.validation.phone}") String phone) {}
 
     public record PasswordChangeRequest(
             @NotBlank String currentPassword,

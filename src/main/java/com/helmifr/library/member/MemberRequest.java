@@ -14,6 +14,6 @@ public record MemberRequest(
         @NotNull @Past LocalDate dateOfBirth,
         @NotBlank @Email @Size(max = 255) String email,
         @NotBlank
-        @Pattern(regexp = PhoneNumbers.PATTERN, message = PhoneNumbers.PATTERN_MESSAGE)
+        @Pattern(regexp = PhoneNumbers.PATTERN, message = "{library.validation.phone}")
         String phone,
         Boolean active) {}

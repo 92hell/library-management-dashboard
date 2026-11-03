@@ -299,6 +299,6 @@ public class ReceiptService {
     }
 
     private static NotFoundException notFound(String number) {
-        return new NotFoundException("No receipt " + number + ".");
+        return new NotFoundException("No receipt {0}.", number);
     }
 }

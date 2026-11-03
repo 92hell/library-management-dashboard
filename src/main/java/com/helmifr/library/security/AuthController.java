@@ -5,6 +5,7 @@ import com.helmifr.library.account.AccountDtos.SessionUser;
 import com.helmifr.library.account.AccountService;
 import com.helmifr.library.common.Audit;
 import com.helmifr.library.common.FieldValidationException;
+import com.helmifr.library.common.Messages;
 import com.helmifr.library.demo.DemoProperties;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -54,6 +55,7 @@ public class AuthController {
     private final ClientAddresses clientAddresses;
     private final AccountService accountService;
     private final DemoProperties demo;
+    private final Messages messages;
     private final SecurityContextHolderStrategy contextHolder = SecurityContextHolder.getContextHolderStrategy();
 
     @GetMapping("/me")
@@ -149,8 +151,9 @@ public class AuthController {
         }
     }
 
-    private static ResponseEntity<ProblemDetail> problem(HttpStatus status, String detail) {
-        ProblemDetail pd = ProblemDetail.forStatusAndDetail(status, detail);
+    /** @param detail an English template, shown in the request's language (see Messages) */
+    private ResponseEntity<ProblemDetail> problem(HttpStatus status, String detail) {
+        ProblemDetail pd = ProblemDetail.forStatusAndDetail(status, messages.get(detail));
         pd.setTitle(status.getReasonPhrase());
         return ResponseEntity.status(status).body(pd);
     }

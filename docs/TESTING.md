@@ -7,7 +7,7 @@ Run everything: `mvn clean verify` (backend; add `-Pmariadb` to run it on MariaD
 `cd frontend && npm test` (frontend), and after `mvn -Pfullstack package` also
 `cd e2e && npm test` (end-to-end, in a real browser).
 
-Totals: 201 backend test methods (parameterised ones run once per case), 136 frontend tests, 10 end-to-end journeys.
+Totals: 215 backend test methods (parameterised ones run once per case), 137 frontend tests, 10 end-to-end journeys.
 
 ## Backend (JUnit, `src/test/java`)
 
@@ -187,6 +187,25 @@ live in `support/`.
 - librarians list fines by status and search by member name or card ID
 - customers see only their own fines and cannot settle them
 - the librarian dashboard shows the total of unpaid fines
+- a past loan recorded at the desk as returned late is charged the late fee too
+
+### Server responses in Bahasa Indonesia
+`src/test/java/com/helmifr/library/i18n/IndonesianResponsesTest.java`
+
+- a refused action explains itself in Indonesian; without the header it stays English
+- not found and field validation messages are in Indonesian
+- notifications are listed in the reader's language, with dates written the Indonesian way
+- login errors are in Indonesian
+- statuses inside Indonesian messages are words, not codes
+
+### Server messages (English / Bahasa Indonesia)
+`src/test/java/com/helmifr/library/i18n/ServerMessagesTest.java`
+
+- messages are templates with {0}-style values, never built with String.formatted
+- every message the server shows has an Indonesian translation
+- no leftover translations for messages the server no longer shows
+- translations keep the same {0} placeholders
+- validation messages exist in English and Indonesian for every constraint used
 
 ### Borrow requests: customer requests, librarian decides
 `src/test/java/com/helmifr/library/loan/BorrowRequestTest.java`
@@ -213,6 +232,9 @@ live in `support/`.
 - adding a copy serves the queue at once
 - customers renew once, for another loan period, only if nobody is waiting and it is not overdue
 - librarians can decline a queued request; the queue filter lists it
+- a returned copy skips a member blocked by fines (they keep their place) and goes to the next in line
+- once a skipped member pays, the next free copy is set aside for them
+- a request from a member who is blocked by fines cannot be approved
 
 ### Walk-in loans recorded by a librarian
 `src/test/java/com/helmifr/library/loan/WalkInLoanTest.java`
@@ -373,6 +395,12 @@ live in `support/`.
 
 
 ## Frontend (Vitest + Testing Library, `frontend/src`)
+
+### `frontend/src/ServerLanguage.test.jsx`
+
+**Server text in the chosen language**
+
+- asks the server for the chosen language and reloads what is on screen when it changes
 
 ### `frontend/src/api.test.js`
 

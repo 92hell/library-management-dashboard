@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { api, buildUrl } from './api';
+import { useLanguage } from './i18n';
 
 export const PAGE_SIZE = 20;
 
@@ -9,13 +10,15 @@ export const PAGE_SIZE = 20;
  * available so tables don't flash empty between pages.
  */
 export function useApi(path, params) {
+  // Server text comes in the chosen language, so a language switch reloads the data too.
+  const lang = useLanguage();
   const url = path ? buildUrl(path, params) : null;
   const [reloadCount, setReloadCount] = useState(0);
   const [result, setResult] = useState({ key: null, data: undefined, error: null });
 
   useEffect(() => {
     if (!url) return undefined;
-    const key = `${url}#${reloadCount}`;
+    const key = `${url}#${reloadCount}#${lang}`;
     let ignore = false;
     api.get(url).then(
       (data) => !ignore && setResult({ key, data, error: null }),
@@ -24,12 +27,12 @@ export function useApi(path, params) {
     return () => {
       ignore = true;
     };
-  }, [url, reloadCount]);
+  }, [url, reloadCount, lang]);
 
   const reload = useCallback(() => setReloadCount((count) => count + 1), []);
 
   if (!url) return { data: undefined, error: null, loading: false, reload };
-  const isCurrent = result.key === `${url}#${reloadCount}`;
+  const isCurrent = result.key === `${url}#${reloadCount}#${lang}`;
   return {
     data: result.data,
     error: isCurrent ? result.error : null,

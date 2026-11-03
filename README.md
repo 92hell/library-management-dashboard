@@ -45,8 +45,11 @@ React 18 · Vite · React Router 6 · Bootstrap 5 / reactstrap.
 
 **For everyone**
 - English and Bahasa Indonesia: follows the browser language at first, switch any time (EN / ID in
-  the menu and on the sign-in page; remembered). Dates and amounts follow the language. Messages
-  from the server are in English for now.
+  the menu and on the sign-in page; remembered). Dates and amounts follow the language, and so do
+  messages from the server (errors, validation, notifications): the app sends its language as
+  `Accept-Language`; Indonesian server texts are in `src/main/resources/i18n/messages_id.json` and
+  `ValidationMessages_id.properties`, and a test fails when one is missing. Emails and the history
+  lines on signed receipts stay in English.
 - Accessibility: WCAG 2.1 AA checked automatically (axe) on every main page in the browser tests;
   skip link, focus moves to the page on navigation, form errors and hints read with their field
 
@@ -68,9 +71,12 @@ React 18 · Vite · React Router 6 · Bootstrap 5 / reactstrap.
   several members (row lock against races)
 - At most 3 open requests/loans per customer; no duplicate request for the same book
 - Due date defaults to 14 days; dates are validated (no future borrow date, no return before borrow)
+- A copy coming back skips members who cannot collect it (unpaid fines over the limit, inactive
+  card); they keep their place and are served as soon as they pay
 - Holds are kept for 3 days; a loan can be renewed once, not when overdue and not while someone is
   waiting for the book
-- Late returns cost IDR 1,000 a day, at most IDR 30,000 per loan; a member owing IDR 20,000 or more
+- Late returns cost IDR 1,000 a day, at most IDR 30,000 per loan (also for past loans recorded at
+  the desk as returned late); a member owing IDR 20,000 or more
   cannot request, borrow or collect a hold until they pay
 - Soft deletes; authors with books, books on loan and members with open loans cannot be deleted
 - Deleting a member disables their online account
