@@ -86,6 +86,12 @@
             <artifactId>h2</artifactId>
             <scope>runtime</scope>
         </dependency>
+        <!-- mvn -Pmariadb verify: the same tests against a real MariaDB in Docker (see the profile). -->
+        <dependency>
+            <groupId>org.testcontainers</groupId>
+            <artifactId>mariadb</artifactId>
+            <scope>test</scope>
+        </dependency>
     </dependencies>
 
     <build>
@@ -119,6 +125,27 @@
     </build>
 
     <profiles>
+        <!--
+          mvn -Pmariadb verify : runs the whole test suite against MariaDB 11.4 in a Docker container
+          (Testcontainers JDBC URL) instead of H2, so SQL that only H2 accepts is caught. Needs Docker.
+        -->
+        <profile>
+            <id>mariadb</id>
+            <build>
+                <plugins>
+                    <plugin>
+                        <artifactId>maven-surefire-plugin</artifactId>
+                        <configuration>
+                            <systemPropertyVariables>
+                                <spring.datasource.url>jdbc:tc:mariadb:11.4:///library</spring.datasource.url>
+                                <test.isolated-db.prefix>jdbc:tc:mariadb:11.4:///</test.isolated-db.prefix>
+                                <test.isolated-db.suffix></test.isolated-db.suffix>
+                            </systemPropertyVariables>
+                        </configuration>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
         <!-- mvn -Pfullstack package : also builds the React app (needs Node 20+) and bundles it into the jar -->
         <profile>
             <id>fullstack</id>

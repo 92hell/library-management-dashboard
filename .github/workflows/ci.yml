@@ -21,6 +21,20 @@ jobs:
       - name: Test (clean build, H2 in MariaDB mode, real Flyway migrations)
         run: mvn -B clean verify
 
+  backend-mariadb:
+    # The same tests against a real MariaDB 11.4 in Docker (Testcontainers), so SQL that only
+    # H2 accepts cannot reach production.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: maven
+      - name: Test on MariaDB (Flyway migrations, queries, locking)
+        run: mvn -B -Pmariadb clean verify
+
   frontend:
     runs-on: ubuntu-latest
     defaults:

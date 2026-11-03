@@ -25,7 +25,7 @@ import org.springframework.test.context.TestPropertySource;
 @IntegrationTest
 @TestPropertySource(properties = {
         "library.demo.enabled=true",
-        "spring.datasource.url=jdbc:h2:mem:demo;MODE=MariaDB;DATABASE_TO_LOWER=TRUE;DB_CLOSE_DELAY=-1"})
+        "spring.datasource.url=${test.isolated-db.prefix}demo${test.isolated-db.suffix}"})
 @DisplayName("Demo mode is safe to publish")
 class DemoModeTest {
 

@@ -217,6 +217,13 @@ mvn clean verify
 cd frontend && npm test && npm run lint
 ```
 
+The same backend tests against a real MariaDB 11.4 in Docker (Testcontainers starts and removes
+the containers; needs Docker):
+
+```bash
+mvn -Pmariadb clean verify
+```
+
 End-to-end journeys in a real browser (Chromium), against the packaged app on a fresh in-memory
 database (the test runner starts it):
 
