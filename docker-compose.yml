@@ -1,0 +1,35 @@
+# Local stack: MariaDB + the app. Start with:  docker compose up --build
+# Then open http://localhost:8080 (demo mode is on; see the login page).
+services:
+  db:
+    image: mariadb:11.4
+    environment:
+      MARIADB_DATABASE: library
+      MARIADB_USER: library
+      MARIADB_PASSWORD: ${DB_PASSWORD:-library-dev-password}
+      MARIADB_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:-root-dev-password}
+    volumes:
+      - db-data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 5s
+      retries: 20
+
+  app:
+    build: .
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      - "8080:8080"
+    environment:
+      DB_URL: jdbc:mariadb://db:3306/library
+      DB_USERNAME: library
+      DB_PASSWORD: ${DB_PASSWORD:-library-dev-password}
+      LIBRARIAN_PASSWORD: ${LIBRARIAN_PASSWORD:-change-me-please}
+      DEMO_MODE: ${DEMO_MODE:-true}
+    volumes:
+      - ./logs:/app/logs
+
+volumes:
+  db-data:

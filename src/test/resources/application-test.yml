@@ -1,0 +1,19 @@
+spring:
+  datasource:
+    url: jdbc:h2:mem:library;MODE=MariaDB;DATABASE_TO_LOWER=TRUE;DB_CLOSE_DELAY=-1
+    username: sa
+    password:
+  jpa:
+    hibernate:
+      # Fails the build if entities and Flyway migrations drift apart.
+      ddl-auto: validate
+
+library:
+  security:
+    librarian:
+      username: librarian
+      password: librarian-test-pw
+  loans:
+    reminder-cron: "-"
+  demo:
+    enabled: false

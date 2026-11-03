@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Log layout (folder = logging.file.path, default ./logs):
+    library.log  everything at INFO and above: access log, business events, warnings
+    error.log    WARN and ERROR only - the first place to look when something breaks
+    audit.log    who-did-what: logins, registrations, approvals, returns (logger "AUDIT")
+    archive/     rotated files: daily or every 10 MB, gzipped, with retention limits
+  Every line has [requestId] [user]. The request id is also returned in the X-Request-Id
+  response header, so a user-reported problem can be traced with: grep <id> logs/*.log
+  The test profile logs to the console only.
+-->
+<configuration>
+    <include resource="org/springframework/boot/logging/logback/defaults.xml"/>
+    <springProperty scope="context" name="LOG_DIR" source="logging.file.path" defaultValue="logs"/>
+
+    <property name="FILE_PATTERN"
+              value="%d{yyyy-MM-dd HH:mm:ss.SSS} %-5level [%X{requestId:--}] [%X{user:--}] %logger{40} : %msg%n%wEx"/>
+    <property name="CONSOLE_PATTERN"
+              value="%clr(%d{HH:mm:ss.SSS}){faint} %clr(%5p) %clr([%X{requestId:--}] [%X{user:--}]){magenta} %clr(%-40.40logger{39}){cyan} : %m%n%wEx"/>
+
+    <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder><pattern>${CONSOLE_PATTERN}</pattern><charset>UTF-8</charset></encoder>
+    </appender>
+
+    <springProfile name="!test">
+        <appender name="APP_FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+            <file>${LOG_DIR}/library.log</file>
+            <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
+                <fileNamePattern>${LOG_DIR}/archive/library.%d{yyyy-MM-dd}.%i.log.gz</fileNamePattern>
+                <maxFileSize>10MB</maxFileSize>
+                <maxHistory>30</maxHistory>
+                <totalSizeCap>1GB</totalSizeCap>
+            </rollingPolicy>
+            <encoder><pattern>${FILE_PATTERN}</pattern><charset>UTF-8</charset></encoder>
+        </appender>
+
+        <appender name="ERROR_FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+            <file>${LOG_DIR}/error.log</file>
+            <filter class="ch.qos.logback.classic.filter.ThresholdFilter"><level>WARN</level></filter>
+            <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
+                <fileNamePattern>${LOG_DIR}/archive/error.%d{yyyy-MM-dd}.%i.log.gz</fileNamePattern>
+                <maxFileSize>10MB</maxFileSize>
+                <maxHistory>90</maxHistory>
+                <totalSizeCap>500MB</totalSizeCap>
+            </rollingPolicy>
+            <encoder><pattern>${FILE_PATTERN}</pattern><charset>UTF-8</charset></encoder>
+        </appender>
+
+        <appender name="AUDIT_FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+            <file>${LOG_DIR}/audit.log</file>
+            <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
+                <fileNamePattern>${LOG_DIR}/archive/audit.%d{yyyy-MM-dd}.%i.log.gz</fileNamePattern>
+                <maxFileSize>10MB</maxFileSize>
+                <maxHistory>365</maxHistory>
+                <totalSizeCap>1GB</totalSizeCap>
+            </rollingPolicy>
+            <encoder><pattern>${FILE_PATTERN}</pattern><charset>UTF-8</charset></encoder>
+        </appender>
+
+        <!-- Audit events also flow to the root appenders, so library.log is a complete timeline. -->
+        <logger name="AUDIT" level="INFO">
+            <appender-ref ref="AUDIT_FILE"/>
+        </logger>
+    </springProfile>
+
+    <!-- Quiet down chatty frameworks; raise these when debugging. -->
+    <logger name="org.hibernate" level="WARN"/>
+    <!-- Startup notice that hibernate.type.preferred_instant_jdbc_type is "incubating"; we rely on it
+         deliberately (Instant audit columns stored as plain TIMESTAMP), so keep it out of error.log. -->
+    <logger name="org.hibernate.orm.incubating" level="ERROR"/>
+    <logger name="org.hibernate.engine.jdbc.spi.SqlExceptionHelper" level="ERROR"/>
+    <logger name="com.zaxxer.hikari" level="WARN"/>
+    <logger name="org.flywaydb" level="INFO"/>
+
+    <springProfile name="!test">
+        <root level="INFO">
+            <appender-ref ref="CONSOLE"/>
+            <appender-ref ref="APP_FILE"/>
+            <appender-ref ref="ERROR_FILE"/>
+        </root>
+    </springProfile>
+    <springProfile name="test">
+        <root level="INFO">
+            <appender-ref ref="CONSOLE"/>
+        </root>
+    </springProfile>
+</configuration>
