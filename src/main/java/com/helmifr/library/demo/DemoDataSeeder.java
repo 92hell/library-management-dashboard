@@ -123,13 +123,13 @@ public class DemoDataSeeder {
                 "The second book of the Buru Quartet: Minke learns what colonial rule means for his own people.");
         Book laskar = book("Laskar Pelangi", hirata, 2005, "Fiction,Young Adult", 3, "FIC HIR",
                 "Ten children and two devoted teachers keep a tiny village school on Belitung open against the odds.");
-        book("Sang Pemimpi", hirata, 2006, "Fiction,Young Adult", 2, "FIC HIR",
+        Book pemimpi = book("Sang Pemimpi", hirata, 2006, "Fiction,Young Adult", 2, "FIC HIR",
                 "Two cousins in a Belitung boarding school dream of studying in Paris.");
         Book cantik = book("Cantik Itu Luka", eka, 2002, "Fiction,Historical Fiction", 1, "FIC KUR",
                 "A family saga across colonial rule, occupation and independence, told with dark humour.");
         Book supernova = book("Supernova", dee, 2001, "Science Fiction,Fiction", 2, "SF LES",
                 "Two writers build a story that starts to blur into the lives of the people they write about.");
-        book("Ronggeng Dukuh Paruk", tohari, 1982, "Fiction,Classics", 1, "FIC TOH",
+        Book ronggeng = book("Ronggeng Dukuh Paruk", tohari, 1982, "Fiction,Classics", 1, "FIC TOH",
                 "Srintil becomes the dancer of a poor Central Javanese village, and its fate becomes hers.");
 
         LocalDate today = LocalDate.now(clock);
@@ -151,6 +151,16 @@ public class DemoDataSeeder {
         fee.setDaysLate(3);
         fee.setAmount(3000);
         fines.save(fee);
+
+        // Three months of past loans, all returned on time, so the reports have something to show.
+        Member rina = member("Rina Wulandari", "rina@example.com", LocalDate.of(2001, 5, 21));
+        Book[] popular = {laskar, laskar, bumi, pemimpi, laskar, supernova, bumi, ronggeng, laskar, pemimpi, cantik, bumi};
+        Member[] readers = {demoCustomer, walkIn, rina};
+        for (int i = 0; i < popular.length; i++) {
+            LocalDate borrowed = today.minusDays(88 - i * 6L);
+            Loan past = loan(popular[i], readers[i % readers.length], LoanStatus.RETURNED, borrowed, borrowed.plusDays(14));
+            past.setReturnDate(borrowed.plusDays(7 + i % 5));
+        }
     }
 
     private Author author(String name) {

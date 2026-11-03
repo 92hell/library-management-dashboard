@@ -12,6 +12,7 @@ const SECTIONS = {
     { to: '/authors', label: 'Authors' },
     { to: '/members', label: 'Members' },
     { to: '/fines', label: 'Fines' },
+    { to: '/reports', label: 'Reports' },
     { to: '/users', label: 'Users' },
   ],
   CUSTOMER: [

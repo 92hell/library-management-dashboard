@@ -31,6 +31,9 @@ React 18 · Vite · React Router 6 · Bootstrap 5 / reactstrap.
 - Holds queue: a returned or newly added copy goes to the next member in line, first come first
   served; uncollected holds expire and pass to the next member
 - Renew loans; mark books returned
+- Reports for any date range (up to a year): books lent and returned, late-return rate, active
+  and new members, fines charged and collected, most borrowed titles, most active members;
+  CSV downloads (spreadsheet-safe: formulas in data are neutralised; every export is audited)
 - Fines desk: late fees charged on return; record a payment or waive a fee with a reason (audited)
 - Desk checkout for walk-in members who have no online account; record past loans
 - Physical copies with barcodes: a title can have several copies ("2 of 3 on shelf"); lend a

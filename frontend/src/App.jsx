@@ -20,6 +20,7 @@ import MyLoans from './pages/MyLoans';
 import Notifications from './pages/Notifications';
 import Profile from './pages/Profile';
 import Register from './pages/Register';
+import ReportsPage from './pages/ReportsPage';
 import Users from './pages/Users';
 
 const Librarian = () => (
@@ -65,6 +66,7 @@ export function AppRoutes() {
           <Route path="members" element={<MemberList />} />
           <Route path="members/:id" element={<MemberEdit />} />
           <Route path="fines" element={<FineList />} />
+          <Route path="reports" element={<ReportsPage />} />
           <Route path="users" element={<Users />} />
         </Route>
       </Route>

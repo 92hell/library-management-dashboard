@@ -21,7 +21,7 @@ Items marked *(hook ready)* already have an extension point in the code.
 - Member card expiry and renewal; card replacement keeps history
 - Merge duplicate member records (e.g. someone registered online before linking their card)
 - Fallback ISBN lookup (Google Books) when Open Library has no record
-- Librarian reports: most borrowed, overdue rate, active members; CSV export
+- Reports: charts over time, scheduled monthly report by email
 - Branches / locations and inter-branch transfers
 
 ## Security follow-ups (from the security review)
