@@ -7,6 +7,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
@@ -18,6 +19,11 @@ public interface UserAccountRepository extends JpaRepository<UserAccount, Long> 
     boolean existsByUsernameIgnoreCase(String username);
 
     boolean existsByRole(Role role);
+
+    /** Demo reset: removes every account except the owner's. */
+    @Modifying
+    @Query("DELETE FROM UserAccount u WHERE LOWER(u.username) <> LOWER(:keep)")
+    int deleteAllExcept(@Param("keep") String username);
 
     Optional<UserAccount> findByMemberId(Long memberId);
 

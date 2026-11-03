@@ -46,10 +46,12 @@ public final class AccountDtos {
     public record EnabledRequest(@NotNull Boolean enabled) {}
 
     /** The signed-in user, as returned by /api/auth/me, login and registration. */
-    public record SessionUser(Long id, String username, String displayName, Role role, Long memberId) {
-        static SessionUser of(UserAccount a) {
+    /** @param demoAccount a public demo login (restricted; the UI hides what it cannot do) */
+    public record SessionUser(Long id, String username, String displayName, Role role, Long memberId,
+                              boolean demoAccount) {
+        static SessionUser of(UserAccount a, boolean demoAccount) {
             return new SessionUser(a.getId(), a.getUsername(), a.getDisplayName(), a.getRole(),
-                    a.getMember() == null ? null : a.getMember().getId());
+                    a.getMember() == null ? null : a.getMember().getId(), demoAccount);
         }
     }
 

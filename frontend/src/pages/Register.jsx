@@ -5,7 +5,7 @@ import { useAuth } from '../auth';
 import { ErrorAlert, Loading } from '../components/Feedback';
 import Bookshelf from '../components/Bookshelf';
 import Field from '../components/Field';
-import { useAction, useFormFields } from '../hooks';
+import { useAction, useApi, useFormFields } from '../hooks';
 
 const EMPTY = {
   name: '', email: '', phone: '', dateOfBirth: '', username: '', password: '', hasCard: false, libraryCardId: '',
@@ -30,10 +30,25 @@ export default function Register() {
   const navigate = useNavigate();
   const [values, , handleChange] = useFormFields(EMPTY);
   const submit = useAction();
+  const { data: demo } = useApi('/api/auth/demo');
   const { fieldErrors } = submit;
 
   if (loading) return <Loading label="Checking your session…" />;
   if (user) return <Navigate to="/" replace />;
+  if (demo?.registrationOpen === false) {
+    return (
+      <div className="reading-room">
+        <Container className="py-5" style={{ maxWidth: '30rem' }}>
+          <Bookshelf />
+          <h1 className="h3 mb-3 text-center reading-room-title">Registration is turned off in this demo</h1>
+          <p className="text-center">
+            So that no real personal data is collected, this demo has no sign-up. Use one of the demo accounts on
+            the <Link to="/login">sign-in page</Link> instead.
+          </p>
+        </Container>
+      </div>
+    );
+  }
 
   async function handleSubmit(event) {
     event.preventDefault();

@@ -2,6 +2,7 @@ package com.helmifr.library.security;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -74,6 +75,53 @@ class LoginFlowTest {
         mvc.perform(post("/api/auth/login").cookie(xsrf).header("X-XSRF-TOKEN", xsrf.getValue())
                         .contentType(MediaType.APPLICATION_JSON).content(body))
                 .andExpect(status().isUnauthorized());
+    }
+
+    /** Logs in through the real flow; returns the session and its current XSRF cookie. */
+    private Object[] signIn(String username, String password) throws Exception {
+        Cookie xsrf = latestCookie(mvc.perform(get("/api/auth/me")).andReturn(), "XSRF-TOKEN");
+        MockHttpSession session = new MockHttpSession();
+        MvcResult login = mvc.perform(post("/api/auth/login").session(session).cookie(xsrf)
+                        .header("X-XSRF-TOKEN", xsrf.getValue())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"username\": \"%s\", \"password\": \"%s\"}".formatted(username, password)))
+                .andExpect(status().isOk())
+                .andReturn();
+        return new Object[] {session, latestCookie(login, "XSRF-TOKEN")};
+    }
+
+    @Test
+    @DisplayName("disabling an account ends its existing sessions")
+    void disablingEndsSessions() throws Exception {
+        UserAccount customer = data.customer("Siti");
+        MockHttpSession session = (MockHttpSession) signIn(customer.getUsername(), TestData.PASSWORD)[0];
+        mvc.perform(get("/api/my/loans").session(session)).andExpect(status().isOk());
+
+        customer.setEnabled(false);
+        accounts.saveAndFlush(customer);
+
+        mvc.perform(get("/api/my/loans").session(session)).andExpect(status().isUnauthorized());
+        mvc.perform(get("/api/auth/me").session(session)).andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    @DisplayName("changing the password ends the account's other sessions, but not the current one")
+    void passwordChangeEndsOtherSessions() throws Exception {
+        UserAccount customer = data.customer("Siti");
+        Object[] laptop = signIn(customer.getUsername(), TestData.PASSWORD);
+        Object[] phone = signIn(customer.getUsername(), TestData.PASSWORD);
+        MockHttpSession laptopSession = (MockHttpSession) laptop[0];
+        Cookie laptopXsrf = (Cookie) laptop[1];
+
+        mvc.perform(put("/api/profile/password").session(laptopSession).cookie(laptopXsrf)
+                        .header("X-XSRF-TOKEN", laptopXsrf.getValue())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"currentPassword\": \"%s\", \"newPassword\": \"a-brand-new-password\"}"
+                                .formatted(TestData.PASSWORD)))
+                .andExpect(status().isNoContent());
+
+        mvc.perform(get("/api/auth/me").session(laptopSession)).andExpect(status().isOk());
+        mvc.perform(get("/api/auth/me").session((MockHttpSession) phone[0])).andExpect(status().isUnauthorized());
     }
 
     /** A response can clear and re-set the same cookie; the browser keeps the last non-empty one. */

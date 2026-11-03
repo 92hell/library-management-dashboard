@@ -79,9 +79,11 @@ export default function Login() {
                 Sign in
               </Button>
             </Form>
-            <p className="text-center small mt-3 mb-0">
-              New here? <Link to="/register">Create an account</Link>
-            </p>
+            {demo?.registrationOpen !== false && (
+              <p className="text-center small mt-3 mb-0">
+                New here? <Link to="/register">Create an account</Link>
+              </p>
+            )}
             {demo?.enabled && demo.accounts.length > 0 && (
               <>
                 <hr />

@@ -43,7 +43,8 @@ public class AuthController {
 
     public record DemoAccount(String label, String username, String password) {}
 
-    public record DemoInfo(boolean enabled, List<DemoAccount> accounts) {}
+    /** @param registrationOpen false in demo mode */
+    public record DemoInfo(boolean enabled, boolean registrationOpen, List<DemoAccount> accounts) {}
 
     private final AuthenticationManager authenticationManager;
     private final SecurityContextRepository securityContextRepository;
@@ -109,6 +110,9 @@ public class AuthController {
     /** Customer self-registration. Failed member-code matches count towards the address's lockout. */
     @PostMapping("/register")
     public ResponseEntity<?> register(@Valid @RequestBody RegisterRequest registration, HttpServletRequest request) {
+        if (demo.enabled()) {
+            return problem(HttpStatus.FORBIDDEN, "Registration is turned off in this demo.");
+        }
         String address = request.getRemoteAddr();
         if (limiter.isBlocked("register", address)) {
             return problem(HttpStatus.TOO_MANY_REQUESTS, "Too many failed attempts. Try again in a few minutes.");
@@ -129,9 +133,9 @@ public class AuthController {
     @GetMapping("/demo")
     public DemoInfo demo() {
         if (!demo.enabled()) {
-            return new DemoInfo(false, List.of());
+            return new DemoInfo(false, true, List.of());
         }
-        return new DemoInfo(true, List.of(
+        return new DemoInfo(true, false, List.of(
                 new DemoAccount("Customer", demo.customerUsername(), demo.customerPassword()),
                 new DemoAccount("Librarian", demo.librarianUsername(), demo.librarianPassword())));
     }

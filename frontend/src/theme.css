@@ -195,3 +195,9 @@ main form.border, main .border.rounded { background-color: var(--lib-card); bord
   box-shadow: 0 0 0 0.2rem rgba(47, 93, 80, 0.2);
 }
 .form-check-input:checked { background-color: var(--lib-green); border-color: var(--lib-green); }
+
+/* ---- Demo banner ----------------------------------------------------------------------------- */
+.demo-banner {
+  background: #efe2c4; color: #5a4520; border-bottom: 1px solid #d8c49b;
+  text-align: center; font-size: 0.9rem; padding: 0.4rem 1rem;
+}

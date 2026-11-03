@@ -2,11 +2,13 @@ import { Outlet } from 'react-router-dom';
 import { Container } from 'reactstrap';
 import { NotificationsProvider } from '../notifications';
 import AppNavbar from './AppNavbar';
+import DemoBanner from './DemoBanner';
 
 export default function Layout() {
   return (
     <NotificationsProvider>
       <AppNavbar />
+      <DemoBanner />
       <Container tag="main" className="py-4">
         <Outlet />
       </Container>

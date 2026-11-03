@@ -13,6 +13,7 @@ import com.helmifr.library.common.NotFoundException;
 import com.helmifr.library.common.PageResponse;
 import com.helmifr.library.common.PhoneNumbers;
 import com.helmifr.library.common.SearchPatterns;
+import com.helmifr.library.demo.DemoProperties;
 import com.helmifr.library.member.Member;
 import com.helmifr.library.member.LibraryCardIds;
 import com.helmifr.library.member.MemberRepository;
@@ -36,13 +37,14 @@ public class AccountService {
     private final MemberRepository members;
     private final LibraryCardIds libraryCardIds;
     private final PasswordEncoder passwordEncoder;
+    private final DemoProperties demo;
 
     // ---- Registration --------------------------------------------------------------------------
 
     /**
-     * Creates a customer account. With a library card ID, the existing member record (e.g. a walk-in
-     * member with loan history) is linked, after checking the date of birth; otherwise a new
-     * member record is created from the registration details.
+     * Creates a customer account. With a library card ID, that existing member record (e.g. a
+     * walk-in member with loan history) is linked when it has no account yet and the email or
+     * phone matches what is on file; otherwise a new member record is created.
      */
     @Transactional
     public SessionUser register(RegisterRequest request) {
@@ -83,7 +85,7 @@ public class AccountService {
 
         Audit.event("ACCOUNT_REGISTERED", "username={} libraryCardId={} linkedExistingCard={}",
                 account.getUsername(), member.getLibraryCardId(), request.libraryCardId() != null);
-        return SessionUser.of(account);
+        return SessionUser.of(account, demo.isDemoAccount(account.getUsername()));
     }
 
     // ---- Own profile ---------------------------------------------------------------------------
@@ -93,7 +95,8 @@ public class AccountService {
     }
 
     public SessionUser sessionUser(Long accountId) {
-        return SessionUser.of(require(accountId));
+        UserAccount account = require(accountId);
+        return SessionUser.of(account, demo.isDemoAccount(account.getUsername()));
     }
 
     /** Customers' name, email and phone are kept in sync with their member record. */
@@ -114,14 +117,16 @@ public class AccountService {
         return ProfileResponse.of(account);
     }
 
+    /** @return the updated account, so the caller can refresh the current session */
     @Transactional
-    public void changePassword(Long accountId, PasswordChangeRequest request) {
+    public UserAccount changePassword(Long accountId, PasswordChangeRequest request) {
         UserAccount account = require(accountId);
         if (!passwordEncoder.matches(request.currentPassword(), account.getPasswordHash())) {
             throw new FieldValidationException("currentPassword", "is not correct");
         }
         account.setPasswordHash(passwordEncoder.encode(request.newPassword()));
         Audit.event("PASSWORD_CHANGED", "username={}", account.getUsername());
+        return account;
     }
 
     // ---- Administration (librarians) -----------------------------------------------------------

@@ -20,9 +20,6 @@ import Profile from './pages/Profile';
 import Register from './pages/Register';
 import Users from './pages/Users';
 
-// Opt in to the v7 behaviour now so upgrading react-router later is a version bump.
-export const ROUTER_FUTURE_FLAGS = { v7_startTransition: true, v7_relativeSplatPath: true };
-
 const Librarian = () => (
   <RequireRole role="LIBRARIAN">
     <Outlet />
@@ -75,7 +72,7 @@ export function AppRoutes() {
 export default function App() {
   return (
     <AuthProvider>
-      <BrowserRouter future={ROUTER_FUTURE_FLAGS}>
+      <BrowserRouter>
         <AppRoutes />
       </BrowserRouter>
     </AuthProvider>
