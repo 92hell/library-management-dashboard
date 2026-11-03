@@ -7,7 +7,7 @@ Run everything: `mvn clean verify` (backend; add `-Pmariadb` to run it on MariaD
 `cd frontend && npm test` (frontend), and after `mvn -Pfullstack package` also
 `cd e2e && npm test` (end-to-end, in a real browser).
 
-Totals: 215 backend test methods (parameterised ones run once per case), 146 frontend tests, 14 end-to-end journeys.
+Totals: 218 backend test methods (parameterised ones run once per case), 146 frontend tests, 14 end-to-end journeys.
 
 ## Backend (JUnit, `src/test/java`)
 
@@ -29,6 +29,13 @@ live in `support/`.
 - librarians have a profile without a library card
 - changing the password requires the current password
 
+### Registration hardening (enumeration and sign-up limits)
+`src/test/java/com/helmifr/library/account/RegistrationHardeningTest.java`
+
+- a member's email gets the same answer as a wrong card ID: the reply never confirms who is a member
+- every refused attempt counts: after 5 (taken usernames included), the address must wait
+- at most 3 new accounts per address per hour; another address is not affected
+
 ### Customer self-registration
 `src/test/java/com/helmifr/library/account/RegistrationTest.java`
 
@@ -37,7 +44,7 @@ live in `support/`.
 - ...or with card ID + the phone on file, written in another format (+62 / 0 prefix)
 - a card ID alone is not enough: neither email nor phone match -> generic error
 - a card that already has an online account cannot be linked again
-- registering without a card ID, with the email of an unlinked walk-in card, asks for the card ID
+- registering without a card ID, with the email of an unlinked walk-in card, gets the same generic answer
 - usernames are unique (case-insensitive) and passwords need 10+ characters
 
 ### User administration (librarian only)

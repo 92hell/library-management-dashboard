@@ -53,6 +53,8 @@ export default defineConfig({
       ISBN_LOOKUP_URL: '',
       BOOK_COVERS: 'false',
       LOGGING_FILE_PATH: 'logs',
+      // The journeys register many customers from this one machine.
+      LIBRARY_SECURITY_MAX_SIGNUPS_PER_HOUR: '1000',
     },
   },
 });

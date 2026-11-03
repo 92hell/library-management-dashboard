@@ -54,15 +54,16 @@ public class AccountService {
                     .filter(m -> m.getEmail().equalsIgnoreCase(request.email().trim())
                             || PhoneNumbers.same(m.getPhone(), request.phone()))
                     .orElseThrow(() -> new FieldValidationException("libraryCardId",
-                            "No library card matches this ID with your email or phone number"));
+                            "These details cannot be used to register. If you already have a library card, enter its ID with the email or phone number the library has on file."));
         } else {
             boolean existingCard = members.findUnlinkedByEmailOrPhoneContaining(
                             request.email().trim(), PhoneNumbers.lastDigits(request.phone(), 4)).stream()
                     .anyMatch(m -> m.getEmail().equalsIgnoreCase(request.email().trim())
                             || PhoneNumbers.same(m.getPhone(), request.phone()));
             if (existingCard) {
+                // Same answer as a wrong card ID, so the reply never confirms who is a member.
                 throw new FieldValidationException("libraryCardId",
-                        "You already have a library card with us. Enter its ID to link it to this account.");
+                        "These details cannot be used to register. If you already have a library card, enter its ID with the email or phone number the library has on file.");
             }
             member = new Member();
             member.setName(request.name().trim());

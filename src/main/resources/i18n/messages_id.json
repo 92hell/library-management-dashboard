@@ -28,7 +28,6 @@
   "Member {0} not found": "Anggota {0} tidak ditemukan",
   "No copy has barcode {0}": "Tidak ada eksemplar dengan barkode {0}",
   "No copy of \"{0}\" is available.": "Tidak ada eksemplar \"{0}\" yang tersedia.",
-  "No library card matches this ID with your email or phone number": "Tidak ada kartu perpustakaan dengan nomor ini yang cocok dengan email atau nomor telepon Anda",
   "No receipt has this number and code.": "Tidak ada bukti pinjam dengan nomor dan kode ini.",
   "No receipt {0}.": "Bukti pinjam {0} tidak ditemukan.",
   "Not found": "Tidak ditemukan",
@@ -58,7 +57,6 @@
   "Unknown category: {0}": "Kategori tidak dikenal: {0}",
   "Use Return to record that the book came back (it charges any late fee and serves the queue).": "Gunakan Kembalikan untuk mencatat bahwa buku sudah kembali (denda keterlambatan akan dikenakan dan antrean akan dilayani).",
   "Validation failed": "Validasi gagal",
-  "You already have a library card with us. Enter its ID to link it to this account.": "Anda sudah memiliki kartu perpustakaan di sini. Masukkan nomor kartu perpustakaan Anda untuk menghubungkannya ke akun ini.",
   "You already have an open request or loan for this book.": "Anda sudah memiliki permintaan atau peminjaman yang masih berjalan untuk buku ini.",
   "You borrowed \"{0}\". Please return it by {1}.": "Anda meminjam \"{0}\". Mohon kembalikan paling lambat {1}.",
   "You can have at most {0} open requests or loans.": "Anda dapat memiliki paling banyak {0} permintaan atau peminjaman yang masih berjalan.",
@@ -80,5 +78,7 @@
   "must not be before the borrow date": "tidak boleh sebelum tanggal pinjam",
   "must not be before the start date": "tidak boleh sebelum tanggal mulai",
   "{0} has unpaid fines of {1}; record the payment before lending more books.": "{0} memiliki denda yang belum dibayar sebesar {1}; catat pembayarannya sebelum meminjamkan buku lagi.",
-  "{0} requested \"{1}\".": "{0} mengajukan peminjaman \"{1}\"."
+  "{0} requested \"{1}\".": "{0} mengajukan peminjaman \"{1}\".",
+  "These details cannot be used to register. If you already have a library card, enter its ID with the email or phone number the library has on file.": "Data ini tidak dapat digunakan untuk mendaftar. Jika Anda sudah memiliki kartu perpustakaan, masukkan nomornya beserta email atau nomor telepon yang terdaftar di perpustakaan.",
+  "Too many new accounts from this network. Please try again later.": "Terlalu banyak akun baru dari jaringan ini. Silakan coba lagi nanti."
 }

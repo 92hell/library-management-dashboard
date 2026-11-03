@@ -52,6 +52,7 @@ public class AuthController {
     private final SessionAuthenticationStrategy sessionAuthenticationStrategy;
     private final CsrfTokenRepository csrfTokenRepository;
     private final LoginAttemptLimiter limiter;
+    private final SignUpLimiter signUps;
     private final ClientAddresses clientAddresses;
     private final AccountService accountService;
     private final DemoProperties demo;
@@ -110,7 +111,11 @@ public class AuthController {
         return ResponseEntity.noContent().build();
     }
 
-    /** Customer self-registration. Failed member-code matches count towards the address's lockout. */
+    /**
+     * Customer self-registration. Every refused attempt (taken username, card details that don't
+     * match) counts towards the address's lockout, so the form cannot be used to probe who has an
+     * account or a library card; successful sign-ups are capped per address (SignUpLimiter).
+     */
     @PostMapping("/register")
     public ResponseEntity<?> register(@Valid @RequestBody RegisterRequest registration, HttpServletRequest request) {
         if (demo.enabled()) {
@@ -120,14 +125,18 @@ public class AuthController {
         if (limiter.isBlocked("register", address)) {
             return problem(HttpStatus.TOO_MANY_REQUESTS, "Too many failed attempts. Try again in a few minutes.");
         }
+        if (signUps.isBlocked(address)) {
+            Audit.event("REGISTER_LIMITED", "ip={}", address);
+            return problem(HttpStatus.TOO_MANY_REQUESTS, "Too many new accounts from this network. Please try again later.");
+        }
         try {
             SessionUser created = accountService.register(registration);
+            signUps.recordSignUp(address);
             return ResponseEntity.created(URI.create("/api/profile")).body(created);
         } catch (FieldValidationException e) {
-            if (e.getFieldErrors().containsKey("libraryCardId")) {
-                limiter.recordFailure("register", address);
-                Audit.event("REGISTER_LINK_FAILED", "username={} ip={}", registration.username(), address);
-            }
+            limiter.recordFailure("register", address);
+            Audit.event(e.getFieldErrors().containsKey("libraryCardId") ? "REGISTER_LINK_FAILED" : "REGISTER_REFUSED",
+                    "username={} field={} ip={}", registration.username(), e.field(), address);
             throw e;
         }
     }

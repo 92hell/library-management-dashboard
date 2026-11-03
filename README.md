@@ -222,7 +222,10 @@ are replaced so user input cannot forge log lines.
   address, and after 20 failures per address across usernames (bounded in memory)
 - Request DTOs with validation (clients cannot set ids, flags or audit fields); RFC 7807 errors without internals
 - Content-Security-Policy, `X-Frame-Options: DENY`, `nosniff`, strict referrer policy
-- Linking a walk-in card needs the card ID **and** matching email/phone; wrong attempts count towards the lockout
+- Linking a walk-in card needs the card ID **and** matching email/phone
+- Registration does not reveal who is a member: card mismatches and "you already have a card" get one
+  generic answer, every refused attempt (taken username included) counts towards the address's
+  lockout, and at most 3 accounts can be created per address per hour (`library.security.max-signups-per-hour`)
 - Lending is consistent under concurrent requests: every change to a loan, its copy or its fee takes
   the book's (or fine's) row lock first and re-reads under it, at READ COMMITTED isolation (tested
   with two threads against real MariaDB)

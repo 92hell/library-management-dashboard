@@ -28,10 +28,10 @@ Items marked *(hook ready)* already have an extension point in the code.
 
 ## Security follow-ups (from the security review)
 
-- Registration: generic "username taken" / existing-card responses to stop enumeration; CAPTCHA
-  or rate limit on successful sign-ups; verify email ownership (also stops the email channel from
-  being used to mail arbitrary addresses)
-- Upgrade the dev-only eslint toolchain (5 moderate advisories in `minimatch`; not shipped)
+- Registration: verify email ownership (removes the last difference between "created" and
+  "refused" for someone else's email, and stops the email channel being used to mail arbitrary
+  addresses); CAPTCHA if sign-up abuse appears
+- Drop the `minimatch` override in `frontend/package.json` once eslint depends on minimatch 11+
 
 ## Platform
 
