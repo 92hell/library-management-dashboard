@@ -1,6 +1,15 @@
 package com.helmifr.library.security;
 
 import com.helmifr.library.account.Role;
+import com.helmifr.library.account.UserAccountRepository;
+import com.helmifr.library.demo.DemoProperties;
+import org.springframework.security.authorization.AuthenticatedAuthorizationManager;
+import org.springframework.security.authorization.AuthorityAuthorizationManager;
+import org.springframework.security.authorization.AuthorizationDecision;
+import org.springframework.security.authorization.AuthorizationManager;
+import org.springframework.security.authorization.AuthorizationManagers;
+import org.springframework.security.web.access.intercept.AuthorizationFilter;
+import org.springframework.security.web.access.intercept.RequestAuthorizationContext;
 import java.util.List;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -34,6 +43,9 @@ import org.springframework.security.web.header.writers.ReferrerPolicyHeaderWrite
  *       /api/** is for librarians. Profile and notifications are available to both.</li>
  *   <li>CSRF protection uses the cookie-to-header pattern (XSRF-TOKEN cookie / X-XSRF-TOKEN header).</li>
  *   <li>Unauthenticated API calls get 401 (no redirects); forbidden ones get 403.</li>
+ *   <li>Every request re-checks the account (AccountSessionFilter): disabled accounts and changed
+ *       passwords end existing sessions.</li>
+ *   <li>Demo logins (demo mode) cannot administer accounts or change credentials.</li>
  * </ul>
  */
 @Configuration
@@ -53,17 +65,26 @@ public class SecurityConfig {
 
     @Bean
     SecurityFilterChain securityFilterChain(HttpSecurity http, CsrfTokenRepository csrfTokenRepository,
-                                            SecurityContextRepository securityContextRepository) throws Exception {
+                                            SecurityContextRepository securityContextRepository,
+                                            UserAccountRepository accounts, DemoProperties demo) throws Exception {
+        // Public demo logins may run the desk, but never touch accounts or credentials.
+        AuthorizationManager<RequestAuthorizationContext> notDemoAccount = (auth, ctx) -> new AuthorizationDecision(
+                !(auth.get().getPrincipal() instanceof AccountPrincipal p && demo.isDemoAccount(p.getUsername())));
         http
                 .csrf(csrf -> csrf
                         .csrfTokenRepository(csrfTokenRepository)
                         .csrfTokenRequestHandler(new SpaCsrfTokenRequestHandler()))
                 .addFilterAfter(new CsrfCookieFilter(), BasicAuthenticationFilter.class)
+                .addFilterBefore(new AccountSessionFilter(accounts), AuthorizationFilter.class)
                 .securityContext(sc -> sc.securityContextRepository(securityContextRepository))
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/api/auth/**", "/actuator/health").permitAll()
-                        .requestMatchers("/api/profile/**", "/api/profile", "/api/notifications/**", "/api/notifications")
-                        .authenticated()
+                        .requestMatchers(HttpMethod.GET, "/api/profile").authenticated()
+                        .requestMatchers("/api/profile/**", "/api/profile")
+                        .access(AuthorizationManagers.allOf(AuthenticatedAuthorizationManager.authenticated(), notDemoAccount))
+                        .requestMatchers("/api/users/**", "/api/users")
+                        .access(AuthorizationManagers.allOf(AuthorityAuthorizationManager.hasRole(Role.LIBRARIAN.name()), notDemoAccount))
+                        .requestMatchers("/api/notifications/**", "/api/notifications").authenticated()
                         .requestMatchers("/api/my/**", "/api/my").hasRole(Role.CUSTOMER.name())
                         .requestMatchers(HttpMethod.GET, "/api/books/**", "/api/books", "/api/authors/**", "/api/authors")
                         .authenticated()

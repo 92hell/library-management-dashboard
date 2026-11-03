@@ -7,6 +7,7 @@
     archive/     rotated files: daily or every 10 MB, gzipped, with retention limits
   Every line has [requestId] [user]. The request id is also returned in the X-Request-Id
   response header, so a user-reported problem can be traced with: grep <id> logs/*.log
+  Line breaks inside messages are replaced, so user input cannot forge log lines.
   The test profile logs to the console only.
 -->
 <configuration>
@@ -14,9 +15,9 @@
     <springProperty scope="context" name="LOG_DIR" source="logging.file.path" defaultValue="logs"/>
 
     <property name="FILE_PATTERN"
-              value="%d{yyyy-MM-dd HH:mm:ss.SSS} %-5level [%X{requestId:--}] [%X{user:--}] %logger{40} : %msg%n%wEx"/>
+              value="%d{yyyy-MM-dd HH:mm:ss.SSS} %-5level [%X{requestId:--}] [%X{user:--}] %logger{40} : %replace(%msg){'[\r\n]+', ' '}%n%wEx"/>
     <property name="CONSOLE_PATTERN"
-              value="%clr(%d{HH:mm:ss.SSS}){faint} %clr(%5p) %clr([%X{requestId:--}] [%X{user:--}]){magenta} %clr(%-40.40logger{39}){cyan} : %m%n%wEx"/>
+              value="%clr(%d{HH:mm:ss.SSS}){faint} %clr(%5p) %clr([%X{requestId:--}] [%X{user:--}]){magenta} %clr(%-40.40logger{39}){cyan} : %replace(%m){'[\r\n]+', ' '}%n%wEx"/>
 
     <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
         <encoder><pattern>${CONSOLE_PATTERN}</pattern><charset>UTF-8</charset></encoder>

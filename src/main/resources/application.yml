@@ -1,13 +1,19 @@
 server:
   port: ${PORT:8080}
+  # Behind a hosting proxy (Render, Railway...): Tomcat takes the visitor's address and https from
+  # X-Forwarded-For / X-Forwarded-Proto, but only when the connection comes from a private/internal
+  # address (the proxy). Clients on the internet cannot spoof it. If your proxy connects from a
+  # public address, set SERVER_TOMCAT_REMOTEIP_INTERNAL_PROXIES to a regex matching it.
+  forward-headers-strategy: native
   servlet:
     session:
       timeout: 30m
       cookie:
         http-only: true
         same-site: lax
-        # Set SESSION_COOKIE_SECURE=true when serving over HTTPS.
-        secure: ${SESSION_COOKIE_SECURE:false}
+        # HTTPS-only cookie. Browsers still accept it on http://localhost; set
+        # SESSION_COOKIE_SECURE=false only for plain-HTTP testing on another host.
+        secure: ${SESSION_COOKIE_SECURE:true}
   error:
     include-stacktrace: never
     include-message: never
@@ -74,9 +80,11 @@ library:
       api-url: ${NOTIFY_WHATSAPP_API_URL:}
       api-key: ${NOTIFY_WHATSAPP_API_KEY:}
   demo:
-    # Seeds sample data and shows demo customer/librarian logins on the login page.
+    # Public demo: sample data, demo logins on the login page, registration off, restricted demo
+    # accounts, and a full reset at start-up and nightly. Never use it with real users.
     enabled: ${DEMO_MODE:false}
     password: ${DEMO_PASSWORD:demo-password}
+    reset-cron: ${DEMO_RESET_CRON:0 0 3 * * *}
 
 logging:
   file:

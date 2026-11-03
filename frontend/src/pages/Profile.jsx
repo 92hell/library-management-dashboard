@@ -15,15 +15,28 @@ export default function Profile() {
 }
 
 function ProfileView({ profile, onSaved }) {
-  const { isCustomer } = useAuth();
+  const { user, isCustomer } = useAuth();
   const card = profile.member;
+  const readOnly = Boolean(user?.demoAccount);
 
   return (
     <>
       <h1 className="h3 mb-3 page-title">My profile</h1>
       <Row className="g-4">
         <Col lg={6}>
-          <DetailsForm profile={profile} showPhone={isCustomer} onSaved={onSaved} />
+          {readOnly ? (
+            <div className="p-4 border rounded shadow-sm">
+              <h2 className="h5 mb-3">Account details</h2>
+              <p className="mb-1">
+                <strong>{profile.displayName}</strong> · {profile.email}
+              </p>
+              <p className="small text-muted mb-0">
+                This is a shared demo account, so its details and password can&apos;t be changed.
+              </p>
+            </div>
+          ) : (
+            <DetailsForm profile={profile} showPhone={isCustomer} onSaved={onSaved} />
+          )}
         </Col>
         <Col lg={6}>
           {card && (
@@ -41,7 +54,7 @@ function ProfileView({ profile, onSaved }) {
               </div>
             </section>
           )}
-          <PasswordForm />
+          {!readOnly && <PasswordForm />}
         </Col>
       </Row>
     </>

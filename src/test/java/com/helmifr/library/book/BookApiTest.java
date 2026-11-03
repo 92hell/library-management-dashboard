@@ -71,6 +71,12 @@ class BookApiTest {
     }
 
     @Test
+    @DisplayName("an unknown sort field is a 400, not a server error")
+    void unknownSortField() throws Exception {
+        api.as(librarian).get("/api/books", "sort", "nope").andExpect(status().isBadRequest());
+    }
+
+    @Test
     @DisplayName("page size is capped so clients cannot request unbounded pages")
     void pageSizeCap() throws Exception {
         api.as(librarian).get("/api/books", "size", "100000")

@@ -1,7 +1,7 @@
 import { render } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { vi } from 'vitest';
-import { AppRoutes, ROUTER_FUTURE_FLAGS } from '../App';
+import { AppRoutes } from '../App';
 import { AuthProvider } from '../auth';
 
 export function jsonResponse(body, status = 200) {
@@ -34,7 +34,7 @@ export function mockFetch(routes) {
 export function renderApp(path) {
   return render(
     <AuthProvider>
-      <MemoryRouter initialEntries={[path]} future={ROUTER_FUTURE_FLAGS}>
+      <MemoryRouter initialEntries={[path]}>
         <AppRoutes />
       </MemoryRouter>
     </AuthProvider>,
@@ -57,6 +57,7 @@ export function signedInAs(user, routes = {}) {
     'GET /api/notifications/unread-count': { count: 0 },
     'GET /api/dashboard': { pendingRequests: 0, activeLoans: 0, overdueLoans: 0, dueToday: 0, books: 0, members: 0 },
     'GET /api/my/loans': [],
+    'GET /api/auth/demo': { enabled: false, registrationOpen: true, accounts: [] },
     ...routes,
   });
 }

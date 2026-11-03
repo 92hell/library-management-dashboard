@@ -34,7 +34,10 @@ export default function AppNavbar() {
       <NavbarToggler onClick={() => setIsOpen((open) => !open)} aria-label="Toggle navigation" />
       <Collapse isOpen={isOpen} navbar>
         <Nav className="me-auto" navbar>
-          {(SECTIONS[user?.role] ?? []).map(({ to, label }) => (
+          {(SECTIONS[user?.role] ?? [])
+            // Demo logins cannot administer accounts (the API refuses), so don't offer it.
+            .filter(({ to }) => !(user?.demoAccount && to === '/users'))
+            .map(({ to, label }) => (
             <NavItem key={to}>
               <NavLink tag={RouterNavLink} to={to} onClick={close}>
                 {label}

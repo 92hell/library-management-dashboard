@@ -5,6 +5,8 @@ import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.dao.InvalidDataAccessApiUsageException;
+import org.springframework.data.mapping.PropertyReferenceException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
 import org.springframework.http.converter.HttpMessageNotReadableException;
@@ -55,6 +57,13 @@ public class ApiExceptionHandler {
     @ExceptionHandler({HttpMessageNotReadableException.class, MethodArgumentTypeMismatchException.class})
     ProblemDetail unreadable(Exception e) {
         return problem(HttpStatus.BAD_REQUEST, "Malformed request");
+    }
+
+    /** e.g. ?sort=unknownField */
+    @ExceptionHandler({PropertyReferenceException.class, InvalidDataAccessApiUsageException.class})
+    ProblemDetail invalidQuery(Exception e) {
+        log.debug("Rejected query parameters: {}", e.getMessage());
+        return problem(HttpStatus.BAD_REQUEST, "Invalid sort or query parameter");
     }
 
     @ExceptionHandler(DataIntegrityViolationException.class)

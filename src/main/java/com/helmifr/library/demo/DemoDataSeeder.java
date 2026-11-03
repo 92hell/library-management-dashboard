@@ -14,6 +14,10 @@ import com.helmifr.library.loan.LoanStatus;
 import com.helmifr.library.member.Member;
 import com.helmifr.library.member.LibraryCardIds;
 import com.helmifr.library.member.MemberRepository;
+import com.helmifr.library.common.Audit;
+import com.helmifr.library.notification.NotificationRepository;
+import com.helmifr.library.security.SecurityProperties;
+import jakarta.persistence.EntityManager;
 import java.time.Clock;
 import java.time.LocalDate;
 import lombok.RequiredArgsConstructor;
@@ -23,7 +27,11 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
-/** Creates demo accounts and, on an empty catalogue, a small sample library. Safe to run repeatedly. */
+/**
+ * Demo data: {@link #seed()} creates the demo accounts and, on an empty catalogue, a small sample
+ * library (safe to repeat); {@link #reset()} wipes everything except the owner's account and seeds
+ * again, undoing whatever visitors did.
+ */
 @Component
 @RequiredArgsConstructor
 public class DemoDataSeeder {
@@ -43,6 +51,24 @@ public class DemoDataSeeder {
     private final LoanRepository loans;
     private final PasswordEncoder passwordEncoder;
     private final Clock clock;
+    private final NotificationRepository notifications;
+    private final SecurityProperties securityProperties;
+    private final EntityManager entityManager;
+
+    /** Deletes all data except the owner librarian's account, then seeds the demo again. */
+    @Transactional
+    public void reset() {
+        notifications.deleteAllInBatch();
+        loans.deleteAllInBatch();
+        accounts.deleteAllExcept(securityProperties.librarian().username());
+        members.deleteAllInBatch();
+        books.deleteAllInBatch();
+        authors.deleteAllInBatch();
+        entityManager.flush();
+        entityManager.clear();
+        seed();
+        Audit.event("DEMO_RESET", "demo data restored");
+    }
 
     @Transactional
     public void seed() {

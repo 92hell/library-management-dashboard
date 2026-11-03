@@ -14,6 +14,15 @@ public final class Audit {
 
     /** @param event short UPPER_SNAKE_CASE name, e.g. LOAN_APPROVED */
     public static void event(String event, String detailsPattern, Object... args) {
-        LOG.info(event + " " + detailsPattern, args);
+        Object[] safe = new Object[args.length];
+        for (int i = 0; i < args.length; i++) {
+            safe[i] = args[i] instanceof CharSequence text ? oneLine(text) : args[i];
+        }
+        LOG.info(event + " " + detailsPattern, safe);
+    }
+
+    /** User input such as usernames must not be able to start a fake log line. */
+    static String oneLine(CharSequence text) {
+        return text.toString().replaceAll("[\\r\\n\\t]+", "_");
     }
 }

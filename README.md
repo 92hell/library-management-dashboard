@@ -80,19 +80,32 @@ environment variables:
 | Variable | Default | Purpose |
 |---|---|---|
 | `DB_URL`, `DB_USERNAME`, `DB_PASSWORD` | `jdbc:mariadb://localhost:3306/library_sandbox`, `library`, empty | Database |
-| `LIBRARIAN_USERNAME`, `LIBRARIAN_PASSWORD` | `librarian`, generated | First staff account (created if missing) |
-| `DEMO_MODE`, `DEMO_PASSWORD` | `false`, `demo-password` | Sample data + demo logins shown on the login page |
+| `LIBRARIAN_USERNAME`, `LIBRARIAN_PASSWORD` | `librarian`, generated | Owner account: created if missing and re-enabled on every start; when `LIBRARIAN_PASSWORD` is set its password is reset to it (recovery). Without it a password is generated and printed to the console only. **Always set it when hosting.** |
+| `DEMO_MODE`, `DEMO_PASSWORD`, `DEMO_RESET_CRON` | `false`, `demo-password`, `0 0 3 * * *` | Public demo - see [Demo mode](#demo-mode) |
 | `LOAN_PERIOD_DAYS`, `LOAN_MAX_OPEN_PER_MEMBER`, `LOAN_DUE_SOON_DAYS` | `14`, `3`, `2` | Lending rules |
 | `LOAN_REMINDER_CRON` | `0 0 8 * * *` | Daily due-soon / overdue reminder job (`-` disables) |
 | `APP_BASE_URL` | `http://localhost:8080` | Used for links in emails / messages |
 | `NOTIFY_EMAIL_ENABLED`, `NOTIFY_EMAIL_FROM` + `SPRING_MAIL_HOST`, `SPRING_MAIL_PORT`, `SPRING_MAIL_USERNAME`, `SPRING_MAIL_PASSWORD` | off | Email notifications over SMTP |
 | `NOTIFY_SMS_*`, `NOTIFY_WHATSAPP_*` (`ENABLED`, `PROVIDER`, `SENDER`, `API_URL`, `API_KEY`) | off | SMS / WhatsApp channels - dry run (logged) until a provider is integrated |
-| `SESSION_COOKIE_SECURE` | `false` | Set `true` behind HTTPS |
+| `SESSION_COOKIE_SECURE` | `true` | HTTPS-only session cookie (browsers accept it on `http://localhost`); set `false` only for plain-HTTP testing on another host |
+| `SERVER_TOMCAT_REMOTEIP_INTERNAL_PROXIES` | private address ranges | Which proxy addresses are trusted for `X-Forwarded-For` / `-Proto`; only needed if your proxy connects from a public address |
 | `LOG_PATH` | `logs` | Log folder |
 
 A database created by the first version is adopted through a Flyway baseline (the original schema
 counts as V1; V2+ are applied on top). That path is not exercised by the test suite, so back the
 database up before the first start.
+
+## Demo mode
+
+`DEMO_MODE=true` turns the app into a public demo that is safe to publish:
+
+- sample data, plus a demo customer and a demo librarian whose logins are shown on the login page
+- the demo accounts can run the desk (catalogue, members, loans, requests) but cannot administer
+  accounts or change their own password or profile
+- registration is off, so no real personal data is collected; a banner asks visitors not to enter any
+- everything except the owner librarian is reset to the sample data at start-up and every night
+
+Never run demo mode with real users.
 
 ## Notifications
 
@@ -122,14 +135,20 @@ To integrate an SMS or WhatsApp provider, override `deliver()` in `SmsChannel` /
 
 Every line carries `[requestId] [user]`. The request id is returned in the `X-Request-Id` response
 header (and reused from an incoming one), so a reported problem can be traced with
-`grep <request-id> logs/*.log`. Passwords and tokens are never logged; phone numbers are masked.
+`grep <request-id> logs/*.log`. Passwords and tokens are never written to the log files (a generated
+first-start password goes to the console only); phone numbers are masked; line breaks in messages
+are replaced so user input cannot forge log lines.
 
 ## Security
 
-- Session cookie login (`HttpOnly`, `SameSite=Lax`), new session id on login, 30-minute timeout
+- Session cookie login (`HttpOnly`, `Secure`, `SameSite=Lax`), new session id on login, 30-minute timeout
+- Every request re-checks the account: disabling it or changing its password ends its other sessions at once
+- Behind a hosting proxy the real visitor address and HTTPS are taken from `X-Forwarded-*` - only
+  from trusted (private) proxy addresses - so throttling works per visitor and HSTS is sent
 - CSRF protection with the cookie-to-header pattern (`XSRF-TOKEN` → `X-XSRF-TOKEN`), token rotated on login
 - Role-based access: customers only reach the catalogue and their own data (`/api/my/**`)
-- Passwords hashed with BCrypt; 10+ characters; login throttled after 5 failures per username and address
+- Passwords hashed with BCrypt; 10+ characters; login throttled after 5 failures per username and
+  address, and after 20 failures per address across usernames (bounded in memory)
 - Request DTOs with validation (clients cannot set ids, flags or audit fields); RFC 7807 errors without internals
 - Content-Security-Policy, `X-Frame-Options: DENY`, `nosniff`, strict referrer policy
 - Linking a walk-in card needs the card ID **and** matching email/phone; wrong attempts count towards the lockout

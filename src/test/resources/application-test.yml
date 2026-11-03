@@ -17,3 +17,4 @@ library:
     reminder-cron: "-"
   demo:
     enabled: false
+    reset-cron: "-"

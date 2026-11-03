@@ -57,4 +57,13 @@ class LoginThrottlingTest {
                 .contains("AUDIT", "LOGIN_FAILED", "LOGIN_SUCCEEDED", customer.getUsername())
                 .doesNotContain("wrong-secret", TestData.PASSWORD);
     }
+
+    @Test
+    @DisplayName("a username with line breaks cannot forge extra audit-log lines")
+    void noLogInjection(CapturedOutput output) throws Exception {
+        // "\\n" in Java is the two characters \ n, which JSON decodes into a real line break.
+        login("x\\nFORGED-LINE AUDIT : LOGIN_SUCCEEDED username=librarian", "whatever");
+
+        org.assertj.core.api.Assertions.assertThat(output.getOut()).doesNotContain("\nFORGED-LINE");
+    }
 }

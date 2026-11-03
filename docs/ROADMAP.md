@@ -29,13 +29,18 @@ Items marked *(hook ready)* already have an extension point in the code.
 - Librarian reports: most borrowed, overdue rate, active members; CSV export
 - Branches / locations and inter-branch transfers
 
+## Security follow-ups (from the security review)
+
+- Registration: generic "username taken" / existing-card responses to stop enumeration; CAPTCHA
+  or rate limit on successful sign-ups; verify email ownership (also stops the email channel from
+  being used to mail arbitrary addresses)
+- Upgrade the dev-only eslint toolchain (5 moderate advisories in `minimatch`; not shipped)
+
 ## Platform
 
-- Disabled accounts: end active sessions immediately (today they are refused at next login)
 - Rate limiting on all public endpoints; distributed lockout store (Redis) for several instances
 - Structured JSON logs and metrics (Micrometer + Prometheus/Grafana); alerting on error rate
 - Testcontainers-based tests against real MariaDB in CI (today: H2 in MariaDB mode)
 - End-to-end browser tests (Playwright) in CI
 - Accessibility review (WCAG 2.1 AA) and internationalisation (Bahasa Indonesia / English)
-- Demo mode: nightly reset of demo data
 - Deployment: container registry + one-click deploy (Render / Fly.io / Railway), HTTPS, backups
