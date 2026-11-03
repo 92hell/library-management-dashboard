@@ -21,19 +21,19 @@ public record LoanRequest(
         @PastOrPresent LocalDate returnDate) {
 
     @JsonIgnore
-    @AssertTrue(message = "choose a book or scan a copy's barcode")
+    @AssertTrue(message = "{library.validation.bookOrCopy}")
     public boolean isBookIdOrCopyBarcodeGiven() {
         return bookId != null || (copyBarcode != null && !copyBarcode.isBlank());
     }
 
     @JsonIgnore
-    @AssertTrue(message = "must not be before the borrow date")
+    @AssertTrue(message = "{library.validation.notBeforeBorrowDate}")
     public boolean isReturnDateAfterBorrowDate() {
         return returnDate == null || borrowDate == null || !returnDate.isBefore(borrowDate);
     }
 
     @JsonIgnore
-    @AssertTrue(message = "must not be before the borrow date")
+    @AssertTrue(message = "{library.validation.notBeforeBorrowDate}")
     public boolean isDueDateAfterBorrowDate() {
         return dueDate == null || borrowDate == null || !dueDate.isBefore(borrowDate);
     }

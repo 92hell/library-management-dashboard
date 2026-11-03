@@ -131,6 +131,10 @@ public interface LoanRepository extends JpaRepository<Loan, Long> {
             + PENDING + ", " + WAITLISTED + ")")
     long countWaitingFor(@Param("bookId") Long bookId);
 
+    @Query("SELECT DISTINCT l.book.id FROM Loan l WHERE l.member.id = :memberId AND l.deleted = false AND l.status = "
+            + WAITLISTED)
+    List<Long> findWaitlistedBooksOfMember(@Param("memberId") Long memberId);
+
     /** Any request, hold or loan of the title still open (PENDING, WAITLISTED, READY or ACTIVE)? */
     @Query("SELECT COUNT(l) > 0 FROM Loan l WHERE l.book.id = :bookId AND l.deleted = false AND l.status IN " + OPEN)
     boolean anyOpenForBook(@Param("bookId") Long bookId);

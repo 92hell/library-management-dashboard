@@ -31,24 +31,31 @@ public class HoldQueue {
     private final NotificationService notifications;
     private final Clock clock;
     private final LoanEvents history;
+    private final com.helmifr.library.fine.FineService fines;
+    private final com.helmifr.library.book.BookRepository books;
 
     /** The caller must hold the book's lock (LoanService.lockBook) or be in a transaction that does. */
     @Transactional
     public void serve(Book book) {
         List<Loan> queue = loans.findQueue(book.getId());
         for (Loan next : queue) {
+            // Members who could not collect (inactive card, unpaid fines) keep their place but are
+            // skipped; they are served again when that changes (see onFinesSettled).
+            if (!next.getMember().isActive() || !fines.canBorrow(next.getMember())) {
+                continue;
+            }
             Optional<Copy> free = freeCopy(book);
             if (free.isEmpty()) {
                 return;
             }
             setAside(next, free.get(), NotificationType.HOLD_READY,
-                    "A copy of \"%s\" is ready for pickup until %s.");
+                    "A copy of \"{0}\" is ready for pickup until {1}.");
             history.record(next, LoanEventType.READY, "Copy %s set aside until %s".formatted(
                     free.get().getBarcode(), next.getReadyUntil()));
         }
     }
 
-    /** Sets {@code copy} aside for {@code loan} and tells the member. */
+    /** Sets {@code copy} aside for {@code loan} and tells the member ({0} = title, {1} = collect-by date). */
     void setAside(Loan loan, Copy copy, NotificationType type, String messagePattern) {
         LocalDate readyUntil = LocalDate.now(clock).plusDays(policy.pickupDays());
         loan.setStatus(LoanStatus.READY);
@@ -56,8 +63,8 @@ public class HoldQueue {
         loan.setReadyUntil(readyUntil);
         Audit.event("HOLD_READY", "loanId={} bookId={} memberId={} copy={} until={}", loan.getId(),
                 loan.getBook().getId(), loan.getMember().getId(), copy.getBarcode(), readyUntil);
-        notifications.notifyMember(loan.getMember().getId(), type,
-                messagePattern.formatted(loan.getBook().getTitle(), readyUntil), LoanService.MY_LOANS_LINK);
+        notifications.notifyMember(loan.getMember().getId(), type, LoanService.MY_LOANS_LINK, messagePattern,
+                loan.getBook().getTitle(), readyUntil);
     }
 
     Optional<Copy> freeCopy(Book book) {
@@ -67,6 +74,14 @@ public class HoldQueue {
     }
 
     /** A librarian added a copy: someone may be waiting for it. */
+    /** A member paid their fines: serve the titles they are queued for (they may be next in line). */
+    @EventListener
+    @Transactional
+    public void onFinesSettled(com.helmifr.library.fine.FinesSettled event) {
+        loans.findWaitlistedBooksOfMember(event.memberId()).forEach(bookId ->
+                books.findActiveForUpdate(bookId).ifPresent(this::serve));
+    }
+
     @EventListener
     public void onCopyAdded(CopyAdded event) {
         serve(event.book());

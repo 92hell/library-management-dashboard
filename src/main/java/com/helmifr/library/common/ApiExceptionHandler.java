@@ -18,35 +18,44 @@ import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 /** Maps exceptions to RFC 7807 problem responses without leaking internals. */
 @RestControllerAdvice
+@lombok.RequiredArgsConstructor
 public class ApiExceptionHandler {
 
     private static final Logger log = LoggerFactory.getLogger(ApiExceptionHandler.class);
 
+    private final Messages messages;
+
+    /** The exception's message in the reader's language. */
+    private String text(LocalizedMessage e) {
+        return messages.get(e.template(), e.args());
+    }
+
     @ExceptionHandler(NotFoundException.class)
     ProblemDetail notFound(NotFoundException e) {
-        return problem(HttpStatus.NOT_FOUND, e.getMessage());
+        return problem(HttpStatus.NOT_FOUND, text(e));
     }
 
     @ExceptionHandler(NoResourceFoundException.class)
     ProblemDetail noResource(NoResourceFoundException e) {
-        return problem(HttpStatus.NOT_FOUND, "Not found");
+        return problem(HttpStatus.NOT_FOUND, messages.get("Not found"));
     }
 
     @ExceptionHandler(ServiceUnavailableException.class)
     ProblemDetail unavailable(ServiceUnavailableException e) {
         log.warn("{}: {}", e.getMessage(), e.getCause() == null ? "-" : e.getCause().toString());
-        return problem(HttpStatus.SERVICE_UNAVAILABLE, e.getMessage());
+        return problem(HttpStatus.SERVICE_UNAVAILABLE, text(e));
     }
 
     @ExceptionHandler(ConflictException.class)
     ProblemDetail conflict(ConflictException e) {
-        return problem(HttpStatus.CONFLICT, e.getMessage());
+        return problem(HttpStatus.CONFLICT, text(e));
     }
 
     @ExceptionHandler(FieldValidationException.class)
     ProblemDetail fieldValidation(FieldValidationException e) {
-        ProblemDetail pd = problem(HttpStatus.BAD_REQUEST, e.getMessage());
-        pd.setProperty("errors", e.getFieldErrors());
+        String message = text(e);
+        ProblemDetail pd = problem(HttpStatus.BAD_REQUEST, message);
+        pd.setProperty("errors", Map.of(e.field(), message));
         return pd;
     }
 
@@ -55,27 +64,27 @@ public class ApiExceptionHandler {
         Map<String, String> errors = new LinkedHashMap<>();
         e.getBindingResult().getFieldErrors()
                 .forEach(fe -> errors.putIfAbsent(uiFieldName(fe.getField()), fe.getDefaultMessage()));
-        ProblemDetail pd = problem(HttpStatus.BAD_REQUEST, "Validation failed");
+        ProblemDetail pd = problem(HttpStatus.BAD_REQUEST, messages.get("Validation failed"));
         pd.setProperty("errors", errors);
         return pd;
     }
 
     @ExceptionHandler({HttpMessageNotReadableException.class, MethodArgumentTypeMismatchException.class})
     ProblemDetail unreadable(Exception e) {
-        return problem(HttpStatus.BAD_REQUEST, "Malformed request");
+        return problem(HttpStatus.BAD_REQUEST, messages.get("Malformed request"));
     }
 
     /** e.g. ?sort=unknownField */
     @ExceptionHandler({PropertyReferenceException.class, InvalidDataAccessApiUsageException.class})
     ProblemDetail invalidQuery(Exception e) {
         log.debug("Rejected query parameters: {}", e.getMessage());
-        return problem(HttpStatus.BAD_REQUEST, "Invalid sort or query parameter");
+        return problem(HttpStatus.BAD_REQUEST, messages.get("Invalid sort or query parameter"));
     }
 
     @ExceptionHandler(DataIntegrityViolationException.class)
     ProblemDetail integrity(DataIntegrityViolationException e) {
         log.warn("Data integrity violation: {}", e.getMostSpecificCause().getMessage());
-        return problem(HttpStatus.CONFLICT, "The change conflicts with existing data");
+        return problem(HttpStatus.CONFLICT, messages.get("The change conflicts with existing data"));
     }
 
     private static ProblemDetail problem(HttpStatus status, String detail) {

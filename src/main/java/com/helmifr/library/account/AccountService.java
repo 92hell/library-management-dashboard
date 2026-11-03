@@ -30,9 +30,6 @@ import org.springframework.transaction.annotation.Transactional;
 @Transactional(readOnly = true)
 public class AccountService {
 
-    static final String NO_MATCHING_CARD = "No library card matches this ID with your email or phone number";
-    static final String CARD_EXISTS = "You already have a library card with us. Enter its ID to link it to this account.";
-
     private final UserAccountRepository accounts;
     private final MemberRepository members;
     private final LibraryCardIds libraryCardIds;
@@ -56,14 +53,16 @@ public class AccountService {
                     .filter(m -> accounts.findByMemberId(m.getId()).isEmpty())
                     .filter(m -> m.getEmail().equalsIgnoreCase(request.email().trim())
                             || PhoneNumbers.same(m.getPhone(), request.phone()))
-                    .orElseThrow(() -> new FieldValidationException("libraryCardId", NO_MATCHING_CARD));
+                    .orElseThrow(() -> new FieldValidationException("libraryCardId",
+                            "No library card matches this ID with your email or phone number"));
         } else {
             boolean existingCard = members.findUnlinkedByEmailOrPhoneContaining(
                             request.email().trim(), PhoneNumbers.lastDigits(request.phone(), 4)).stream()
                     .anyMatch(m -> m.getEmail().equalsIgnoreCase(request.email().trim())
                             || PhoneNumbers.same(m.getPhone(), request.phone()));
             if (existingCard) {
-                throw new FieldValidationException("libraryCardId", CARD_EXISTS);
+                throw new FieldValidationException("libraryCardId",
+                        "You already have a library card with us. Enter its ID to link it to this account.");
             }
             member = new Member();
             member.setName(request.name().trim());

@@ -11,7 +11,7 @@ public final class CopyDtos {
     /** Barcode is optional when adding a copy (one is generated); case-insensitive. */
     public record CopyRequest(
             @Pattern(regexp = "^\\s*[A-Za-z0-9-]{4,32}\\s*$",
-                    message = "must be 4-32 letters, digits or dashes") String barcode,
+                    message = "{library.validation.barcode}") String barcode,
             @Size(max = 50) String shelfLocation) {}
 
     public enum CopyStatus { AVAILABLE, ON_LOAN }

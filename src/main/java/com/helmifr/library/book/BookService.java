@@ -39,7 +39,7 @@ public class BookService {
             throw new FieldValidationException("sort", "Books are sorted with order= (added, title, newest, oldest)");
         }
         if (filter.category() != null && !BookCategories.ALL.contains(filter.category())) {
-            throw new FieldValidationException("category", "Unknown category: " + filter.category());
+            throw new FieldValidationException("category", "Unknown category: {0}", filter.category());
         }
         Page<Book> page = books.search(SearchPatterns.contains(filter.q()),
                 filter.category() == null ? null : "%," + filter.category() + ",%",
@@ -108,8 +108,8 @@ public class BookService {
         require(id);
         Book book = books.findActiveForUpdate(id).orElseThrow(() -> new NotFoundException("Book", id));
         if (loans.anyOpenForBook(id)) {
-            throw new ConflictException("This book has open requests, holds or loans. "
-                    + "Decline the requests and record the returns before deleting it.");
+            throw new ConflictException(
+                    "This book has open requests, holds or loans. Decline the requests and record the returns before deleting it.");
         }
         book.setDeleted(true);
         copyService.withdrawAllOf(id);
@@ -128,7 +128,7 @@ public class BookService {
                 : List.copyOf(new LinkedHashSet<>(request.categories().stream().map(String::trim).toList()));
         for (String category : categories) {
             if (!BookCategories.ALL.contains(category)) {
-                throw new FieldValidationException("categories", "Unknown category: " + category);
+                throw new FieldValidationException("categories", "Unknown category: {0}", category);
             }
         }
         book.setTitle(request.title().trim());

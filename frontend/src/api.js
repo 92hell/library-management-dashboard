@@ -1,3 +1,4 @@
+import { getLanguage } from './i18n';
 /**
  * Thin fetch wrapper for the backend API.
  *
@@ -65,7 +66,8 @@ async function toApiError(response) {
 }
 
 export async function request(path, { method = 'GET', params, body } = {}) {
-  const headers = { Accept: 'application/json' };
+  // The server writes its messages (errors, notifications) in the app's language.
+  const headers = { Accept: 'application/json', 'Accept-Language': getLanguage() };
   if (body !== undefined) headers['Content-Type'] = 'application/json';
   if (method !== 'GET') {
     const csrfToken = readCookie('XSRF-TOKEN');

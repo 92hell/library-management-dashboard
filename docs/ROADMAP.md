@@ -17,9 +17,7 @@ Items marked *(hook ready)* already have an extension point in the code.
 
 ## Library operations
 
-- Holds: skip members who are blocked by fines or inactive when setting a copy aside
-- Past loans recorded at the desk as returned late are not charged a fee (decide whether they should be)
-- Notifications and receipt history details written in the reader's language (today English)
+- Member language preference, so emails/SMS can be sent in Bahasa Indonesia too
 - Certified e-signature for receipts via a PSrE (BSrE / Privy) as a `ReceiptSigner`; key rotation UI
 - Fines: partial payments, printed receipts, online payment (e.g. Midtrans / Xendit)
 - Member card expiry and renewal; card replacement keeps history
@@ -40,6 +38,5 @@ Items marked *(hook ready)* already have an extension point in the code.
 - Rate limiting on all public endpoints; distributed lockout store (Redis) for several instances
 - Structured JSON logs and metrics (Micrometer + Prometheus/Grafana); alerting on error rate
 - End-to-end: more journeys (registration and card linking, notifications), mobile viewport
-- Server messages (validation, conflicts) in Bahasa Indonesia via Accept-Language
 - Manual screen-reader pass (NVDA / VoiceOver) beyond the automated WCAG checks
 - Deployment: container registry + one-click deploy (Render / Fly.io / Railway), HTTPS, backups

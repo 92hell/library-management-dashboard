@@ -228,4 +228,18 @@ class FinesTest {
 
         api.as(librarian).get("/api/dashboard").andExpect(jsonPath("$.unpaidFines").value(6000));
     }
+
+    @Test
+    @DisplayName("a past loan recorded at the desk as returned late is charged the late fee too")
+    void pastLoanReturnedLate() throws Exception {
+        api.as(librarian).post("/api/borrowed-books", """
+                        {"bookId": %d, "memberId": %d, "borrowDate": "%s", "dueDate": "%s", "returnDate": "%s"}"""
+                        .formatted(book.getId(), siti.getMember().getId(), TODAY.minusDays(30), TODAY.minusDays(16),
+                                TODAY.minusDays(13)))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.status").value("RETURNED"))
+                .andExpect(jsonPath("$.fine.amount").value(3000));
+
+        api.as(siti).get("/api/my/fines").andExpect(jsonPath("$.balance").value(3000));
+    }
 }

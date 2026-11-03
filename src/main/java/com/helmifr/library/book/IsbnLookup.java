@@ -79,7 +79,7 @@ public class IsbnLookup {
         }
         JsonNode book = fetchLimited(isbn).path("ISBN:" + isbn);
         if (book.isMissingNode() || !book.hasNonNull("title")) {
-            throw new NotFoundException("Open Library has no book with ISBN " + isbn + ".");
+            throw new NotFoundException("Open Library has no book with ISBN {0}.", isbn);
         }
         String authorName = text(book.path("authors").path(0).path("name"));
         Long authorId = authorName == null ? null

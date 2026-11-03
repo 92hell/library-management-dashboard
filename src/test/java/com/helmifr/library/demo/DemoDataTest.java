@@ -34,6 +34,9 @@ class DemoDataTest {
                 .isEqualTo(Role.CUSTOMER);
         assertThat(accounts.findByUsernameIgnoreCase(DemoDataSeeder.DEMO_LIBRARIAN).orElseThrow().getRole())
                 .isEqualTo(Role.LIBRARIAN);
+        // Sample books have valid ISBN-13s (so they get covers), stored the way the app stores them.
+        assertThat(books.findAll()).allSatisfy(b -> assertThat(com.helmifr.library.book.Isbn.toIsbn13(b.getIsbn()))
+                .contains(b.getIsbn()));
         // Every sample loan has a history, so its receipt shows a real timeline.
         assertThat(loans.findAll()).isNotEmpty().allSatisfy(loan ->
                 assertThat(loanEvents.findAllByLoanIdOrderByIdAsc(loan.getId())).isNotEmpty());

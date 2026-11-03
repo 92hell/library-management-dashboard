@@ -41,6 +41,7 @@ public class FineService {
     private final NotificationService notifications;
     private final Clock clock;
     private final LoanEvents history;
+    private final org.springframework.context.ApplicationEventPublisher events;
 
     /** Called when a loan is returned: charges the late fee, if any, and tells the member. */
     @Transactional
@@ -60,10 +61,11 @@ public class FineService {
                 loan.getId(), loan.getMember().getId(), amount, daysLate);
         history.record(loan, LoanEventType.FINE_CHARGED, "Late fee %s for %d day%s late".formatted(
                 policy.format(amount), daysLate, daysLate == 1 ? "" : "s"));
-        notifications.notifyMember(loan.getMember().getId(), NotificationType.FINE_ISSUED,
-                "\"%s\" came back %d day%s late: a late fee of %s. Please pay at the desk.".formatted(
-                        loan.getBook().getTitle(), daysLate, daysLate == 1 ? "" : "s", policy.format(amount)),
-                MY_LOANS_LINK);
+        notifications.notifyMember(loan.getMember().getId(), NotificationType.FINE_ISSUED, MY_LOANS_LINK,
+                daysLate == 1
+                        ? "\"{0}\" came back {1} day late: a late fee of {2}. Please pay at the desk."
+                        : "\"{0}\" came back {1} days late: a late fee of {2}. Please pay at the desk.",
+                loan.getBook().getTitle(), daysLate, policy.format(amount));
     }
 
     /**
@@ -85,8 +87,9 @@ public class FineService {
             return;
         }
         if (fine.getStatus() != FineStatus.UNPAID) {
-            throw new ConflictException("The late fee for this loan was already " + fine.getStatus().name().toLowerCase()
-                    + "; a correction cannot change it.");
+            throw fine.getStatus() == FineStatus.PAID
+                    ? new ConflictException("The late fee for this loan was already paid; a correction cannot change it.")
+                    : new ConflictException("The late fee for this loan was already waived; a correction cannot change it.");
         }
         String before = policy.format(fine.getAmount());
         if (amount == 0) {
@@ -121,16 +124,21 @@ public class FineService {
      *
      * @param byMember the member is asking themselves (otherwise a librarian at the desk)
      */
+    /** May the member borrow (unpaid fines below the limit)? */
+    public boolean canBorrow(Member member) {
+        return !policy.blocks(fines.sumUnpaidByMember(member.getId()));
+    }
+
     public void ensureCanBorrow(Member member, boolean byMember) {
         long unpaid = fines.sumUnpaidByMember(member.getId());
         if (!policy.blocks(unpaid)) {
             return;
         }
-        throw new ConflictException(byMember
-                ? "You have unpaid fines of %s. Please pay them at the desk before borrowing more books."
-                        .formatted(policy.format(unpaid))
-                : "%s has unpaid fines of %s; record the payment before lending more books."
-                        .formatted(member.getName(), policy.format(unpaid)));
+        throw byMember
+                ? new ConflictException("You have unpaid fines of {0}. Please pay them at the desk before borrowing more books.",
+                        policy.format(unpaid))
+                : new ConflictException("{0} has unpaid fines of {1}; record the payment before lending more books.",
+                        member.getName(), policy.format(unpaid));
     }
 
     public MyFines mine(Long memberId) {
@@ -169,16 +177,23 @@ public class FineService {
     }
 
     private void settle(Fine fine, FineStatus status, String note) {
+        boolean wasBlocked = policy.blocks(fines.sumUnpaidByMember(fine.getMember().getId()));
         fine.setStatus(status);
         fine.setSettledAt(clock.instant());
         fine.setSettledBy(CurrentUser.username());
         fine.setNote(note);
+        fines.flush();
+        if (wasBlocked && canBorrow(fine.getMember())) {
+            events.publishEvent(new FinesSettled(fine.getMember().getId()));
+        }
     }
 
     private Fine requireUnpaid(Long id) {
         Fine fine = fines.findForUpdate(id).orElseThrow(() -> new NotFoundException("Fine", id));
         if (fine.getStatus() != FineStatus.UNPAID) {
-            throw new ConflictException("This fine is already " + fine.getStatus().name().toLowerCase() + ".");
+            throw fine.getStatus() == FineStatus.PAID
+                    ? new ConflictException("This fine is already paid.")
+                    : new ConflictException("This fine is already waived.");
         }
         return fine;
     }
