@@ -7,7 +7,7 @@ import Field from '../components/Field';
 import FormActions from '../components/FormActions';
 import { emptyToNull, todayIso } from '../format';
 import { useAction, useApi, useFormFields } from '../hooks';
-import { useT } from '../i18n';
+import { msg, useT } from '../i18n';
 
 function toFormValues(loan) {
   return {
@@ -20,16 +20,17 @@ function toFormValues(loan) {
   };
 }
 
-function validate(values, t) {
+/** Client-side checks; the messages are translated where they are shown, so they follow a language switch. */
+function validate(values) {
   const errors = {};
-  if (!values.bookId && !values.copyBarcode.trim()) errors.bookId = t('Scan a barcode or select a book.');
-  if (!values.memberId) errors.memberId = t('Please select a member.');
-  if (!values.borrowDate) errors.borrowDate = t('Borrow date is required.');
+  if (!values.bookId && !values.copyBarcode.trim()) errors.bookId = msg('Scan a barcode or select a book.');
+  if (!values.memberId) errors.memberId = msg('Please select a member.');
+  if (!values.borrowDate) errors.borrowDate = msg('Borrow date is required.');
   if (values.returnDate && values.borrowDate && values.returnDate < values.borrowDate) {
-    errors.returnDate = t('Return date cannot be before the borrow date.');
+    errors.returnDate = msg('Return date cannot be before the borrow date.');
   }
   if (values.dueDate && values.borrowDate && values.dueDate < values.borrowDate) {
-    errors.dueDate = t('Due date cannot be before the borrow date.');
+    errors.dueDate = msg('Due date cannot be before the borrow date.');
   }
   return errors;
 }
@@ -81,7 +82,7 @@ function LoanForm({ loan, readOnly }) {
     };
     const saved = await save.run(
       () => (loan ? api.put(`/api/borrowed-books/${loan.id}`, body) : api.post('/api/borrowed-books', body)),
-      validate(values, t),
+      validate(values),
     );
     if (saved) navigate('/borrowed-books');
   }
@@ -100,7 +101,7 @@ function LoanForm({ loan, readOnly }) {
           placeholder={loan?.copy ? t('Currently {barcode}', { barcode: loan.copy.barcode }) : t('e.g. BC-7KQ2XM9P')}
           value={values.copyBarcode}
           onChange={handleChange}
-          error={fieldErrors.copyBarcode}
+          error={t(fieldErrors.copyBarcode)}
           autoComplete="off"
           hint={t('With a barcode, that exact copy is lent; with only a book, any copy on the shelf.')}
         />
@@ -110,7 +111,7 @@ function LoanForm({ loan, readOnly }) {
           type="select"
           value={values.bookId}
           onChange={handleChange}
-          error={fieldErrors.bookId}
+          error={t(fieldErrors.bookId)}
           disabled={books.loading}
         >
           <option value="">{books.loading ? t('Loading books…') : t('Select a book')}</option>
@@ -136,7 +137,7 @@ function LoanForm({ loan, readOnly }) {
           type="select"
           value={values.memberId}
           onChange={handleChange}
-          error={fieldErrors.memberId}
+          error={t(fieldErrors.memberId)}
           disabled={members.loading}
         >
           <option value="">{members.loading ? t('Loading members…') : t('Select a member')}</option>
@@ -152,7 +153,7 @@ function LoanForm({ loan, readOnly }) {
           type="date"
           value={values.borrowDate}
           onChange={handleChange}
-          error={fieldErrors.borrowDate}
+          error={t(fieldErrors.borrowDate)}
         />
         <Field
           label={t('Due date (optional, defaults to the loan period)')}
@@ -160,7 +161,7 @@ function LoanForm({ loan, readOnly }) {
           type="date"
           value={values.dueDate}
           onChange={handleChange}
-          error={fieldErrors.dueDate}
+          error={t(fieldErrors.dueDate)}
         />
         <Field
           label={t('Return date (optional)')}
@@ -168,7 +169,7 @@ function LoanForm({ loan, readOnly }) {
           type="date"
           value={values.returnDate}
           onChange={handleChange}
-          error={fieldErrors.returnDate}
+          error={t(fieldErrors.returnDate)}
         />
       </fieldset>
       <FormActions readOnly={readOnly} saving={save.pending} backTo="/borrowed-books" />

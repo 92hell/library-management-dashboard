@@ -26,6 +26,10 @@ public class ReportService {
     private final FinePolicy finePolicy;
     private final Clock clock;
 
+    /** Most rows one CSV download may have (library.reports.max-csv-rows). */
+    @org.springframework.beans.factory.annotation.Value("${library.reports.max-csv-rows:20000}")
+    private int maxCsvRows;
+
     public ReportRange range(LocalDate from, LocalDate to) {
         return ReportRange.of(from, to, today());
     }
@@ -47,7 +51,12 @@ public class ReportService {
         LocalDate today = today();
         Csv csv = new Csv().row("Loan ID", "Borrowed", "Due", "Returned", "Status", "Days late", "Title", "Author",
                 "Copy barcode", "Member", "Library card ID");
-        for (Loan l : queries.loansIn(r)) {
+        List<Loan> rows = queries.loansIn(r, maxCsvRows + 1);
+        if (rows.size() > maxCsvRows) {
+            throw new com.helmifr.library.common.FieldValidationException("from",
+                    "More than %,d loans in this range; please choose a shorter range".formatted(maxCsvRows));
+        }
+        for (Loan l : rows) {
             csv.row(l.getId(), l.getBorrowDate(), l.getDueDate(), l.getReturnDate(), l.getStatus(), daysLate(l, today),
                     l.getBook().getTitle(), l.getBook().getAuthor().getName(),
                     l.getCopy() == null ? null : l.getCopy().getBarcode(),

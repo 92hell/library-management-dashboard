@@ -34,6 +34,11 @@ spring:
     url: ${DB_URL:jdbc:mariadb://localhost:3306/library_sandbox}
     username: ${DB_USERNAME:library}
     password: ${DB_PASSWORD:}
+    hikari:
+      # MariaDB defaults to REPEATABLE READ, where a transaction keeps reading the snapshot taken at its
+      # first query even after it waits for a row lock. READ COMMITTED makes reads after a lock see what
+      # the transaction that held the lock committed (loans/copies/fines rely on that).
+      transaction-isolation: TRANSACTION_READ_COMMITTED
   jpa:
     open-in-view: false
     hibernate:

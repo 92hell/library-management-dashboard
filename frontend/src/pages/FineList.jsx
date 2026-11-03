@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Button, ButtonGroup, Col, Input, Label, Row } from 'reactstrap';
+import { focusPageHeading } from '../a11y';
 import { api } from '../api';
 import { ErrorAlert } from '../components/Feedback';
 import PagedTable from '../components/PagedTable';
@@ -23,13 +24,17 @@ export default function FineList() {
   const q = useDebouncedValue(search.trim());
   const fines = usePagedList('/api/fines', { q, status });
   const action = useAction();
+  // Shown when a waive is confirmed without a reason (an Error so ErrorAlert translates it).
+  const [missingReason, setMissingReason] = useState(null);
   const t = useT();
 
-  /** Settling a fine removes it from the Unpaid view, like a deletion. */
+  /** Settling a fine removes it from the Unpaid view, like a deletion, and its buttons with it. */
   async function perform(call) {
+    setMissingReason(null);
     if (await action.run(call)) {
       if (status === 'UNPAID') fines.refreshAfterRemoval();
       else fines.reload();
+      focusPageHeading();
     }
   }
 
@@ -43,7 +48,12 @@ export default function FineList() {
 
   function waive(fine) {
     const reason = window.prompt(t('Why waive the late fee for "{title}" ({name})?', { title: fine.book.title, name: fine.member.name }), '');
-    if (!reason || !reason.trim()) return;
+    if (reason === null) return;
+    if (!reason.trim()) {
+      action.clearError();
+      setMissingReason(new Error(msg('A reason is required to waive a fine.')));
+      return;
+    }
     perform(() => api.post(`/api/fines/${fine.id}/waive`, { reason: reason.trim() }));
   }
 
@@ -73,6 +83,7 @@ export default function FineList() {
           </Input>
         </Col>
       </Row>
+      <ErrorAlert error={missingReason} onDismiss={() => setMissingReason(null)} />
       <ErrorAlert error={action.error} onDismiss={action.clearError} />
       <PagedTable
         list={fines}

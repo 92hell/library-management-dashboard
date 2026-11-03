@@ -35,12 +35,25 @@ public class IsbnLookup {
     public record Result(String isbn, String title, String authorName, Long authorId, String publisherName,
                          LocalDate publishedDate, List<String> categories, String coverUrl) {}
 
+    /** Books found are remembered (up to this many), so repeated lookups do not call Open Library. */
+    private static final int CACHE_SIZE = 500;
+    /** At most this many calls to Open Library at once; more wait briefly, then get "busy". */
+    private static final int MAX_CONCURRENT = 2;
+
     private static final Pattern YEAR = Pattern.compile("\\b(1[5-9]\\d\\d|20\\d\\d)\\b");
 
     private final RestClient client;
     private final boolean enabled;
     private final AuthorRepository authors;
     private final CatalogueProperties catalogue;
+    private final java.util.Map<String, Result> cache = java.util.Collections.synchronizedMap(
+            new java.util.LinkedHashMap<>(64, 0.75f, true) {
+                @Override
+                protected boolean removeEldestEntry(java.util.Map.Entry<String, Result> eldest) {
+                    return size() > CACHE_SIZE;
+                }
+            });
+    private final java.util.concurrent.Semaphore permits = new java.util.concurrent.Semaphore(MAX_CONCURRENT);
 
     public IsbnLookup(CatalogueProperties catalogue, AuthorRepository authors, RestClient.Builder builder) {
         this.catalogue = catalogue;
@@ -60,16 +73,53 @@ public class IsbnLookup {
         if (!enabled) {
             throw new ServiceUnavailableException("ISBN lookup is turned off. Please fill in the details by hand.", null);
         }
-        JsonNode book = fetch(isbn).path("ISBN:" + isbn);
+        Result cached = cache.get(isbn);
+        if (cached != null) {
+            return withCurrentAuthor(cached);
+        }
+        JsonNode book = fetchLimited(isbn).path("ISBN:" + isbn);
         if (book.isMissingNode() || !book.hasNonNull("title")) {
             throw new NotFoundException("Open Library has no book with ISBN " + isbn + ".");
         }
         String authorName = text(book.path("authors").path(0).path("name"));
         Long authorId = authorName == null ? null
                 : authors.findFirstByNameIgnoreCaseAndDeletedFalse(authorName.trim()).map(Author::getId).orElse(null);
-        return new Result(isbn, book.path("title").asText().trim(), authorName, authorId,
+        Result result = new Result(isbn, book.path("title").asText().trim(), authorName, authorId,
                 text(book.path("publishers").path(0).path("name")), year(text(book.path("publish_date"))),
                 categories(book.path("subjects")), catalogue.coverUrl(isbn));
+        cache.put(isbn, result);
+        return result;
+    }
+
+    /** For tests: forget remembered lookups. */
+    void clearCache() {
+        cache.clear();
+    }
+
+    /** A cached result with the author matched again (the author may have been added since). */
+    private Result withCurrentAuthor(Result r) {
+        Long authorId = r.authorName() == null ? null
+                : authors.findFirstByNameIgnoreCaseAndDeletedFalse(r.authorName().trim()).map(Author::getId).orElse(null);
+        return new Result(r.isbn(), r.title(), r.authorName(), authorId, r.publisherName(), r.publishedDate(),
+                r.categories(), r.coverUrl());
+    }
+
+    private JsonNode fetchLimited(String isbn) {
+        boolean acquired = false;
+        try {
+            acquired = permits.tryAcquire(catalogue.lookupTimeout().toMillis(), java.util.concurrent.TimeUnit.MILLISECONDS);
+            if (!acquired) {
+                throw new ServiceUnavailableException("The ISBN lookup is busy. Please try again in a moment.", null);
+            }
+            return fetch(isbn);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new ServiceUnavailableException("The ISBN lookup was interrupted.", e);
+        } finally {
+            if (acquired) {
+                permits.release();
+            }
+        }
     }
 
     private JsonNode fetch(String isbn) {

@@ -15,7 +15,7 @@ test('a customer requests a book, the librarian approves and hands it over, the 
   await customerPage.getByRole('link', { name: title }).click();
   await expect(customerPage.getByText('2 of 2 on shelf')).toBeVisible();
   await customerPage.getByRole('button', { name: 'Request this book' }).click();
-  await expect(customerPage.getByRole('status')).toContainText('Request sent');
+  await expect(customerPage.getByRole('status').filter({ hasText: 'Request sent' })).toBeVisible();
 
   // Librarian: approve (a copy is set aside), then hand it over at the desk.
   const desk = await (await browser.newContext()).newPage();

@@ -6,7 +6,7 @@ import { ErrorAlert, Loading } from '../components/Feedback';
 import Field from '../components/Field';
 import { formatDate } from '../format';
 import { useAction, useApi, useFormFields } from '../hooks';
-import { useT } from '../i18n';
+import { msg, useT } from '../i18n';
 
 export default function Profile() {
   const profile = useApi('/api/profile');
@@ -98,9 +98,9 @@ function DetailsForm({ profile, showPhone, onSaved }) {
       </p>
       {saved && <Alert color="success">{t('Your details were saved.')}</Alert>}
       <ErrorAlert error={Object.keys(save.fieldErrors).length ? null : save.error} onDismiss={save.clearError} />
-      <Field label={t('Name')} name="displayName" value={values.displayName} onChange={handleChange} error={save.fieldErrors.displayName} />
-      <Field label={t('Email')} name="email" type="email" value={values.email} onChange={handleChange} error={save.fieldErrors.email} />
-      {showPhone && <Field label={t('Phone')} name="phone" type="tel" value={values.phone} onChange={handleChange} error={save.fieldErrors.phone} />}
+      <Field label={t('Name')} name="displayName" value={values.displayName} onChange={handleChange} error={t(save.fieldErrors.displayName)} />
+      <Field label={t('Email')} name="email" type="email" value={values.email} onChange={handleChange} error={t(save.fieldErrors.email)} />
+      {showPhone && <Field label={t('Phone')} name="phone" type="tel" value={values.phone} onChange={handleChange} error={t(save.fieldErrors.phone)} />}
       <Button color="primary" type="submit" disabled={save.pending}>
         {t('Save details')}
       </Button>
@@ -117,7 +117,8 @@ function PasswordForm() {
   async function handleSubmit(event) {
     event.preventDefault();
     setChanged(false);
-    const clientErrors = values.newPassword.length < 10 ? { newPassword: t('Use at least 10 characters.') } : {};
+    // Stored untranslated and translated where shown, so the message follows a language switch.
+    const clientErrors = values.newPassword.length < 10 ? { newPassword: msg('Use at least 10 characters.') } : {};
     if (await change.run(() => api.put('/api/profile/password', values), clientErrors)) {
       setChanged(true);
       setValues({ currentPassword: '', newPassword: '' });
@@ -134,7 +135,7 @@ function PasswordForm() {
         type="password"
         value={values.currentPassword}
         onChange={handleChange}
-        error={change.fieldErrors.currentPassword}
+        error={t(change.fieldErrors.currentPassword)}
         autoComplete="current-password"
       />
       <Field
@@ -143,7 +144,7 @@ function PasswordForm() {
         type="password"
         value={values.newPassword}
         onChange={handleChange}
-        error={change.fieldErrors.newPassword}
+        error={t(change.fieldErrors.newPassword)}
         autoComplete="new-password"
       />
       <Button color="primary" type="submit" disabled={change.pending}>

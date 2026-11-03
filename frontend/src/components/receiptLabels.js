@@ -19,6 +19,9 @@ export const EVENT_LABELS = {
   FINE_CHARGED: msg('Late fee charged'),
   FINE_PAID: msg('Late fee paid'),
   FINE_WAIVED: msg('Late fee waived'),
+  FINE_ADJUSTED: msg('Late fee corrected'),
+  // First line of a receipt whose older history was summarised (the detail says how much was left out).
+  OMITTED: msg('Earlier entries'),
 };
 
 export const STATUS_LABELS = {

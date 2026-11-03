@@ -32,16 +32,18 @@ class Ed25519ReceiptSigner implements ReceiptSigner {
     private final ReceiptKeyRepository keys;
     private final TransactionTemplate transactions;
     private final Clock clock;
+    private final com.helmifr.library.demo.DemoProperties demo;
     private volatile Loaded current;
 
     private record Loaded(String keyId, PrivateKey privateKey, PublicKey publicKey) {}
 
     Ed25519ReceiptSigner(ReceiptProperties properties, ReceiptKeyRepository keys, TransactionTemplate transactions,
-                         Clock clock) {
+                         Clock clock, com.helmifr.library.demo.DemoProperties demo) {
         this.properties = properties;
         this.keys = keys;
         this.transactions = transactions;
         this.clock = clock;
+        this.demo = demo;
     }
 
     @Override
@@ -88,12 +90,23 @@ class Ed25519ReceiptSigner implements ReceiptSigner {
         return "-----BEGIN PUBLIC KEY-----\n" + b64 + "\n-----END PUBLIC KEY-----\n";
     }
 
+    /**
+     * The key a signature claims. With a configured key only that key is trusted, so a key row
+     * written into the database cannot make forged receipts verify.
+     */
     private PublicKey publicKeyFor(String keyId) {
         Loaded k = key();
         if (k.keyId().equals(keyId)) {
             return k.publicKey();
         }
+        if (configured()) {
+            return null;
+        }
         return keys.findByKeyId(keyId).map(stored -> decodePublic(stored.getPublicKey())).orElse(null);
+    }
+
+    private boolean configured() {
+        return hasText(properties.privateKey()) && hasText(properties.publicKey());
     }
 
     private Loaded key() {
@@ -110,7 +123,7 @@ class Ed25519ReceiptSigner implements ReceiptSigner {
     }
 
     private Loaded load() {
-        if (hasText(properties.privateKey()) && hasText(properties.publicKey())) {
+        if (configured()) {
             PublicKey publicKey = decodePublic(properties.publicKey());
             return new Loaded(idOf(publicKey), decodePrivate(properties.privateKey()), publicKey);
         }
@@ -126,8 +139,13 @@ class Ed25519ReceiptSigner implements ReceiptSigner {
             k.setPublicKey(Base64.getEncoder().encodeToString(pair.getPublic().getEncoded()));
             k.setPrivateKey(Base64.getEncoder().encodeToString(pair.getPrivate().getEncoded()));
             k.setCreatedAt(clock.instant());
-            log.warn("No receipt signing key configured; generated key {} and stored it in the database. "
-                    + "Set RECEIPT_PRIVATE_KEY / RECEIPT_PUBLIC_KEY to keep the key outside the database.", k.getKeyId());
+            String message = "No receipt signing key configured; generated key {} and stored it in the database, where "
+                    + "anyone who can read a backup could forge receipts. Set RECEIPT_PRIVATE_KEY / RECEIPT_PUBLIC_KEY.";
+            if (demo.enabled()) {
+                log.warn(message, k.getKeyId());
+            } else {
+                log.error(message, k.getKeyId());
+            }
             return keys.save(k);
         } catch (GeneralSecurityException e) {
             throw new IllegalStateException("Could not generate a receipt signing key", e);

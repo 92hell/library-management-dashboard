@@ -1,7 +1,7 @@
-import { screen, within } from '@testing-library/react';
+import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
-import { customer, jsonResponse, librarian, loan, page, renderApp, sentBody, signedInAs } from '../test/utils';
+import { customer, jsonResponse, librarian, loan, page, problem, renderApp, sentBody, signedInAs } from '../test/utils';
 
 const fine = {
   id: 5,
@@ -54,6 +54,15 @@ describe('Late fees (customer)', () => {
     expect(await screen.findByText(/You owe IDR 3,000 in late fees/)).toBeInTheDocument();
   });
 
+  it('says so when the fees cannot be loaded', async () => {
+    signedInAs(customer, { 'GET /api/my/loans': [loan()], 'GET /api/my/fines': () => problem(500, 'Fines are unavailable.') });
+
+    renderApp('/my/loans');
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('Fines are unavailable.');
+    expect(screen.getByText('Bumi Manusia')).toBeInTheDocument();
+  });
+
   it('says nothing about fees when nothing is owed', async () => {
     signedInAs(customer, { 'GET /api/my/loans': [loan()] });
 
@@ -81,6 +90,7 @@ describe('Fines desk (librarian)', () => {
     await userEvent.click(within(row).getByRole('button', { name: 'Record payment' }));
     expect(window.confirm).toHaveBeenCalledWith('Record that Siti paid IDR 3,000 for "Anak Semua Bangsa"?');
     expect(sentBody(fetchMock, 'POST', '/api/fines/5/pay')).toBeNull();
+    await waitFor(() => expect(document.activeElement).toBe(screen.getByRole('heading', { level: 1, name: 'Fines' })));
   });
 
   it('waives a fine only with a reason', async () => {
@@ -95,9 +105,22 @@ describe('Fines desk (librarian)', () => {
 
     await userEvent.click(waive);
     expect(sentBody(fetchMock, 'POST', '/api/fines/5/waive')).toBeUndefined();
+    expect(screen.getByRole('alert')).toHaveTextContent('A reason is required to waive a fine.');
     await userEvent.click(waive);
     expect(prompt).toHaveBeenCalledTimes(2);
     expect(sentBody(fetchMock, 'POST', '/api/fines/5/waive')).toEqual({ reason: 'Closed for Lebaran' });
+    await waitFor(() => expect(screen.queryByRole('alert')).not.toBeInTheDocument());
+  });
+
+  it('says nothing when the librarian cancels the waive prompt', async () => {
+    vi.spyOn(window, 'prompt').mockReturnValue(null);
+    const fetchMock = signedInAs(librarian, { 'GET /api/fines': page([fine]) });
+
+    renderApp('/fines');
+    await userEvent.click(within((await screen.findByText('Anak Semua Bangsa')).closest('tr')).getByRole('button', { name: 'Waive' }));
+
+    expect(sentBody(fetchMock, 'POST', '/api/fines/5/waive')).toBeUndefined();
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
   });
 
   it('shows who settled a fine and why it was waived', async () => {

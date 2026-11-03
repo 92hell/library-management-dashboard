@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Badge, Button, Col, Collapse, Form, Input, Label, Row } from 'reactstrap';
+import { focusPageHeading } from '../a11y';
 import { api } from '../api';
 import { useAuth } from '../auth';
 import { ErrorAlert } from '../components/Feedback';
@@ -38,7 +39,14 @@ export default function Users() {
         </Button>
       </div>
       <Collapse isOpen={adding}>
-        <NewLibrarianForm onCreated={() => { setAdding(false); users.reload(); }} />
+        <NewLibrarianForm
+          onCreated={() => {
+            setAdding(false);
+            users.reload();
+            // The form (and the focused button) closes; continue from the page heading.
+            focusPageHeading();
+          }}
+        />
       </Collapse>
       <Row className="g-2 mb-3">
         <Col md={8}>
@@ -62,7 +70,7 @@ export default function Users() {
       <ErrorAlert error={toggle.error} onDismiss={toggle.clearError} />
       <PagedTable
         list={users}
-        headers={[t('Username'), t('Name'), t('Email'), t('Role'), t('Status'), '']}
+        headers={[t('Username'), t('Name'), t('Email'), t('Role'), t('Status'), <span className="visually-hidden">{t('Actions')}</span>]}
         emptyMessage={t('No accounts found.')}
         renderRow={(account) => (
           <tr key={account.id}>

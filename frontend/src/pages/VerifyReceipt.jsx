@@ -6,14 +6,14 @@ import { EVENT_LABELS, FINE_LABELS, STATUS_LABELS } from '../components/receiptL
 import { formatDate, formatMoney } from '../format';
 import { useT } from '../i18n';
 import { useApi } from '../hooks';
-import { formatInstant } from './ReceiptPage';
+import { DemoWarning, formatInstant } from './ReceiptPage';
 
 /** Public page behind a receipt's QR code: is it genuine, and what does the library's record say? */
 export default function VerifyReceipt() {
   const { number } = useParams();
   const [params] = useSearchParams();
   const t = useT();
-  const result = useApi(`/api/receipts/verify/${number}`, { code: params.get('code') ?? '' });
+  const result = useApi(`/api/receipts/verify/${encodeURIComponent(number)}`, { code: params.get('code') ?? '' });
   const v = result.data;
 
   return (
@@ -34,6 +34,10 @@ export default function VerifyReceipt() {
             <Alert color="danger" role="alert">
               <strong>{t('Warning')}</strong> — {t('This receipt does not match its signature. Do not accept it as evidence; ask the library.')}
             </Alert>
+          )}
+          {v.demo && <DemoWarning />}
+          {v.supersededBy && (
+            <div className="alert alert-info">{t('A newer receipt exists for this loan: {number}.', { number: v.supersededBy })}</div>
           )}
           <dl className="receipt-details">
             {[
@@ -65,6 +69,12 @@ export default function VerifyReceipt() {
             {t('History')}
           </h2>
           <Table size="sm" aria-labelledby="verify-history">
+            <thead>
+              <tr>
+                <th scope="col">{t('When')}</th>
+                <th scope="col">{t('What happened')}</th>
+              </tr>
+            </thead>
             <tbody>
               {v.events.map((e, i) => (
                 <tr key={i}>

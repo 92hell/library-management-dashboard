@@ -5,7 +5,7 @@ import { useAuth } from '../auth';
 import Bookshelf from '../components/Bookshelf';
 import BrandMark from '../components/BrandMark';
 import Field from '../components/Field';
-import { Loading } from '../components/Feedback';
+import { errorText, Loading } from '../components/Feedback';
 import LanguageSwitch from '../components/LanguageSwitch';
 import { useApi, useFormFields } from '../hooks';
 import { msg, useT } from '../i18n';
@@ -23,7 +23,9 @@ export default function Login() {
   const t = useT();
 
   if (loading) return <Loading label={t('Checking your session…')} />;
-  if (user) return <Navigate to={location.state?.from?.pathname ?? '/'} replace />;
+  // Back to the page that needed a sign-in, with its query string (e.g. the catalogue's filters).
+  const from = location.state?.from;
+  if (user) return <Navigate to={from ? `${from.pathname}${from.search ?? ''}` : '/'} replace />;
 
   async function signIn(username, password) {
     setSubmitting(true);
@@ -32,7 +34,7 @@ export default function Login() {
       await login(username, password);
     } catch (err) {
       // Our own messages are stored untranslated (msg) so they follow a language switch; server messages stay as they are.
-      setError(err.status === 401 ? msg('Invalid username or password.') : err.message);
+      setError(err.status === 401 ? { message: msg('Invalid username or password.') } : err);
     } finally {
       setSubmitting(false);
     }
@@ -41,7 +43,7 @@ export default function Login() {
   function handleSubmit(event) {
     event.preventDefault();
     if (!credentials.username.trim() || !credentials.password) {
-      setError(msg('Please enter your username and password.'));
+      setError({ message: msg('Please enter your username and password.') });
       return;
     }
     signIn(credentials.username.trim(), credentials.password);
@@ -66,7 +68,7 @@ export default function Login() {
               <h2 className="h5 mb-0">{t('Sign in')}</h2>
               <LanguageSwitch />
             </div>
-            {error && <Alert color="danger">{t(error)}</Alert>}
+            {error && <Alert color="danger">{errorText(error, t)}</Alert>}
             <Form onSubmit={handleSubmit} noValidate>
               <Field
                 label={t('Username')}

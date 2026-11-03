@@ -51,7 +51,9 @@ final class ReceiptPdf {
             Map.entry("EDITED", "Corrected / Dikoreksi"), Map.entry("DELETED", "Deleted / Dihapus"),
             Map.entry("FINE_CHARGED", "Late fee charged / Denda dikenakan"),
             Map.entry("FINE_PAID", "Late fee paid / Denda dibayar"),
-            Map.entry("FINE_WAIVED", "Late fee waived / Denda dihapuskan"));
+            Map.entry("FINE_WAIVED", "Late fee waived / Denda dihapuskan"),
+            Map.entry("FINE_ADJUSTED", "Late fee corrected / Denda dikoreksi"),
+            Map.entry("OMITTED", "Earlier entries / Riwayat sebelumnya"));
 
     private ReceiptPdf() {}
 
@@ -135,6 +137,9 @@ final class ReceiptPdf {
         drawQr(canvas, view.qr(), PageSize.A4.getWidth() - 48 - 110, PageSize.A4.getHeight() - 48 - 110, 110);
         // Beside the details table (which is 72% wide), below the QR code: never over the text.
         drawStamp(canvas, c.library(), c.issuedAt().substring(0, 10), PageSize.A4.getWidth() - 48 - 62, 600);
+        if (c.demo()) {
+            drawDemoWatermark(writer.getDirectContentUnder());
+        }
         doc.close();
         return out.toByteArray();
     }
@@ -175,6 +180,24 @@ final class ReceiptPdf {
         }
         canvas.fill();
         canvas.restoreState();
+    }
+
+    /** Across the page: this came from the public demo and is not a real loan record. */
+    private static void drawDemoWatermark(PdfContentByte canvas) {
+        try {
+            BaseFont bold = BaseFont.createFont(BaseFont.HELVETICA_BOLD, BaseFont.WINANSI, false);
+            canvas.saveState();
+            canvas.setGState(opacity(0.12f));
+            canvas.setColorFill(STAMP);
+            canvas.beginText();
+            canvas.setFontAndSize(bold, 46);
+            canvas.showTextAligned(Element.ALIGN_CENTER, "DEMO - NOT A REAL RECEIPT", PageSize.A4.getWidth() / 2,
+                    PageSize.A4.getHeight() / 2, 50);
+            canvas.endText();
+            canvas.restoreState();
+        } catch (Exception e) {
+            throw new IllegalStateException("Could not draw the demo watermark", e);
+        }
     }
 
     /** A round rubber stamp, slightly rotated: library name, "receipt / bukti", the issue date. */

@@ -1,4 +1,4 @@
-import { screen, waitFor, within } from '@testing-library/react';
+import { fireEvent, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it } from 'vitest';
 import { customer, jsonResponse, librarian, page, problem, renderApp, sentBody, signedInAs } from '../test/utils';
@@ -46,7 +46,42 @@ describe('Book page', () => {
     await userEvent.click(await screen.findByRole('button', { name: 'Request this book' }));
 
     expect(sentBody(fetchMock, 'POST', '/api/my/loans')).toEqual({ bookId: 3 });
-    expect(await screen.findByRole('status')).toHaveTextContent('Request sent');
+    await waitFor(() => expect(screen.getByRole('status')).toHaveTextContent('Request sent'));
+  });
+
+  it('announces the request in a live region that is there from the start, and moves focus to it', async () => {
+    signedInAs(customer, {
+      'GET /api/books/3': book,
+      'POST /api/my/loans': () => jsonResponse({ id: 90, status: 'PENDING' }, 201),
+    });
+
+    renderApp('/catalogue/3');
+    const button = await screen.findByRole('button', { name: 'Request this book' });
+    const live = screen.getByRole('status');
+    expect(live).toBeEmptyDOMElement();
+    await userEvent.click(button);
+
+    await waitFor(() => expect(live).toHaveTextContent('Request sent'));
+    expect(screen.queryByRole('button', { name: 'Request this book' })).not.toBeInTheDocument();
+    expect(live).toContainElement(document.activeElement);
+    expect(document.activeElement).toHaveTextContent('Request sent');
+  });
+
+  it('takes a librarian back to the book list they came from', async () => {
+    signedInAs(librarian, { 'GET /api/books': page([book]), 'GET /api/books/3': book });
+
+    renderApp('/books');
+    await userEvent.click(await screen.findByRole('link', { name: 'Laskar Pelangi' }));
+
+    expect(await screen.findByRole('link', { name: '← Books' })).toHaveAttribute('href', '/books');
+  });
+
+  it('falls back to the catalogue when the page was opened directly', async () => {
+    signedInAs(customer, { 'GET /api/books/3': book });
+
+    renderApp('/catalogue/3');
+
+    expect(await screen.findByRole('link', { name: /Back to the catalogue/ })).toHaveAttribute('href', '/catalogue');
   });
 
   it('gives librarians an edit link instead of a request button', async () => {
@@ -112,6 +147,54 @@ describe('Book form: ISBN lookup', () => {
     expect(hint).toHaveTextContent('Open Library lists the author as “Someone New”, who is not in the catalogue yet.');
     expect(within(hint).getByRole('link', { name: 'Add the author' })).toHaveAttribute('href', '/authors/new');
     expect(screen.getByLabelText('Title')).toHaveValue('Laskar Pelangi');
+  });
+
+  it('adds the missing author in a new tab and picks up the new author on return, keeping the form', async () => {
+    let authors = formStubs['GET /api/authors/options'];
+    signedInAs(librarian, {
+      ...formStubs,
+      'GET /api/authors/options': () => jsonResponse(authors),
+      'GET /api/books/lookup': { isbn: '9789793062792', title: 'Laskar Pelangi', authorName: 'Someone New', authorId: null,
+        publisherName: null, publishedDate: null, categories: [], coverUrl: null },
+    });
+
+    renderApp('/books/new');
+    await userEvent.type(await screen.findByLabelText('ISBN'), '9789793062792');
+    await userEvent.click(screen.getByRole('button', { name: 'Look up' }));
+
+    const link = await screen.findByRole('link', { name: 'Add the author' });
+    expect(link).toHaveAttribute('target', '_blank');
+    expect(link).toHaveAttribute('rel', expect.stringContaining('noopener'));
+
+    authors = [...authors, { id: 10, name: 'Someone New' }];
+    fireEvent.focus(window);
+
+    expect(await screen.findByRole('option', { name: 'Someone New' })).toBeInTheDocument();
+    expect(screen.getByLabelText('Title')).toHaveValue('Laskar Pelangi');
+  });
+
+  it('links the ISBN field to its hint and error, and the categories to their error', async () => {
+    signedInAs(librarian, {
+      ...formStubs,
+      'POST /api/books': () => problem(400, 'Validation failed', { isbn: 'Not a valid ISBN.' }),
+    });
+
+    renderApp('/books/new');
+    const isbn = await screen.findByLabelText('ISBN');
+    expect(isbn).toHaveAccessibleDescription('Optional. Look it up to fill in the details and show the cover from Open Library.');
+
+    fireEvent.submit(isbn.closest('form'));
+    const fiction = await screen.findByLabelText('Fiction');
+    await waitFor(() => expect(fiction).toHaveAccessibleDescription('Please select at least one category.'));
+
+    await userEvent.type(isbn, '123');
+    await userEvent.type(screen.getByLabelText('Title'), 'Laskar Pelangi');
+    await userEvent.type(screen.getByLabelText('Published date'), '2005-01-01');
+    await userEvent.selectOptions(screen.getByLabelText('Author'), 'Andrea Hirata');
+    await userEvent.click(fiction);
+    fireEvent.submit(isbn.closest('form'));
+
+    await waitFor(() => expect(isbn).toHaveAccessibleDescription('Not a valid ISBN.'));
   });
 
   it('shows why a lookup failed', async () => {

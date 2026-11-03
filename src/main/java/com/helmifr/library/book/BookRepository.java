@@ -21,6 +21,11 @@ public interface BookRepository extends JpaRepository<Book, Long> {
     @Query("SELECT b FROM Book b WHERE b.id = :id AND b.deleted = false")
     Optional<Book> findActiveForUpdate(@Param("id") Long id);
 
+    /** Locks the book row even if the book was deleted (to close its remaining requests). */
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("SELECT b FROM Book b WHERE b.id = :id")
+    Optional<Book> findForUpdate(@Param("id") Long id);
+
     @EntityGraph(attributePaths = "author")
     List<Book> findAllByAuthorIdAndDeletedFalseOrderByTitleAsc(Long authorId);
 

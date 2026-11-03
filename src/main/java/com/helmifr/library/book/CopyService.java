@@ -85,7 +85,7 @@ public class CopyService {
 
     @Transactional
     public CopyResponse add(Long bookId, CopyRequest request) {
-        Book book = requireBook(bookId);
+        Book book = lockBook(bookId);
         Copy copy = new Copy();
         copy.setBook(book);
         copy.setBarcode(request.barcode() == null || request.barcode().isBlank()
@@ -122,6 +122,7 @@ public class CopyService {
     @Transactional
     public void withdraw(Long copyId) {
         Copy copy = require(copyId);
+        lockBook(copy.getBook().getId());
         if (loans.isCopyOnLoan(copyId, null)) {
             throw new ConflictException("Copy " + copy.getBarcode() + " is on loan. Record its return first.");
         }
@@ -156,6 +157,11 @@ public class CopyService {
                     throw new FieldValidationException("barcode", "is already used by another copy");
                 });
         return normalized;
+    }
+
+    /** Copies are added and withdrawn under the book's row lock, like loans (see LoanService.lockBook). */
+    private Book lockBook(Long bookId) {
+        return books.findActiveForUpdate(bookId).orElseThrow(() -> new NotFoundException("Book", bookId));
     }
 
     private Book requireBook(Long bookId) {

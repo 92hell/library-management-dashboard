@@ -27,10 +27,10 @@ public class Fine {
     private Member member;
 
     /** In whole units of the configured currency. */
-    @Column(name = "amount", nullable = false, updatable = false)
+    @Column(name = "amount", nullable = false)
     private long amount;
 
-    @Column(name = "days_late", nullable = false, updatable = false)
+    @Column(name = "days_late", nullable = false)
     private int daysLate;
 
     @Enumerated(EnumType.STRING)

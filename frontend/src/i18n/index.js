@@ -75,7 +75,10 @@ export function useT() {
   return useCallback((text, vars) => translate(text, vars, lang), [lang]);
 }
 
-/** Locale for Intl formatting: Indonesian dates/numbers in Indonesian; the browser default in English. */
+/**
+ * Locale for Intl formatting: Indonesian dates and numbers in Indonesian, US English in English
+ * ("Nov 6, 2026", "1,234") - not the browser's or operating system's own locale.
+ */
 export function locale(lang = current) {
-  return lang === 'id' ? 'id-ID' : undefined;
+  return lang === 'id' ? 'id-ID' : 'en-US';
 }

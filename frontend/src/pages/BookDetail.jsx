@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { useEffect, useRef, useState } from 'react';
+import { Link, useLocation, useParams } from 'react-router-dom';
 import { Button, Col, Row } from 'reactstrap';
 import { api } from '../api';
 import { useAuth } from '../auth';
@@ -37,10 +37,20 @@ function withElement(text, name, element) {
 export default function BookDetail() {
   const { id } = useParams();
   const { isLibrarian } = useAuth();
+  const location = useLocation();
   const book = useApi(`/api/books/${id}`);
   const request = useAction();
   const [sent, setSent] = useState(false);
+  const sentRef = useRef(null);
   const t = useT();
+  // Back to the list this page was opened from, with its search and filters (see Catalogue and BookList).
+  const from = location.state?.from;
+  const backTo = typeof from === 'string' && from.startsWith('/') ? from : isLibrarian ? '/books' : '/catalogue';
+
+  // The request button disappears once the request is sent, so keyboard focus moves to the confirmation.
+  useEffect(() => {
+    if (sent) sentRef.current?.focus();
+  }, [sent]);
 
   async function requestBook() {
     setSent(false);
@@ -54,7 +64,7 @@ export default function BookDetail() {
 
   return (
     <>
-      <Link to={isLibrarian ? '/books' : '/catalogue'} className="small d-inline-block mb-3">
+      <Link to={backTo} className="small d-inline-block mb-3">
         ← {isLibrarian ? t('Books') : t('Back to the catalogue')}
       </Link>
       <Row className="g-4">
@@ -109,11 +119,13 @@ export default function BookDetail() {
               </>
             )}
           </dl>
-          {sent && (
-            <div className="alert alert-success" role="status">
-              {t('Request sent. A librarian will review it; you will get a notification.')}
-            </div>
-          )}
+          <div role="status">
+            {sent && (
+              <div className="alert alert-success" tabIndex={-1} ref={sentRef}>
+                {t('Request sent. A librarian will review it; you will get a notification.')}
+              </div>
+            )}
+          </div>
           <ErrorAlert error={request.error} onDismiss={request.clearError} />
           {isLibrarian ? (
             <Link className="btn btn-primary" to={`/books/${b.id}`}>

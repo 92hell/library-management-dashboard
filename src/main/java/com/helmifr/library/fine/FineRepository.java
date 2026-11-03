@@ -15,19 +15,26 @@ public interface FineRepository extends JpaRepository<Fine, Long> {
 
     Optional<Fine> findByLoanId(Long loanId);
 
+    /** A member's fines; fines of deleted loans no longer count anywhere. */
     @EntityGraph(attributePaths = {"loan", "loan.book", "member"})
-    List<Fine> findAllByMemberIdOrderByIdDesc(Long memberId);
+    List<Fine> findAllByMemberIdAndLoanDeletedFalseOrderByIdDesc(Long memberId);
 
-    @Query("SELECT COALESCE(SUM(f.amount), 0) FROM Fine f WHERE f.member.id = :memberId AND f.status = " + UNPAID)
+    @Query("SELECT COALESCE(SUM(f.amount), 0) FROM Fine f WHERE f.member.id = :memberId AND f.loan.deleted = false"
+            + " AND f.status = " + UNPAID)
     long sumUnpaidByMember(@Param("memberId") Long memberId);
 
-    @Query("SELECT COALESCE(SUM(f.amount), 0) FROM Fine f WHERE f.status = " + UNPAID)
+    @Query("SELECT COALESCE(SUM(f.amount), 0) FROM Fine f WHERE f.loan.deleted = false AND f.status = " + UNPAID)
     long sumUnpaid();
+
+    /** Locks the fine row, so paying and waiving the same fine cannot both succeed. */
+    @org.springframework.data.jpa.repository.Lock(jakarta.persistence.LockModeType.PESSIMISTIC_WRITE)
+    @Query("SELECT f FROM Fine f WHERE f.id = :id")
+    Optional<Fine> findForUpdate(@Param("id") Long id);
 
     @EntityGraph(attributePaths = {"loan", "loan.book", "member"})
     @Query(value = """
             SELECT f FROM Fine f JOIN f.member m JOIN f.loan l JOIN l.book b
-            WHERE (:status IS NULL OR f.status = :status)
+            WHERE l.deleted = false AND (:status IS NULL OR f.status = :status)
               AND (:pattern IS NULL
                    OR LOWER(m.name) LIKE :pattern ESCAPE '!'
                    OR LOWER(m.libraryCardId) LIKE :pattern ESCAPE '!'
@@ -35,7 +42,7 @@ public interface FineRepository extends JpaRepository<Fine, Long> {
             ORDER BY f.id DESC""",
             countQuery = """
             SELECT COUNT(f) FROM Fine f JOIN f.member m JOIN f.loan l JOIN l.book b
-            WHERE (:status IS NULL OR f.status = :status)
+            WHERE l.deleted = false AND (:status IS NULL OR f.status = :status)
               AND (:pattern IS NULL
                    OR LOWER(m.name) LIKE :pattern ESCAPE '!'
                    OR LOWER(m.libraryCardId) LIKE :pattern ESCAPE '!'

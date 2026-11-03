@@ -105,9 +105,11 @@ public class BookService {
 
     @Transactional
     public void delete(Long id) {
-        Book book = require(id);
-        if (loans.isBookOnLoan(id, null)) {
-            throw new ConflictException("Book is currently on loan. Record its return before deleting it.");
+        require(id);
+        Book book = books.findActiveForUpdate(id).orElseThrow(() -> new NotFoundException("Book", id));
+        if (loans.anyOpenForBook(id)) {
+            throw new ConflictException("This book has open requests, holds or loans. "
+                    + "Decline the requests and record the returns before deleting it.");
         }
         book.setDeleted(true);
         copyService.withdrawAllOf(id);

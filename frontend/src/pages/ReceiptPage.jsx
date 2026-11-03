@@ -5,7 +5,7 @@ import { ErrorAlert, Loading } from '../components/Feedback';
 import QrCode from '../components/QrCode';
 import ReceiptStamp from '../components/ReceiptStamp';
 import { EVENT_LABELS, FINE_LABELS, STATUS_LABELS } from '../components/receiptLabels';
-import { formatDate, formatMoney } from '../format';
+import { formatDate, formatMoney, localIsoDate } from '../format';
 import { locale, useT } from '../i18n';
 import { useApi } from '../hooks';
 
@@ -14,17 +14,27 @@ export function formatInstant(iso) {
   return iso ? new Date(iso).toLocaleString(locale(), { dateStyle: 'medium', timeStyle: 'short' }) : '—';
 }
 
+/** Shown on receipts the public demo issued: they look real, so say plainly that they are not. */
+export function DemoWarning() {
+  const t = useT();
+  return (
+    <div className="alert alert-warning fw-semibold">
+      {t('Demo receipt — not a real loan record. This app is a public demo.')}
+    </div>
+  );
+}
+
 /** A loan receipt, laid out to be printed (or downloaded as PDF) and kept as evidence. */
 export default function ReceiptPage() {
   const { number } = useParams();
   const { isLibrarian } = useAuth();
   const t = useT();
-  const receipt = useApi(`/api/receipts/${number}`);
+  const receipt = useApi(`/api/receipts/${encodeURIComponent(number)}`);
 
   if (receipt.error) return <ErrorAlert error={receipt.error} />;
   if (!receipt.data) return <Loading />;
   const r = receipt.data;
-  const { loan, events, fine, library } = r.content;
+  const { loan, events, fine, library, demo } = r.content;
   const rows = [
     [t('Book'), loan.bookTitle],
     [t('Author'), loan.authorName],
@@ -47,11 +57,12 @@ export default function ReceiptPage() {
         <Button color="primary" onClick={() => window.print()}>
           {t('Print')}
         </Button>
-        <a className="btn btn-outline-primary" href={`/api/receipts/${r.number}.pdf`} download>
+        <a className="btn btn-outline-primary" href={`/api/receipts/${encodeURIComponent(r.number)}.pdf`} download>
           {t('Download PDF')}
         </a>
       </div>
       <article className="receipt">
+        {demo && <DemoWarning />}
         <header className="d-flex justify-content-between align-items-start gap-3 mb-3">
           <div>
             <p className="receipt-library mb-1">{library}</p>
@@ -80,7 +91,7 @@ export default function ReceiptPage() {
               </div>
             )}
           </dl>
-          <ReceiptStamp library={library} date={r.issuedAt.slice(0, 10)} />
+          <ReceiptStamp library={library} date={formatDate(localIsoDate(r.issuedAt))} />
         </div>
         <h2 id="receipt-history" className="h6 mt-4">
           {t('History')}

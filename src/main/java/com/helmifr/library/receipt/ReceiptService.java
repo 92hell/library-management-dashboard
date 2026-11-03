@@ -55,6 +55,9 @@ public class ReceiptService {
     /** Length of the code in the verification link (start of the URL-safe signature). */
     static final int CODE_LENGTH = 12;
 
+    /** At most this many history entries on a receipt; older ones are summarised in one line. */
+    static final int MAX_EVENTS = 40;
+
     private static final ObjectMapper CANONICAL = JsonMapper.builder()
             .enable(MapperFeature.SORT_PROPERTIES_ALPHABETICALLY)
             .enable(SerializationFeature.ORDER_MAP_ENTRIES_BY_KEYS)
@@ -70,10 +73,14 @@ public class ReceiptService {
     public record VerifiedEvent(String type, String occurredAt) {}
 
     /** What the public verification page shows: the record, with the member's name masked. */
+    /**
+     * @param demo         issued by the public demo: not a real loan record
+     * @param supersededBy a newer receipt for the same loan, if any (this one describes an older state)
+     */
     public record Verification(boolean genuine, String number, String library, String issuedAt, String bookTitle,
                                String copyBarcode, String memberName, String status, String borrowDate,
                                String dueDate, String returnDate, List<VerifiedEvent> events, FinePart fine,
-                               String algorithm, String keyId, String sha256) {}
+                               String algorithm, String keyId, String sha256, boolean demo, String supersededBy) {}
 
     private final ReceiptRepository receipts;
     private final LoanRepository loans;
@@ -83,6 +90,7 @@ public class ReceiptService {
     private final ReceiptSigner signer;
     private final ReceiptProperties properties;
     private final Clock clock;
+    private final com.helmifr.library.demo.DemoProperties demo;
 
     /**
      * The receipt for a loan as it is now: the latest one if nothing changed since, otherwise a new one.
@@ -95,9 +103,9 @@ public class ReceiptService {
                 .filter(l -> ownerMemberId == null || Objects.equals(l.getMember().getId(), ownerMemberId))
                 .orElseThrow(() -> new NotFoundException("Loan", loanId));
         LoanPart loanPart = loanPart(loan);
-        List<EventPart> events = history.of(loanId).stream()
+        List<EventPart> events = summarised(history.of(loanId).stream()
                 .map(e -> new EventPart(e.type().name(), e.status().name(), e.occurredAt().toString(), e.actor(), e.detail()))
-                .toList();
+                .toList());
         FinePart fine = fines.findByLoanId(loanId)
                 .map(f -> new FinePart(f.getAmount(), finePolicy.currency(), f.getStatus().name(), f.getDaysLate()))
                 .orElse(null);
@@ -110,8 +118,9 @@ public class ReceiptService {
 
         Receipt r = new Receipt();
         r.setLoan(loan);
+        r.setMemberId(loan.getMember().getId());
         r.setIssuedAt(clock.instant().truncatedTo(ChronoUnit.SECONDS));
-        r.setIssuedBy(CurrentUser.username());
+        r.setIssuedBy(history.currentActorName());
         r.setFingerprint(fingerprint);
         r.setContent("");
         r.setSha256("");
@@ -121,7 +130,7 @@ public class ReceiptService {
         r.setNumber("R-%d-%06d".formatted(r.getIssuedAt().atZone(clock.getZone()).getYear(), r.getId()));
 
         String content = canonical(new ReceiptContent(r.getNumber(), properties.libraryName(), r.getIssuedAt().toString(),
-                r.getIssuedBy(), loanPart, events, fine));
+                r.getIssuedBy(), loanPart, events, fine, demo.enabled()));
         if (content.length() > Receipt.MAX_CONTENT) {
             throw new IllegalStateException("Receipt for loan " + loanId + " is too long to store (" + content.length() + " chars)");
         }
@@ -142,7 +151,7 @@ public class ReceiptService {
 
     Receipt requireVisible(String number) {
         Receipt r = receipts.findByNumber(number).orElseThrow(() -> notFound(number));
-        if (!CurrentUser.is(Role.LIBRARIAN) && !Objects.equals(r.getLoan().getMember().getId(), memberIdOrNull())) {
+        if (!CurrentUser.is(Role.LIBRARIAN) && !Objects.equals(r.getMemberId(), memberIdOrNull())) {
             throw notFound(number);
         }
         return r;
@@ -151,14 +160,33 @@ public class ReceiptService {
     /** Public: checks the signature over the stored record; the code (from the QR link) must match. */
     public Verification verify(String number, String code) {
         Receipt r = receipts.findByNumber(number)
-                .filter(x -> code != null && code.length() >= CODE_LENGTH && verifyCode(x).equals(code))
+                .filter(x -> code != null && MessageDigest.isEqual(verifyCode(x).getBytes(StandardCharsets.UTF_8),
+                        code.getBytes(StandardCharsets.UTF_8)))
                 .orElseThrow(() -> new NotFoundException("No receipt has this number and code."));
         ReceiptContent c = parse(r.getContent());
         return new Verification(genuine(r), r.getNumber(), c.library(), c.issuedAt(), c.loan().bookTitle(),
                 c.loan().copyBarcode(), mask(c.loan().memberName()), c.loan().status(), c.loan().borrowDate(),
                 c.loan().dueDate(), c.loan().returnDate(),
                 c.events().stream().map(e -> new VerifiedEvent(e.type(), e.occurredAt())).toList(),
-                c.fine(), signer.algorithm(), r.getKeyId(), r.getSha256());
+                c.fine(), signer.algorithm(), r.getKeyId(), r.getSha256(), c.demo(),
+                receipts.findFirstByLoanIdOrderByIdDesc(r.getLoan().getId())
+                        .filter(latest -> !latest.getId().equals(r.getId()))
+                        .map(Receipt::getNumber).orElse(null));
+    }
+
+    /** The most recent entries, with the older ones (if too many) summarised in a first line. */
+    static List<EventPart> summarised(List<EventPart> events) {
+        if (events.size() <= MAX_EVENTS) {
+            return events;
+        }
+        List<EventPart> kept = events.subList(events.size() - MAX_EVENTS, events.size());
+        EventPart first = events.get(0);
+        EventPart summary = new EventPart("OMITTED", first.status(), first.occurredAt(), "system",
+                "%d earlier entries; the library keeps the full history".formatted(events.size() - MAX_EVENTS));
+        List<EventPart> result = new java.util.ArrayList<>(MAX_EVENTS + 1);
+        result.add(summary);
+        result.addAll(kept);
+        return result;
     }
 
     public String publicKeyPem() {
@@ -184,12 +212,18 @@ public class ReceiptService {
         }
     }
 
+    /** The stored text hashes to the stored hash, is signed by a trusted key, and belongs to this row. */
     boolean genuine(Receipt r) {
         try {
+            ReceiptContent c = parse(r.getContent());
+            if (!Objects.equals(c.number(), r.getNumber()) || c.loan() == null
+                    || !Objects.equals(c.loan().id(), r.getLoan().getId())) {
+                return false;
+            }
             return sha256(r.getContent()).equals(r.getSha256())
                     && signer.verify(r.getContent().getBytes(StandardCharsets.UTF_8),
                             Base64.getDecoder().decode(r.getSignature()), r.getKeyId());
-        } catch (IllegalArgumentException e) {
+        } catch (IllegalArgumentException | IllegalStateException e) {
             return false;
         }
     }

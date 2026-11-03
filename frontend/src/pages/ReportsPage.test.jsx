@@ -1,6 +1,7 @@
-import { screen, waitFor, within } from '@testing-library/react';
+import { act, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it } from 'vitest';
+import { setLanguage } from '../i18n';
 import { librarian, renderApp, signedInAs } from '../test/utils';
 
 const summary = (overrides = {}) => ({
@@ -72,6 +73,21 @@ describe('Reports', () => {
 
     expect(await screen.findByText('Returned late')).toBeInTheDocument();
     expect(screen.getByText('Returned late').closest('.card')).toHaveTextContent(/—.*Nothing fell due/);
+  });
+
+  it('formats the tile numbers for the language', async () => {
+    signedInAs(librarian, { 'GET /api/reports/summary': summary({ loans: 12345, returns: 2048, activeMembers: 1500, newMembers: 1200 }) });
+
+    renderApp('/reports');
+
+    expect(await screen.findByText('Books lent')).toBeInTheDocument();
+    expect(screen.getByText('Books lent').closest('.card')).toHaveTextContent('12,345');
+    expect(screen.getByText('Active members').closest('.card')).toHaveTextContent(/1,500.*1,200 new/);
+
+    act(() => setLanguage('id'));
+    expect(screen.getByText('Buku dipinjamkan').closest('.card')).toHaveTextContent('12.345');
+    expect(screen.getByText('Anggota aktif').closest('.card')).toHaveTextContent(/1\.500.*1\.200 baru/);
+    expect(screen.getByText('Dikembalikan').closest('.card')).toHaveTextContent('2.048');
   });
 
   it('is in the librarian menu', async () => {

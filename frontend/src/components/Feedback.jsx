@@ -12,12 +12,21 @@ export function Loading({ label }) {
   );
 }
 
+/**
+ * An error's message in the language of `t`. The app's own messages (msg keys, see ApiError) are
+ * translated; messages from the server have no translation, so t() leaves them as they are.
+ */
+export function errorText(error, t) {
+  return t(error.text ?? error.message, error.vars);
+}
+
 /** Shows an ApiError (or any Error) message; renders nothing when there is no error. */
 export function ErrorAlert({ error, onDismiss }) {
+  const t = useT();
   if (!error) return null;
   return (
     <Alert color="danger" isOpen toggle={onDismiss}>
-      {error.message}
+      {errorText(error, t)}
     </Alert>
   );
 }

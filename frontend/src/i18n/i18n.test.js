@@ -47,6 +47,43 @@ describe('Translations (English / Bahasa Indonesia)', () => {
     expect(translate('Not translated', undefined, 'id')).toBe('Not translated');
   });
 
+  it('uses the agreed Indonesian wording', () => {
+    const wording = {
+      'Collect by {date}': 'Ambil paling lambat {date}',
+      'collect by {date}': 'ambil paling lambat {date}',
+      Receipt: 'Bukti pinjam',
+      'This receipt does not match its signature. Do not accept it as evidence; ask the library.':
+        'Bukti ini tidak cocok dengan tanda tangannya. Jangan diterima sebagai alat bukti; hubungi perpustakaan.',
+      Request: 'Ajukan pinjaman',
+      Requested: 'Diajukan',
+      'Requested online': 'Diajukan secara daring',
+      'Pending requests': 'Menunggu persetujuan',
+      'Cancel the copy set aside for you for "{title}"?': 'Batalkan reservasi "{title}" yang sudah disiapkan untuk Anda?',
+      Withdraw: 'Keluarkan',
+      'Withdraw copy {barcode} from the collection (lost, damaged or discarded)?':
+        'Keluarkan eksemplar {barcode} dari koleksi (hilang, rusak, atau dibuang)?',
+      'Each copy gets its own barcode; you can add or withdraw copies later.':
+        'Setiap eksemplar mendapat barkode sendiri; Anda dapat menambah atau mengeluarkan eksemplar nanti.',
+      'Newest first': 'Terbitan terbaru',
+      'Oldest first': 'Terbitan terlama',
+      'Recently added': 'Terakhir ditambahkan',
+      Borrowed: 'Tanggal pinjam',
+      'Returned on': 'Tanggal kembali',
+      'Due date (optional, defaults to the loan period)': 'Tanggal jatuh tempo (opsional; jika kosong, mengikuti masa pinjam standar)',
+      'Register a walk-in member': 'Daftarkan anggota di meja layanan',
+      'Online account': 'Akun daring',
+      'My loans': 'Peminjaman saya',
+      Actions: 'Tindakan',
+      '{n} days late': 'terlambat {n} hari',
+      '{n} day late': 'terlambat {n} hari',
+      'Books with you': 'Buku yang sedang Anda pinjam',
+      'Returned "{title}" from {name} ({barcode}).': '"{title}" ({barcode}) dari {name} telah dikembalikan.',
+    };
+    expect(Object.fromEntries(Object.keys(wording).map((en) => [en, ID[en]]))).toEqual(wording);
+    // Holds are "reservasi" everywhere, and "online" is "daring".
+    expect(Object.values(ID).filter((id) => /\bonline\b|disisihkan/i.test(id))).toEqual([]);
+  });
+
   it('marks the page with the chosen language', () => {
     setLanguage('id');
     expect(document.documentElement.lang).toBe('id');

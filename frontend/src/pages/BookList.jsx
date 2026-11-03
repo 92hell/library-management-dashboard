@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { Badge } from 'reactstrap';
 import { api } from '../api';
 import Availability from '../components/Availability';
@@ -18,6 +18,7 @@ export default function BookList() {
   const q = useDebouncedValue(search.trim());
   const books = usePagedList('/api/books', { q });
   const removal = useAction();
+  const location = useLocation();
   const t = useT();
 
   async function remove(book) {
@@ -47,7 +48,7 @@ export default function BookList() {
             <td>
               <div className="d-flex align-items-center gap-3">
                 <BookCover title={book.title} src={book.coverUrl} />
-                <Link to={`/catalogue/${book.id}`} className="fw-semibold">
+                <Link to={`/catalogue/${book.id}`} state={{ from: location.pathname + location.search }} className="fw-semibold">
                   {book.title}
                 </Link>
               </div>

@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { Button, ButtonGroup, Col, Input, Label, Row } from 'reactstrap';
+import { focusPageHeading } from '../a11y';
 import { api } from '../api';
 import { ErrorAlert } from '../components/Feedback';
 import BookCover from '../components/BookCover';
@@ -60,11 +61,17 @@ export default function BorrowedBookList() {
     setSearchParams(value === 'all' ? {} : { status: value }, { replace: true });
   }
 
-  /** Runs a workflow action; under a narrowed filter the row leaves the list, like a deletion. */
-  async function perform(call) {
+  /**
+   * Runs a workflow action. `leavesFilter`: the action moves the loan out of a narrowed filter (or,
+   * for a deletion, out of every list), so the list is refreshed like after a deletion - stepping back
+   * a page when it was the last row. Focus moves to the page heading, as the pressed button may be gone.
+   */
+  async function perform(call, { leavesFilter = status !== 'all' } = {}) {
+    setReturned(null);
     if (await action.run(call)) {
-      if (status === 'all') loans.reload();
-      else loans.refreshAfterRemoval();
+      if (leavesFilter) loans.refreshAfterRemoval();
+      else loans.reload();
+      focusPageHeading();
     }
   }
 
@@ -85,12 +92,14 @@ export default function BorrowedBookList() {
     perform(() => api.post(`/api/borrowed-books/${loan.id}/checkout`));
   }
 
+  /** A renewed loan keeps its status, so it stays in the list. */
   function renew(loan) {
-    perform(() => api.post(`/api/borrowed-books/${loan.id}/renew`));
+    perform(() => api.post(`/api/borrowed-books/${loan.id}/renew`), { leavesFilter: false });
   }
 
   /** Issues (or reuses) the loan's receipt and opens it for printing. */
   async function openReceipt(loan) {
+    setReturned(null);
     let receipt = null;
     if (await action.run(async () => {
       receipt = await api.post(`/api/borrowed-books/${loan.id}/receipt`);
@@ -103,7 +112,7 @@ export default function BorrowedBookList() {
 
   function remove(loan) {
     if (!window.confirm(t('Delete the record of "{title}" for {name}?', { title: loan.book.title, name: loan.member.name }))) return;
-    perform(() => api.delete(`/api/borrowed-books/${loan.id}`));
+    perform(() => api.delete(`/api/borrowed-books/${loan.id}`), { leavesFilter: true });
   }
 
   return (
@@ -124,20 +133,22 @@ export default function BorrowedBookList() {
           {t('Return')}
         </Button>
       </form>
-      {returned && (
-        <div className="alert alert-success d-flex justify-content-between align-items-start" role="status">
-          <span>
-            {returned.copy
-              ? t('Returned "{title}" from {name} ({barcode}).', {
-                  title: returned.book.title,
-                  name: returned.member.name,
-                  barcode: returned.copy.barcode,
-                })
-              : t('Returned "{title}" from {name}.', { title: returned.book.title, name: returned.member.name })}
-          </span>
-          <button type="button" className="btn-close" aria-label={t('Dismiss')} onClick={() => setReturned(null)} />
-        </div>
-      )}
+      <div role="status">
+        {returned && (
+          <div className="alert alert-success d-flex justify-content-between align-items-start">
+            <span>
+              {returned.copy
+                ? t('Returned "{title}" from {name} ({barcode}).', {
+                    title: returned.book.title,
+                    name: returned.member.name,
+                    barcode: returned.copy.barcode,
+                  })
+                : t('Returned "{title}" from {name}.', { title: returned.book.title, name: returned.member.name })}
+            </span>
+            <button type="button" className="btn-close" aria-label={t('Dismiss')} onClick={() => setReturned(null)} />
+          </div>
+        )}
+      </div>
       <Row className="g-2 mb-3">
         <Col md={6}>
           <SearchBox

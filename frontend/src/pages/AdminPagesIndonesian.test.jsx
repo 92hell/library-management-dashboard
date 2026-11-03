@@ -29,7 +29,7 @@ describe('Admin pages in Bahasa Indonesia', () => {
     expect(screen.getByLabelText('Cari buku')).toHaveAttribute('placeholder', 'Cari berdasarkan judul, penerbit, kategori, atau penulis');
     expect(await screen.findByText('Laskar Pelangi')).toBeInTheDocument();
     const headers = screen.getAllByRole('columnheader').map((th) => th.textContent);
-    expect(headers).toEqual(['Judul', 'Penulis', 'Terbit', 'Penerbit', 'Kategori', 'Eksemplar', 'Aksi']);
+    expect(headers).toEqual(['Judul', 'Penulis', 'Terbit', 'Penerbit', 'Kategori', 'Eksemplar', 'Tindakan']);
     expect(screen.getByText('Fiction')).toBeInTheDocument();
   });
 
@@ -92,6 +92,6 @@ describe('Admin pages in Bahasa Indonesia', () => {
     expect(within(row).getByText('Anggota')).toBeInTheDocument();
     expect(within(row).getByText('Dinonaktifkan')).toBeInTheDocument();
     expect(within(row).getByRole('button', { name: 'Aktifkan' })).toBeInTheDocument();
-    expect(screen.getAllByRole('columnheader').map((th) => th.textContent)).toEqual(['Nama pengguna', 'Nama', 'Email', 'Peran', 'Status', '']);
+    expect(screen.getAllByRole('columnheader').map((th) => th.textContent)).toEqual(['Nama pengguna', 'Nama', 'Email', 'Peran', 'Status', 'Tindakan']);
   });
 });

@@ -18,7 +18,7 @@ test('a late return by barcode charges a fee, which the librarian records as pai
   await page.getByRole('navigation').getByRole('link', { name: 'Loans' }).click();
   await page.getByLabel('Return by barcode').fill(copy.barcode);
   await page.keyboard.press('Enter');
-  await expect(page.getByRole('status')).toContainText(`Returned "${title}"`);
+  await expect(page.getByRole('status').filter({ hasText: `Returned "${title}"` })).toBeVisible();
 
   await page.getByRole('navigation').getByRole('link', { name: 'Fines' }).click();
   const fine = page.locator('tr', { hasText: title });
@@ -50,7 +50,7 @@ test('reports show the period and download a CSV of loans', async ({ page, baseU
   ]);
   expect(download.suggestedFilename()).toMatch(/^loans-\d{4}-\d{2}-\d{2}-to-\d{4}-\d{2}-\d{2}\.csv$/);
   const csv = await (await import('node:fs/promises')).readFile(await download.path(), 'utf8');
-  expect(csv).toContain('Loan ID,Borrowed,Due');
+  expect(csv).toContain('"Loan ID","Borrowed","Due"');
   expect(csv).toContain(title);
 
   await librarianApi.dispose();

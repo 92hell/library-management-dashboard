@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { Button, ButtonGroup, Card, CardBody, Col, Input, Label, Row, Table } from 'reactstrap';
 import { buildUrl } from '../api';
 import { ErrorAlert, Loading } from '../components/Feedback';
-import { formatDate, formatMoney, todayIso } from '../format';
+import { formatDate, formatMoney, formatNumber, todayIso } from '../format';
 import { useApi, useDebouncedValue } from '../hooks';
 import { msg, useT } from '../i18n';
 
@@ -63,18 +63,22 @@ export default function ReportsPage() {
       ) : (
         <div className={report.loading ? 'opacity-50' : ''} aria-busy={report.loading}>
           <Row xs="2" lg="5" className="g-3 mb-4">
-            <Tile label={t('Books lent')} value={r.loans} />
-            <Tile label={t('Returned')} value={r.returns} />
+            <Tile label={t('Books lent')} value={formatNumber(r.loans)} />
+            <Tile label={t('Returned')} value={formatNumber(r.returns)} />
             <Tile
               label={t('Returned late')}
               value={r.lateRate == null ? '—' : `${Math.round(r.lateRate * 100)}%`}
               note={
                 r.lateRate == null
                   ? t('Nothing fell due')
-                  : t('{late} of {due} loans that fell due', { late: r.lateInPeriod, due: r.dueInPeriod })
+                  : t('{late} of {due} loans that fell due', { late: formatNumber(r.lateInPeriod), due: formatNumber(r.dueInPeriod) })
               }
             />
-            <Tile label={t('Active members')} value={r.activeMembers} note={t('{n} new', { n: r.newMembers })} />
+            <Tile
+              label={t('Active members')}
+              value={formatNumber(r.activeMembers)}
+              note={t('{n} new', { n: formatNumber(r.newMembers) })}
+            />
             <Tile
               label={t('Fines charged')}
               value={formatMoney(r.finesCharged, r.currency)}
@@ -99,7 +103,7 @@ export default function ReportsPage() {
                       </Link>
                     </td>
                     <td>{book.authorName}</td>
-                    <td className="text-end">{book.loans}</td>
+                    <td className="text-end">{formatNumber(book.loans)}</td>
                   </tr>
                 ))}
               </Ranking>
@@ -118,7 +122,7 @@ export default function ReportsPage() {
                       <Link to={`/members/${m.memberId}`}>{m.name}</Link>
                       <span className="d-block small text-muted font-monospace">{m.libraryCardId}</span>
                     </td>
-                    <td className="text-end">{m.loans}</td>
+                    <td className="text-end">{formatNumber(m.loans)}</td>
                   </tr>
                 ))}
               </Ranking>

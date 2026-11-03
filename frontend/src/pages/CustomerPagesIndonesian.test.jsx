@@ -1,4 +1,4 @@
-import { screen, within } from '@testing-library/react';
+import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it } from 'vitest';
 import { setLanguage } from '../i18n';
@@ -58,7 +58,7 @@ describe('Customer pages in Bahasa Indonesia', () => {
 
     renderApp('/my/loans');
 
-    expect(await screen.findByRole('heading', { name: 'Pinjaman saya' })).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: 'Peminjaman saya' })).toBeInTheDocument();
     const row = screen.getByText('Bumi Manusia').closest('tr');
     expect(within(row).getByText('Dipinjam')).toBeInTheDocument();
     expect(within(row).getByRole('button', { name: 'Perpanjang' })).toBeInTheDocument();
@@ -84,8 +84,8 @@ describe('Customer pages in Bahasa Indonesia', () => {
     expect(within(screen.getByText('Saman').closest('tr')).getByText('Dipinjam')).toBeInTheDocument();
     expect(screen.getAllByText('Classics', { selector: 'td' })).toHaveLength(2);
 
-    await userEvent.click(within(screen.getByText('Bumi Manusia').closest('tr')).getByRole('button', { name: 'Ajukan' }));
-    expect(await screen.findByRole('status')).toHaveTextContent('Permintaan untuk "Bumi Manusia" telah dikirim.');
+    await userEvent.click(within(screen.getByText('Bumi Manusia').closest('tr')).getByRole('button', { name: 'Ajukan pinjaman' }));
+    await waitFor(() => expect(screen.getByRole('status')).toHaveTextContent('Permintaan untuk "Bumi Manusia" telah dikirim.'));
   });
 
   it('shows a book page in Indonesian', async () => {

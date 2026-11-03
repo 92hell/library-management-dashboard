@@ -1,6 +1,9 @@
 import { useT } from '../i18n';
 
-/** The library's round rubber stamp on a receipt: name, "loan receipt / bukti peminjaman", issue date. */
+/**
+ * The library's round rubber stamp on a receipt: name, "loan receipt / bukti peminjaman", issue date.
+ * Pass `date` already formatted (the reader's local date, see formatDate and localIsoDate).
+ */
 export default function ReceiptStamp({ library, date }) {
   const t = useT();
   const name = library.length > 24 ? `${library.slice(0, 23)}…` : library;

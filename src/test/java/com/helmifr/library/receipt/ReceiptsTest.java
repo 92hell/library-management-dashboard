@@ -86,8 +86,8 @@ class ReceiptsTest {
         api.as(librarian).get("/api/borrowed-books/" + loanId + "/events")
                 .andExpect(jsonPath("$[*].type").value(org.hamcrest.Matchers.contains(
                         "REQUESTED", "APPROVED", "COLLECTED", "RETURNED", "FINE_CHARGED", "FINE_PAID")))
-                .andExpect(jsonPath("$[0].actor").value(siti.getUsername()))
-                .andExpect(jsonPath("$[1].actor").value(librarian.getUsername()))
+                .andExpect(jsonPath("$[0].actor").value(siti.getDisplayName()))
+                .andExpect(jsonPath("$[1].actor").value(librarian.getDisplayName()))
                 .andExpect(jsonPath("$[1].status").value("READY"))
                 .andExpect(jsonPath("$[4].detail").value(containsString("IDR 2,000")))
                 .andExpect(jsonPath("$[0].occurredAt").isNotEmpty());
@@ -108,7 +108,7 @@ class ReceiptsTest {
         org.assertj.core.api.Assertions.assertThat((Integer) JsonPath.read(body, "$.content.events.length()")).isEqualTo(6);
         org.assertj.core.api.Assertions.assertThat((Integer) JsonPath.read(body, "$.content.fine.amount")).isEqualTo(2000);
         org.assertj.core.api.Assertions.assertThat((String) JsonPath.read(body, "$.content.fine.status")).isEqualTo("PAID");
-        org.assertj.core.api.Assertions.assertThat((String) JsonPath.read(body, "$.issuedBy")).isEqualTo(librarian.getUsername());
+        org.assertj.core.api.Assertions.assertThat((String) JsonPath.read(body, "$.issuedBy")).isEqualTo(librarian.getDisplayName());
         org.assertj.core.api.Assertions.assertThat((String) JsonPath.read(body, "$.sha256")).matches("[0-9a-f]{64}");
         org.assertj.core.api.Assertions.assertThat((String) JsonPath.read(body, "$.algorithm")).isEqualTo("Ed25519");
         org.assertj.core.api.Assertions.assertThat((String) JsonPath.read(body, "$.verifyUrl"))

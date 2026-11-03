@@ -7,7 +7,7 @@ Run everything: `mvn clean verify` (backend; add `-Pmariadb` to run it on MariaD
 `cd frontend && npm test` (frontend), and after `mvn -Pfullstack package` also
 `cd e2e && npm test` (end-to-end, in a real browser).
 
-Totals: 182 backend test methods (parameterised ones run once per case), 92 frontend tests, 10 end-to-end journeys.
+Totals: 201 backend test methods (parameterised ones run once per case), 136 frontend tests, 10 end-to-end journeys.
 
 ## Backend (JUnit, `src/test/java`)
 
@@ -114,6 +114,7 @@ live in `support/`.
 - an invalid ISBN is refused before calling Open Library
 - when Open Library is down the librarian is told to fill the form by hand
 - only librarians can use the lookup
+- a book found once is remembered, so repeated lookups do not call Open Library again
 
 ### Compression and browser caching
 `src/test/java/com/helmifr/library/common/CompressionAndCachingTest.java`
@@ -169,6 +170,7 @@ live in `support/`.
 - registration is off, so no real personal data ends up on a public demo
 - the nightly reset restores demo accounts and sample data, keeping the owner's account
 - the reset also clears loan histories and receipts that visitors created
+- receipts issued by the public demo say so: marked as demo and watermarked in the PDF
 
 ### Overdue fines
 `src/test/java/com/helmifr/library/fine/FinesTest.java`
@@ -276,6 +278,11 @@ live in `support/`.
 - customers get receipts for their own loans only
 - a desk loan starts its history as recorded by the librarian; a renewal and an edit are recorded too
 
+### CSV export size limit
+`src/test/java/com/helmifr/library/report/CsvLimitTest.java`
+
+- more loans than the limit in the range asks for a shorter range instead of a huge file
+
 ### Reports and CSV export
 `src/test/java/com/helmifr/library/report/ReportsTest.java`
 
@@ -288,6 +295,30 @@ live in `support/`.
 - the most-borrowed CSV lists titles with their loan counts
 - a range that ends before it starts, or is longer than a year, is refused
 - reports are for librarians only
+
+### Scheduled job and concurrent requests (no test transaction)
+`src/test/java/com/helmifr/library/review/JobsAndRacesTest.java`
+
+- the nightly run expires an uncollected hold once, saves it, and passes the copy on
+- the nightly run records that a due-soon reminder was sent, so it is sent once
+- two librarians approving two requests for the last copy at once: one is set aside, one queued
+- paying and waiving the same fee at once: only one wins
+
+### Review findings (regressions)
+`src/test/java/com/helmifr/library/review/ReviewFindingsTest.java`
+
+- a book with open requests or holds cannot be deleted
+- editing cannot return a book (no fee, queue skipped): returns go through Return
+- editing cannot reopen a returned loan or move a loan to another book
+- correcting the due date of a returned loan recalculates its unpaid fee
+- a correction that would change a fee already paid is refused
+- an unpaid fee on a deleted loan no longer counts against the member
+- a receipt stays with the member it was issued to, even if the loan's member is corrected
+- a signed record moved onto another receipt's row does not verify
+- checking an older receipt points to the newer one for the same loan
+- a loan with a very long history still gets a receipt: the oldest entries are summarised
+- receipts name staff and members by their display name, not their login
+- text cells in CSV exports are always quoted, so a ';' in a name cannot start a formula cell
 
 ### Access control
 `src/test/java/com/helmifr/library/security/AccessControlTest.java`
@@ -362,6 +393,9 @@ live in `support/`.
 - links a field to its error message and hint
 - offers a skip link to the main content
 - moves focus to the page content after navigating
+- leaves focus alone on the first page load, also under StrictMode
+- names the actions column of the users list
+- moves focus to the page heading after adding a librarian closes the form
 
 ### `frontend/src/components/BookCover.test.jsx`
 
@@ -382,6 +416,15 @@ live in `support/`.
 - demo accounts see their profile but cannot edit it or change the password
 - hides account administration from the demo librarian
 
+### `frontend/src/components/Feedback.test.jsx`
+
+**Error messages**
+
+- translates the client\'s own message when the server cannot be reached
+- translates "request failed" with its status code
+- shows the server\'s own messages as they are
+- translates the network error on the sign-in page too
+
 ### `frontend/src/components/Navigation.test.jsx`
 
 **Navigation by role**
@@ -391,6 +434,15 @@ live in `support/`.
 - customers opening a staff page are sent to their home page
 - after logging out, the next sign-in starts on the home page, not the previous user\'s page
 
+### `frontend/src/format.test.js`
+
+**Formatting**
+
+- uses US English or Indonesian conventions, never the browser\'s own locale
+- shows rupiah as "Rp25.000" in Indonesian and "IDR 25,000" in English
+- formats counts for the language
+- gives the local date of an instant
+
 ### `frontend/src/i18n/i18n.test.js`
 
 **Translations (English / Bahasa Indonesia)**
@@ -399,6 +451,7 @@ live in `support/`.
 - has no leftover translations for texts the app no longer shows
 - keeps the same {placeholders} in both languages
 - fills placeholders and falls back to English
+- uses the agreed Indonesian wording
 - marks the page with the chosen language
 
 ### `frontend/src/pages/AccountPages.test.jsx`
@@ -406,6 +459,7 @@ live in `support/`.
 **Profile page**
 
 - shows the library card code and reports a wrong current password
+- checks the new password length in the language chosen afterwards
 **Notifications page**
 
 - lists notifications and marks them all read
@@ -425,11 +479,16 @@ live in `support/`.
 
 - opens from the catalogue and shows the cover, description, shelves and queue
 - lets a customer request the book from its page
+- announces the request in a live region that is there from the start, and moves focus to it
+- takes a librarian back to the book list they came from
+- falls back to the catalogue when the page was opened directly
 - gives librarians an edit link instead of a request button
 **Book form: ISBN lookup**
 
 - fills the form from Open Library and saves the ISBN and description
 - names an author who is not in the catalogue yet
+- adds the missing author in a new tab and picks up the new author on return, keeping the form
+- links the ISBN field to its hint and error, and the categories to their error
 - shows why a lookup failed
 
 ### `frontend/src/pages/CatalogueFilters.test.jsx`
@@ -440,6 +499,12 @@ live in `support/`.
 - sorts by title by default and narrows by category, author and what is on the shelf
 - opens with the filters from the address, and clears them
 - links a book page\'s categories and author back to the filtered catalogue
+- ignores an unknown sort order and a non-numeric author in the address
+- keeps the search text in the address, so it is still there after leaving and coming back
+- keeps every filter change, even several in a row, and the switch stays as clicked
+- follows the address when it changes from outside, e.g. the menu link
+- returns from a book page to the catalogue with the same filters
+- names the actions column and announces a sent request in a live region
 
 ### `frontend/src/pages/CopiesPages.test.jsx`
 
@@ -462,6 +527,10 @@ live in `support/`.
 **My loans (customer)**
 
 - shows each loan with its status and lets the customer cancel a pending request
+**Customer home**
+
+- says so when the loans cannot be loaded, instead of showing zero
+- says so when the fines cannot be loaded
 
 ### `frontend/src/pages/CustomerPagesIndonesian.test.jsx`
 
@@ -491,11 +560,13 @@ live in `support/`.
 - shows the fee building up on an overdue book, the balance owed and the fee history
 - explains that borrowing is paused while the balance is too high
 - reminds the customer of unpaid fees on the home page
+- says so when the fees cannot be loaded
 - says nothing about fees when nothing is owed
 **Fines desk (librarian)**
 
 - lists unpaid fines first and records a payment
 - waives a fine only with a reason
+- says nothing when the librarian cancels the waive prompt
 - shows who settled a fine and why it was waived
 - shows the unpaid total on the dashboard and links to the fines desk
 
@@ -520,6 +591,15 @@ live in `support/`.
 - opens on the filter from the URL and approves a request
 - rejects a request with the reason the librarian typed
 - marks an active loan as returned
+**Loan desk: after an action**
+
+- ?
+- stays on the same page after a renewal, which leaves the loan in the list
+- steps back a page when the last loan on it leaves the filter, and focuses the page heading
+- announces a desk return in a live region, and clears it when the next action starts or fails
+**Lending at the desk**
+
+- shows its validation messages in the language chosen after submitting
 
 ### `frontend/src/pages/Login.test.jsx`
 
@@ -528,6 +608,7 @@ live in `support/`.
 - sends signed-out visitors to the login form, with a link to register
 - offers one button per demo account and signs in with it
 - shows an error for bad credentials and stays on the form
+- returns to the page that needed a sign-in, query string included
 
 ### `frontend/src/pages/ReceiptPages.test.jsx`
 
@@ -535,10 +616,20 @@ live in `support/`.
 
 - a librarian opens a printable receipt from the loans list
 - a customer gets a receipt for their own loan
+**in the reader\'s time zone**
+
+- stamps the receipt with the local date it was issued, not the UTC one
+- warns that a demo receipt is not a real loan record
+- does not show the demo warning on a real receipt
+- encodes the receipt number when asking the API for it
+- labels corrected late fees and the summary of older history
 - shows the receipt in Bahasa Indonesia
 **Checking a receipt (public)**
 
 - confirms a genuine receipt without signing in, and shows the record with the name masked
+- warns that a demo receipt is not a real loan record
+- points to a newer receipt for the same loan
+- encodes the receipt number when asking the API to check it
 - warns loudly when the record does not match its signature
 - says so when the number or code is wrong
 
@@ -548,6 +639,7 @@ live in `support/`.
 
 - registers, signs in and lands on the customer home page
 - shows the server error next to the library card ID field
+- shows its validation messages in the language chosen after submitting
 
 ### `frontend/src/pages/ReportsPage.test.jsx`
 
@@ -556,6 +648,7 @@ live in `support/`.
 - shows lending totals, the late-return rate, fines and the rankings
 - reports on the chosen dates and downloads CSVs for the same range
 - says so when nothing fell due, instead of a 0% late rate
+- formats the tile numbers for the language
 - is in the librarian menu
 
 ## End-to-end (Playwright, `e2e/tests`)

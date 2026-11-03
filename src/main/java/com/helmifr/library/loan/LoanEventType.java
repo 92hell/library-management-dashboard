@@ -27,5 +27,7 @@ public enum LoanEventType {
     DELETED,
     FINE_CHARGED,
     FINE_PAID,
-    FINE_WAIVED
+    FINE_WAIVED,
+    /** A correction of the loan's dates changed (or cancelled) its unpaid late fee. */
+    FINE_ADJUSTED
 }

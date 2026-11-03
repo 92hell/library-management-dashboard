@@ -27,6 +27,10 @@ public class Receipt {
     @JoinColumn(name = "loan_id", nullable = false, updatable = false)
     private Loan loan;
 
+    /** The member named on the receipt; only they (and librarians) may open it. */
+    @Column(name = "member_id")
+    private Long memberId;
+
     @Column(name = "issued_at", nullable = false)
     private Instant issuedAt;
 

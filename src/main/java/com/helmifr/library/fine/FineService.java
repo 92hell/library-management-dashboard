@@ -66,6 +66,42 @@ public class FineService {
                 MY_LOANS_LINK);
     }
 
+    /**
+     * After a returned loan's dates were corrected: charges a fee that is now due, or adjusts an
+     * unpaid one (waiving it when the loan is no longer late). A fee already paid or waived cannot
+     * change; such a correction is refused.
+     */
+    @Transactional
+    public void reassess(Loan loan) {
+        long daysLate = daysLate(loan.getDueDate(), loan.getReturnDate());
+        long amount = policy.feeFor(daysLate);
+        var existing = fines.findByLoanId(loan.getId());
+        if (existing.isEmpty()) {
+            chargeIfLate(loan);
+            return;
+        }
+        Fine fine = fines.findForUpdate(existing.get().getId()).orElseThrow();
+        if (fine.getAmount() == amount && fine.getDaysLate() == daysLate) {
+            return;
+        }
+        if (fine.getStatus() != FineStatus.UNPAID) {
+            throw new ConflictException("The late fee for this loan was already " + fine.getStatus().name().toLowerCase()
+                    + "; a correction cannot change it.");
+        }
+        String before = policy.format(fine.getAmount());
+        if (amount == 0) {
+            settle(fine, FineStatus.WAIVED, "No longer late after a correction");
+        } else {
+            fine.setAmount(amount);
+            fine.setDaysLate((int) daysLate);
+        }
+        Audit.event("FINE_ADJUSTED", "fineId={} loanId={} from={} to={} by={}", fine.getId(), loan.getId(), before,
+                policy.format(amount), CurrentUser.username());
+        history.record(loan, LoanEventType.FINE_ADJUSTED, amount == 0
+                ? "Late fee %s cancelled: no longer late after a correction".formatted(before)
+                : "Late fee changed from %s to %s after a correction".formatted(before, policy.format(amount)));
+    }
+
     /** The fee shown on a loan: the fine charged for a late return, or the fee so far for a book still out. */
     public LoanFine onLoan(Loan loan, LocalDate today) {
         if (loan.getStatus() == LoanStatus.ACTIVE) {
@@ -100,7 +136,7 @@ public class FineService {
     public MyFines mine(Long memberId) {
         long balance = fines.sumUnpaidByMember(memberId);
         return new MyFines(balance, policy.currency(), policy.blocks(balance), policy.blockAt(),
-                fines.findAllByMemberIdOrderByIdDesc(memberId).stream().map(this::view).toList());
+                fines.findAllByMemberIdAndLoanDeletedFalseOrderByIdDesc(memberId).stream().map(this::view).toList());
     }
 
     public PageResponse<FineResponse> search(String q, FineStatus status, Pageable pageable) {
@@ -140,7 +176,7 @@ public class FineService {
     }
 
     private Fine requireUnpaid(Long id) {
-        Fine fine = fines.findById(id).orElseThrow(() -> new NotFoundException("Fine", id));
+        Fine fine = fines.findForUpdate(id).orElseThrow(() -> new NotFoundException("Fine", id));
         if (fine.getStatus() != FineStatus.UNPAID) {
             throw new ConflictException("This fine is already " + fine.getStatus().name().toLowerCase() + ".");
         }

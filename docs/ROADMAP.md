@@ -17,6 +17,9 @@ Items marked *(hook ready)* already have an extension point in the code.
 
 ## Library operations
 
+- Holds: skip members who are blocked by fines or inactive when setting a copy aside
+- Past loans recorded at the desk as returned late are not charged a fee (decide whether they should be)
+- Notifications and receipt history details written in the reader's language (today English)
 - Certified e-signature for receipts via a PSrE (BSrE / Privy) as a `ReceiptSigner`; key rotation UI
 - Fines: partial payments, printed receipts, online payment (e.g. Midtrans / Xendit)
 - Member card expiry and renewal; card replacement keeps history

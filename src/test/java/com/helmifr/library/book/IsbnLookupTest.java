@@ -32,6 +32,7 @@ class IsbnLookupTest {
 
     private static final AtomicReference<String> ANSWER = new AtomicReference<>("{}");
     private static final AtomicReference<String> LAST_QUERY = new AtomicReference<>();
+    private static final java.util.concurrent.atomic.AtomicInteger CALLS = new java.util.concurrent.atomic.AtomicInteger();
     private static final AtomicReference<Integer> STATUS = new AtomicReference<>(200);
     private static final HttpServer OPEN_LIBRARY = start();
 
@@ -40,6 +41,7 @@ class IsbnLookupTest {
             HttpServer server = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);
             server.createContext("/api/books", exchange -> {
                 LAST_QUERY.set(exchange.getRequestURI().getQuery());
+                CALLS.incrementAndGet();
                 byte[] body = ANSWER.get().getBytes(StandardCharsets.UTF_8);
                 exchange.getResponseHeaders().add("Content-Type", "application/json");
                 exchange.sendResponseHeaders(STATUS.get(), body.length);
@@ -65,12 +67,14 @@ class IsbnLookupTest {
 
     @Autowired Api api;
     @Autowired TestData data;
+    @Autowired IsbnLookup lookup;
     UserAccount librarian;
 
     @BeforeEach
     void setUp() {
         librarian = data.librarian("Lina");
         STATUS.set(200);
+        lookup.clearCache();
     }
 
     @Test
@@ -152,5 +156,20 @@ class IsbnLookupTest {
     @DisplayName("only librarians can use the lookup")
     void librariansOnly() throws Exception {
         api.as(data.customer("Ani")).get("/api/books/lookup", "isbn", "9789793062792").andExpect(status().isForbidden());
+    }
+
+    @Test
+    @DisplayName("a book found once is remembered, so repeated lookups do not call Open Library again")
+    void cached() throws Exception {
+        ANSWER.set("""
+                {"ISBN:9780140449136": {"title": "The Odyssey", "authors": [{"name": "Homer"}]}}""");
+        int before = CALLS.get();
+
+        api.as(librarian).get("/api/books/lookup", "isbn", "9780140449136").andExpect(status().isOk());
+        api.as(librarian).get("/api/books/lookup", "isbn", "978-0-14-044913-6")
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.title").value("The Odyssey"));
+
+        org.assertj.core.api.Assertions.assertThat(CALLS.get() - before).isEqualTo(1);
     }
 }

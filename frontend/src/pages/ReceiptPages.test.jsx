@@ -1,6 +1,6 @@
-import { screen, within } from '@testing-library/react';
+import { act, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { setLanguage } from '../i18n';
 import { customer, jsonResponse, librarian, loan, page, problem, renderApp, signedInAs, mockFetch } from '../test/utils';
 
@@ -81,6 +81,70 @@ describe('Loan receipts', () => {
     expect(await screen.findByText('R-2026-000042')).toBeInTheDocument();
   });
 
+  describe('in the reader\'s time zone', () => {
+    afterEach(() => {
+      vi.unstubAllEnvs();
+    });
+
+    it('stamps the receipt with the local date it was issued, not the UTC one', async () => {
+      vi.stubEnv('TZ', 'Asia/Jakarta');
+      // 01:30 on 3 November in Jakarta is still 2 November in UTC.
+      const late = { ...receipt, issuedAt: '2026-11-02T18:30:00Z', content: { ...content, issuedAt: '2026-11-02T18:30:00Z' } };
+      signedInAs(librarian, { 'GET /api/receipts/R-2026-000042': late });
+
+      renderApp('/receipts/R-2026-000042');
+
+      expect(await screen.findByRole('img', { name: 'Stamp: Community Library, Nov 3, 2026' })).toBeInTheDocument();
+    });
+  });
+
+  it('warns that a demo receipt is not a real loan record', async () => {
+    signedInAs(librarian, { 'GET /api/receipts/R-2026-000042': { ...receipt, content: { ...content, demo: true } } });
+
+    renderApp('/receipts/R-2026-000042');
+
+    expect(await screen.findByText('Demo receipt — not a real loan record. This app is a public demo.')).toBeInTheDocument();
+  });
+
+  it('does not show the demo warning on a real receipt', async () => {
+    signedInAs(librarian, { 'GET /api/receipts/R-2026-000042': { ...receipt, content: { ...content, demo: false } } });
+
+    renderApp('/receipts/R-2026-000042');
+
+    await screen.findByRole('heading', { name: /Loan receipt/ });
+    expect(screen.queryByText(/Demo receipt/)).not.toBeInTheDocument();
+  });
+
+  it('encodes the receipt number when asking the API for it', async () => {
+    const odd = { ...receipt, number: 'R/42' };
+    const fetchMock = signedInAs(librarian, { 'GET /api/receipts/R%2F42': odd });
+
+    renderApp('/receipts/R%2F42');
+
+    expect(await screen.findByText('R/42')).toBeInTheDocument();
+    expect(fetchMock.mock.calls.some(([url]) => String(url) === '/api/receipts/R%2F42')).toBe(true);
+    expect(screen.getByRole('link', { name: 'Download PDF' })).toHaveAttribute('href', '/api/receipts/R%2F42.pdf');
+  });
+
+  it('labels corrected late fees and the summary of older history', async () => {
+    const events = [
+      { type: 'OMITTED', status: 'ACTIVE', occurredAt: '2026-10-01T09:00:00Z', actor: 'system',
+        detail: '80 earlier entries; the library keeps the full history' },
+      { type: 'FINE_ADJUSTED', status: 'RETURNED', occurredAt: '2026-10-19T09:00:00Z', actor: 'lina', detail: 'Late fee cancelled' },
+    ];
+    signedInAs(librarian, { 'GET /api/receipts/R-2026-000042': { ...receipt, content: { ...content, events } } });
+
+    renderApp('/receipts/R-2026-000042');
+
+    const history = await screen.findByRole('table', { name: 'History' });
+    expect(within(history).getByText('Earlier entries').closest('tr')).toHaveTextContent('80 earlier entries; the library keeps the full history');
+    expect(within(history).getByText('Late fee corrected')).toBeInTheDocument();
+
+    act(() => setLanguage('id'));
+    expect(within(history).getByText('Riwayat sebelumnya')).toBeInTheDocument();
+    expect(within(history).getByText('Denda dikoreksi')).toBeInTheDocument();
+  });
+
   it('shows the receipt in Bahasa Indonesia', async () => {
     setLanguage('id');
     signedInAs(librarian, { 'GET /api/receipts/R-2026-000042': receipt });
@@ -115,6 +179,47 @@ describe('Checking a receipt (public)', () => {
     expect(fetchMock.mock.calls.some(([url]) => String(url) === '/api/receipts/verify/R-2026-000042?code=AbCdEfGhIjKl')).toBe(true);
     expect(screen.getByText('S**i R***a')).toBeInTheDocument();
     expect(screen.getByText('Bumi Manusia')).toBeInTheDocument();
+    const history = screen.getByRole('table', { name: 'History' });
+    expect(within(history).getAllByRole('columnheader').map((th) => th.textContent)).toEqual(['When', 'What happened']);
+    expect(screen.queryByText(/Demo receipt/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/A newer receipt exists/)).not.toBeInTheDocument();
+  });
+
+  it('warns that a demo receipt is not a real loan record', async () => {
+    mockFetch({
+      'GET /api/auth/me': () => problem(401, 'Not signed in'),
+      'GET /api/auth/demo': { enabled: false, registrationOpen: true, accounts: [] },
+      'GET /api/receipts/verify/R-2026-000042': verification({ demo: true, supersededBy: null }),
+    });
+
+    renderApp('/verify/R-2026-000042?code=AbCdEfGhIjKl');
+
+    expect(await screen.findByText('Demo receipt — not a real loan record. This app is a public demo.')).toBeInTheDocument();
+  });
+
+  it('points to a newer receipt for the same loan', async () => {
+    mockFetch({
+      'GET /api/auth/me': () => problem(401, 'Not signed in'),
+      'GET /api/auth/demo': { enabled: false, registrationOpen: true, accounts: [] },
+      'GET /api/receipts/verify/R-2026-000042': verification({ demo: false, supersededBy: 'R-2026-000057' }),
+    });
+
+    renderApp('/verify/R-2026-000042?code=AbCdEfGhIjKl');
+
+    expect(await screen.findByText('A newer receipt exists for this loan: R-2026-000057.')).toBeInTheDocument();
+  });
+
+  it('encodes the receipt number when asking the API to check it', async () => {
+    const fetchMock = mockFetch({
+      'GET /api/auth/me': () => problem(401, 'Not signed in'),
+      'GET /api/auth/demo': { enabled: false, registrationOpen: true, accounts: [] },
+      'GET /api/receipts/verify/R%2F42': verification({ number: 'R/42' }),
+    });
+
+    renderApp('/verify/R%2F42?code=AbCdEfGhIjKl');
+
+    expect(await screen.findByText('R/42')).toBeInTheDocument();
+    expect(fetchMock.mock.calls.some(([url]) => String(url) === '/api/receipts/verify/R%2F42?code=AbCdEfGhIjKl')).toBe(true);
   });
 
   it('warns loudly when the record does not match its signature', async () => {

@@ -142,6 +142,7 @@ environment variables:
 | `BOOK_COVERS`, `ISBN_LOOKUP_URL`, `ISBN_LOOKUP_TIMEOUT` | `true`, `https://openlibrary.org`, `5s` | Open Library covers and ISBN lookup (blank URL turns the lookup off) |
 | `LIBRARY_NAME`, `PUBLIC_URL` | `Community Library`, request address | Name on receipts and their stamp; base of the QR verification link |
 | `RECEIPT_PRIVATE_KEY`, `RECEIPT_PUBLIC_KEY` | generated, kept in the database | Ed25519 receipt signing key (base64 PKCS#8 / X.509); set both in production to keep the key out of the database |
+| `library.reports.max-csv-rows` | `20000` | Largest CSV export; a bigger range asks for a shorter one |
 | `FINE_PER_DAY`, `FINE_MAX_PER_LOAN`, `FINE_BLOCK_AT`, `FINE_CURRENCY` | `1000`, `30000`, `20000`, `IDR` | Late fees (whole currency units; `FINE_BLOCK_AT=0` never blocks) |
 | `LOAN_REMINDER_CRON` | `0 0 8 * * *` | Daily job: expire uncollected holds, due-soon / overdue reminders (`-` disables) |
 | `APP_BASE_URL` | `http://localhost:8080` | Used for links in emails / messages |
@@ -213,6 +214,16 @@ are replaced so user input cannot forge log lines.
 - Request DTOs with validation (clients cannot set ids, flags or audit fields); RFC 7807 errors without internals
 - Content-Security-Policy, `X-Frame-Options: DENY`, `nosniff`, strict referrer policy
 - Linking a walk-in card needs the card ID **and** matching email/phone; wrong attempts count towards the lockout
+- Lending is consistent under concurrent requests: every change to a loan, its copy or its fee takes
+  the book's (or fine's) row lock first and re-reads under it, at READ COMMITTED isolation (tested
+  with two threads against real MariaDB)
+- Receipts: a receipt opens only for the member named on it (or librarians); the signed text is bound
+  to its own row; with a configured signing key no other key is trusted; demo receipts are marked
+  and watermarked "DEMO - NOT A REAL RECEIPT"
+- CSV exports quote every text cell and neutralise formulas (also for `;`-separated Excel), and are
+  capped at 20,000 rows; ISBN lookups are cached and limited to 2 at a time
+- Privacy note: book covers load from Open Library / archive.org, which then see the visitor's IP
+  address and the ISBN; set `BOOK_COVERS=false` to turn covers off
 
 ## Project layout
 

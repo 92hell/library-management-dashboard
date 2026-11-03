@@ -3,7 +3,7 @@ package com.helmifr.library.report;
 import java.nio.charset.StandardCharsets;
 
 /**
- * Builds RFC 4180 CSV (CRLF line ends, fields quoted when needed) that opens safely in a spreadsheet:
+ * Builds RFC 4180 CSV (CRLF line ends, text always quoted) that opens safely in a spreadsheet:
  * a cell starting with = + - @ or a tab/CR is prefixed with ' so it is shown as text, not run as a
  * formula (OWASP "CSV injection"). Starts with a UTF-8 byte order mark so Excel reads names correctly.
  */
@@ -34,9 +34,8 @@ final class Csv {
         if (!(value instanceof Number) && !s.isEmpty() && "=+-@\t\r".indexOf(s.charAt(0)) >= 0) {
             s = "'" + s;
         }
-        if (s.contains(",") || s.contains("\"") || s.contains("\n") || s.contains("\r")) {
-            s = "\"" + s.replace("\"", "\"\"") + "\"";
-        }
-        return s;
+        // Text is always quoted: Excel in comma-decimal locales (e.g. Indonesian) splits on ';', and an
+        // unquoted "Budi;=cmd|..." would start a new cell with a formula.
+        return value instanceof Number ? s : "\"" + s.replace("\"", "\"\"") + "\"";
     }
 }

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link, Navigate, useNavigate, useParams } from 'react-router-dom';
 import { Button, Form, FormFeedback, FormGroup, FormText, Input, InputGroup, Label } from 'reactstrap';
 import { api } from '../api';
@@ -76,6 +76,13 @@ function BookForm({ book, readOnly }) {
   const { fieldErrors } = save;
   const t = useT();
 
+  // "Add the author" opens in another tab; coming back to this one picks up the new author.
+  const reloadAuthors = authors.reload;
+  useEffect(() => {
+    window.addEventListener('focus', reloadAuthors);
+    return () => window.removeEventListener('focus', reloadAuthors);
+  }, [reloadAuthors]);
+
   /** Fills the form from Open Library; what it does not know keeps the value already typed. */
   async function lookUp() {
     let found = null;
@@ -142,6 +149,7 @@ function BookForm({ book, readOnly }) {
               value={values.isbn}
               onChange={handleChange}
               invalid={Boolean(fieldErrors.isbn)}
+              aria-describedby={fieldErrors.isbn ? 'isbn-error' : 'isbn-hint'}
               autoComplete="off"
               inputMode="numeric"
             />
@@ -149,9 +157,13 @@ function BookForm({ book, readOnly }) {
               {t('Look up')}
             </Button>
           </InputGroup>
-          {fieldErrors.isbn && <FormFeedback className="d-block">{t(fieldErrors.isbn)}</FormFeedback>}
+          {fieldErrors.isbn && (
+            <FormFeedback id="isbn-error" className="d-block">
+              {t(fieldErrors.isbn)}
+            </FormFeedback>
+          )}
           {!fieldErrors.isbn && (
-            <FormText>{t('Optional. Look it up to fill in the details and show the cover from Open Library.')}</FormText>
+            <FormText id="isbn-hint">{t('Optional. Look it up to fill in the details and show the cover from Open Library.')}</FormText>
           )}
         </FormGroup>
         <ErrorAlert error={lookup.error} onDismiss={lookup.clearError} />
@@ -191,9 +203,9 @@ function BookForm({ book, readOnly }) {
           value={values.authorId}
           onChange={handleChange}
           error={t(fieldErrors.authorId)}
-          disabled={authors.loading}
+          disabled={!authors.data && authors.loading}
         >
-          <option value="">{authors.loading ? t('Loading authors…') : t('Select an author')}</option>
+          <option value="">{!authors.data && authors.loading ? t('Loading authors…') : t('Select an author')}</option>
           {authors.data?.map((author) => (
             <option key={author.id} value={author.id}>
               {author.name}
@@ -204,7 +216,9 @@ function BookForm({ book, readOnly }) {
           <p className="small text-muted mt-n2">
             {t('Open Library lists the author as “{name}”, who is not in the catalogue yet.', { name: missingAuthor })}{' '}
             {beforeLink}
-            <Link to="/authors/new">{t('Add the author')}</Link>
+            <Link to="/authors/new" target="_blank" rel="noopener">
+              {t('Add the author')}
+            </Link>
             {afterLink}
           </p>
         )}
@@ -219,13 +233,18 @@ function BookForm({ book, readOnly }) {
                 checked={values.categories.includes(category)}
                 onChange={() => toggleCategory(category)}
                 invalid={Boolean(fieldErrors.categories)}
+                aria-describedby={fieldErrors.categories ? 'categories-error' : undefined}
               />
               <Label check for={`category-${category}`}>
                 {category}
               </Label>
             </FormGroup>
           ))}
-          {fieldErrors.categories && <FormFeedback className="d-block">{t(fieldErrors.categories)}</FormFeedback>}
+          {fieldErrors.categories && (
+            <FormFeedback id="categories-error" className="d-block">
+              {t(fieldErrors.categories)}
+            </FormFeedback>
+          )}
         </FormGroup>
         <Field
           label={t('Description')}

@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom';
 import { Alert, Card, CardBody, Col, Row } from 'reactstrap';
 import { useAuth } from '../auth';
+import { ErrorAlert } from '../components/Feedback';
 import FineBalance from '../components/FineBalance';
 import { formatDate } from '../format';
 import { useApi } from '../hooks';
@@ -8,8 +9,8 @@ import { useT } from '../i18n';
 
 export default function CustomerHome() {
   const { user } = useAuth();
-  const { data: loans = [] } = useApi('/api/my/loans');
-  const { data: fines } = useApi('/api/my/fines');
+  const { data: loans = [], error: loansError } = useApi('/api/my/loans');
+  const { data: fines, error: finesError } = useApi('/api/my/fines');
   const active = loans.filter((loan) => loan.status === 'ACTIVE');
   const pending = loans.filter((loan) => ['PENDING', 'WAITLISTED'].includes(loan.status));
   const overdue = active.filter((loan) => loan.overdue);
@@ -20,6 +21,8 @@ export default function CustomerHome() {
     <>
       <h1 className="h3 mb-1">{t('Welcome, {name}', { name: user.displayName })}</h1>
       <p className="page-subtitle mb-4">{t('Good to see you at the library. Find your next read, or check on the ones you have.')}</p>
+      <ErrorAlert error={loansError} />
+      <ErrorAlert error={finesError} />
       {ready.length > 0 && (
         <Alert color="success">
           {t('Ready for pickup at the desk:')}{' '}

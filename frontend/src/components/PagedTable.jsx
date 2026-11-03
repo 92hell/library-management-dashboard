@@ -5,7 +5,8 @@ import Pager from './Pager';
 
 /**
  * Renders a list returned by usePagedList: loading and error states, an empty message,
- * the table itself and the pager. Pass `headers` and `emptyMessage` already translated.
+ * the table itself and the pager. Pass `headers` and `emptyMessage` already translated; a column
+ * without a visible heading still needs a name, e.g. <span className="visually-hidden">…</span>.
  */
 export default function PagedTable({ list, headers, renderRow, emptyMessage }) {
   const { data, error, loading, page, setPage } = list;
@@ -22,8 +23,8 @@ export default function PagedTable({ list, headers, renderRow, emptyMessage }) {
       <Table responsive hover className={`align-middle shadow-sm ${loading ? 'opacity-50' : ''}`} aria-busy={loading}>
         <thead className="table-library">
           <tr>
-            {headers.map((header) => (
-              <th key={header} scope="col">
+            {headers.map((header, i) => (
+              <th key={i} scope="col">
                 {header}
               </th>
             ))}

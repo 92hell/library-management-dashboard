@@ -60,14 +60,14 @@ class ReportQueries {
 
     long finesCharged(Instant from, Instant toExclusive) {
         return em.createQuery("SELECT COALESCE(SUM(f.amount), 0) FROM Fine f"
-                        + " WHERE f.createdAt >= :from AND f.createdAt < :to", Long.class)
+                        + " WHERE f.loan.deleted = false AND f.createdAt >= :from AND f.createdAt < :to", Long.class)
                 .setParameter("from", from).setParameter("to", toExclusive)
                 .getSingleResult();
     }
 
     long finesCollected(Instant from, Instant toExclusive) {
         return em.createQuery("SELECT COALESCE(SUM(f.amount), 0) FROM Fine f"
-                        + " WHERE f.status = com.helmifr.library.fine.FineStatus.PAID"
+                        + " WHERE f.loan.deleted = false AND f.status = com.helmifr.library.fine.FineStatus.PAID"
                         + " AND f.settledAt >= :from AND f.settledAt < :to", Long.class)
                 .setParameter("from", from).setParameter("to", toExclusive)
                 .getSingleResult();
@@ -91,10 +91,12 @@ class ReportQueries {
                 .getResultList();
     }
 
-    List<Loan> loansIn(ReportRange r) {
+    /** @param limit at most this many rows (the caller asks for one more to detect "too many") */
+    List<Loan> loansIn(ReportRange r, int limit) {
         return em.createQuery("SELECT l FROM Loan l JOIN FETCH l.book b JOIN FETCH b.author JOIN FETCH l.member"
                         + " LEFT JOIN FETCH l.copy WHERE " + BORROWED_IN + " ORDER BY l.borrowDate ASC, l.id ASC", Loan.class)
                 .setParameter("from", r.from()).setParameter("to", r.to())
+                .setMaxResults(limit)
                 .getResultList();
     }
 

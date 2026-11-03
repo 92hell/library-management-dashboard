@@ -69,13 +69,13 @@ public class MyLoanService {
     /** Cancels the member's own request, in the queue or set aside (the copy then goes to the next in line). */
     @Transactional
     public LoanResponse cancel(Long memberId, Long loanId) {
-        Loan loan = loans.findByIdAndMemberIdAndDeletedFalse(loanId, memberId)
-                .orElseThrow(() -> new NotFoundException("Loan", loanId));
+        loans.findByIdAndMemberIdAndDeletedFalse(loanId, memberId).orElseThrow(() -> new NotFoundException("Loan", loanId));
+        Loan loan = loanService.lockLoan(loanId);
         if (loan.getStatus() != LoanStatus.PENDING && loan.getStatus() != LoanStatus.WAITLISTED
                 && loan.getStatus() != LoanStatus.READY) {
             throw new ConflictException("Only requests that are not yet collected can be cancelled.");
         }
-        Book book = loanService.lockBook(loan.getBook().getId());
+        Book book = loan.getBook();
         boolean freesCopy = loan.getStatus() == LoanStatus.READY;
         loan.setStatus(LoanStatus.CANCELLED);
         loan.setReadyUntil(null);
@@ -90,8 +90,7 @@ public class MyLoanService {
     /** Renews the member's own loan (once, if nobody is waiting and it is not overdue). */
     @Transactional
     public LoanResponse renew(Long memberId, Long loanId) {
-        Loan loan = loans.findByIdAndMemberIdAndDeletedFalse(loanId, memberId)
-                .orElseThrow(() -> new NotFoundException("Loan", loanId));
-        return loanService.renew(loan);
+        loans.findByIdAndMemberIdAndDeletedFalse(loanId, memberId).orElseThrow(() -> new NotFoundException("Loan", loanId));
+        return loanService.renew(loanService.lockLoan(loanId));
     }
 }

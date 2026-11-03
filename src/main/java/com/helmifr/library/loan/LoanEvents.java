@@ -18,10 +18,22 @@ public class LoanEvents {
 
     private final LoanEventRepository events;
     private final Clock clock;
+    private final com.helmifr.library.account.UserAccountRepository accounts;
+
+    /**
+     * How the signed-in user is named in histories and on receipts: their display name (never the
+     * login), or "system" for scheduled jobs.
+     */
+    public String currentActorName() {
+        return CurrentUser.principal()
+                .flatMap(p -> accounts.findById(p.getId()))
+                .map(a -> a.getDisplayName() == null || a.getDisplayName().isBlank() ? "Library staff" : a.getDisplayName())
+                .map(name -> name.length() > 50 ? name.substring(0, 50) : name)
+                .orElse("system");
+    }
 
     public void record(Loan loan, LoanEventType type, String detail) {
-        String user = CurrentUser.username();
-        recordAt(loan, type, loan.getStatus(), detail, clock.instant(), "anonymous".equals(user) ? "system" : user);
+        recordAt(loan, type, loan.getStatus(), detail, clock.instant(), currentActorName());
     }
 
     /** An entry with an explicit time, status and actor: for importing or seeding past loans. */

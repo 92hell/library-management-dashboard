@@ -21,13 +21,14 @@ const REQUIRED = {
   username: msg('Username is required.'),
 };
 
-function validate(values, t) {
+/** Client-side checks; the messages are translated where they are shown, so they follow a language switch. */
+function validate(values) {
   const errors = {};
   for (const [field, message] of Object.entries(REQUIRED)) {
-    if (!values[field].trim()) errors[field] = t(message);
+    if (!values[field].trim()) errors[field] = message;
   }
-  if (values.password.length < 10) errors.password = t('Use at least 10 characters.');
-  if (values.hasCard && !values.libraryCardId.trim()) errors.libraryCardId = t('Enter the ID printed on your library card.');
+  if (values.password.length < 10) errors.password = msg('Use at least 10 characters.');
+  if (values.hasCard && !values.libraryCardId.trim()) errors.libraryCardId = msg('Enter the ID printed on your library card.');
   return errors;
 }
 
@@ -94,7 +95,7 @@ export default function Register() {
     const ok = await submit.run(async () => {
       await api.post('/api/auth/register', body);
       await login(body.username, body.password);
-    }, validate(values, t));
+    }, validate(values));
     if (ok) navigate('/', { replace: true });
   }
 
@@ -111,22 +112,22 @@ export default function Register() {
             </div>
             <ErrorAlert error={Object.keys(fieldErrors).length ? null : submit.error} onDismiss={submit.clearError} />
             <Form onSubmit={handleSubmit} noValidate>
-              <Field label={t('Full name')} name="name" value={values.name} onChange={handleChange} error={fieldErrors.name} autoComplete="name" />
+              <Field label={t('Full name')} name="name" value={values.name} onChange={handleChange} error={t(fieldErrors.name)} autoComplete="name" />
               <Row>
                 <Col md={7}>
-                  <Field label={t('Email')} name="email" type="email" value={values.email} onChange={handleChange} error={fieldErrors.email} autoComplete="email" />
+                  <Field label={t('Email')} name="email" type="email" value={values.email} onChange={handleChange} error={t(fieldErrors.email)} autoComplete="email" />
                 </Col>
                 <Col md={5}>
-                  <Field label={t('Phone')} name="phone" type="tel" value={values.phone} onChange={handleChange} error={fieldErrors.phone} autoComplete="tel" />
+                  <Field label={t('Phone')} name="phone" type="tel" value={values.phone} onChange={handleChange} error={t(fieldErrors.phone)} autoComplete="tel" />
                 </Col>
               </Row>
-              <Field label={t('Date of birth')} name="dateOfBirth" type="date" value={values.dateOfBirth} onChange={handleChange} error={fieldErrors.dateOfBirth} />
+              <Field label={t('Date of birth')} name="dateOfBirth" type="date" value={values.dateOfBirth} onChange={handleChange} error={t(fieldErrors.dateOfBirth)} />
               <Row>
                 <Col md={6}>
-                  <Field label={t('Username')} name="username" value={values.username} onChange={handleChange} error={fieldErrors.username} autoComplete="username" />
+                  <Field label={t('Username')} name="username" value={values.username} onChange={handleChange} error={t(fieldErrors.username)} autoComplete="username" />
                 </Col>
                 <Col md={6}>
-                  <Field label={t('Password')} name="password" type="password" value={values.password} onChange={handleChange} error={fieldErrors.password} autoComplete="new-password" />
+                  <Field label={t('Password')} name="password" type="password" value={values.password} onChange={handleChange} error={t(fieldErrors.password)} autoComplete="new-password" />
                 </Col>
               </Row>
               <FormGroup check className="mb-3">
@@ -143,7 +144,7 @@ export default function Register() {
                   hint={t('We match it with the email or phone number the library has on file.')}
                   value={values.libraryCardId}
                   onChange={handleChange}
-                  error={fieldErrors.libraryCardId}
+                  error={t(fieldErrors.libraryCardId)}
                 />
               )}
               <Button color="primary" type="submit" className="w-100" disabled={submit.pending}>

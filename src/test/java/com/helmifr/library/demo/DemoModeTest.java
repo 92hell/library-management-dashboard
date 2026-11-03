@@ -134,4 +134,25 @@ class DemoModeTest {
 
     @Autowired com.helmifr.library.receipt.ReceiptRepository receipts;
     @Autowired com.helmifr.library.loan.LoanEventRepository loanEvents;
+
+    @Test
+    @DisplayName("receipts issued by the public demo say so: marked as demo and watermarked in the PDF")
+    void demoReceiptsMarked() throws Exception {
+        var book = data.book("Demo receipt book");
+        String created = api.as(demoLibrarian).post("/api/borrowed-books",
+                        "{\"bookId\": %d, \"memberId\": %d}".formatted(book.getId(), demoCustomer.getMember().getId()))
+                .andReturn().getResponse().getContentAsString();
+        long loanId = com.jayway.jsonpath.JsonPath.parse(created).read("$.id", Long.class);
+        String receipt = api.as(demoLibrarian).post("/api/borrowed-books/" + loanId + "/receipt")
+                .andReturn().getResponse().getContentAsString();
+        String number = com.jayway.jsonpath.JsonPath.read(receipt, "$.number");
+        String code = com.jayway.jsonpath.JsonPath.read(receipt, "$.verifyCode");
+
+        assertThat((Boolean) com.jayway.jsonpath.JsonPath.read(receipt, "$.content.demo")).isTrue();
+        api.anonymous().get("/api/receipts/verify/" + number, "code", code)
+                .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath("$.demo").value(true));
+        byte[] pdf = api.as(demoLibrarian).get("/api/receipts/" + number + ".pdf").andReturn().getResponse().getContentAsByteArray();
+        String text = new com.lowagie.text.pdf.parser.PdfTextExtractor(new com.lowagie.text.pdf.PdfReader(pdf)).getTextFromPage(1);
+        assertThat(text).contains("DEMO - NOT A REAL RECEIPT");
+    }
 }

@@ -166,9 +166,10 @@ class ReportsTest {
         String csv = new String(response.getContentAsByteArray(), StandardCharsets.UTF_8);
 
         org.assertj.core.api.Assertions.assertThat(csv)
-                .startsWith("﻿Loan ID,Borrowed,Due,Returned,Status,Days late,Title,Author,Copy barcode,Member,Library card ID\r\n")
+                .startsWith("\uFEFF\"Loan ID\",\"Borrowed\",\"Due\",\"Returned\",\"Status\",\"Days late\",\"Title\","
+                        + "\"Author\",\"Copy barcode\",\"Member\",\"Library card ID\"\r\n")
                 .contains(",\"Rahman, Budi\",")
-                .contains(",4,Laskar Pelangi,")
+                .contains(",4,\"Laskar Pelangi\",")
                 .contains("\"'=HYPERLINK(\"\"http://evil\"\",\"\"Click\"\")\"")
                 .doesNotContain(",=HYPERLINK");
         org.assertj.core.api.Assertions.assertThat(csv.split("\r\n")).hasSize(3);
@@ -181,8 +182,8 @@ class ReportsTest {
 
         api.as(librarian).get("/api/reports/most-borrowed.csv")
                 .andExpect(status().isOk())
-                .andExpect(content().string(containsString("Rank,Title,Author,Loans\r\n1,Laskar Pelangi,")))
-                .andExpect(content().string(containsString("2,Bumi Manusia,")));
+                .andExpect(content().string(containsString("\"Rank\",\"Title\",\"Author\",\"Loans\"\r\n1,\"Laskar Pelangi\",")))
+                .andExpect(content().string(containsString("2,\"Bumi Manusia\",")));
     }
 
     @Test

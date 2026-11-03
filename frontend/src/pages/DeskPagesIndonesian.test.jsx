@@ -32,10 +32,10 @@ describe('Desk pages in Bahasa Indonesia', () => {
 
     const row = (await screen.findByText('Bumi Manusia')).closest('tr');
     expect(screen.getByRole('heading', { name: 'Peminjaman' })).toBeInTheDocument();
-    expect(screen.getByRole('option', { name: 'Permintaan menunggu' })).toHaveValue('pending');
+    expect(screen.getByRole('option', { name: 'Menunggu persetujuan' })).toHaveValue('pending');
     expect(screen.getByRole('option', { name: 'Siap diambil' })).toHaveValue('ready');
-    expect(screen.getByRole('columnheader', { name: 'Dipinjam pada' })).toBeInTheDocument();
-    expect(row.querySelectorAll('td')[2]).toHaveTextContent('Diminta');
+    expect(screen.getByRole('columnheader', { name: 'Tanggal pinjam' })).toBeInTheDocument();
+    expect(row.querySelectorAll('td')[2]).toHaveTextContent('Diajukan');
     expect(within(row).getByRole('button', { name: 'Setujui' })).toBeInTheDocument();
     expect(within(row).getByRole('button', { name: 'Tolak' })).toBeInTheDocument();
     expect(screen.getByLabelText('Kembalikan dengan barkode')).toBeInTheDocument();
@@ -64,11 +64,11 @@ describe('Desk pages in Bahasa Indonesia', () => {
     renderApp('/');
 
     expect(await screen.findByRole('heading', { name: 'Selamat datang, Lina' })).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: /2\s*Permintaan menunggu/ })).toHaveAttribute('href', '/borrowed-books?status=pending');
+    expect(screen.getByRole('link', { name: /2\s*Menunggu persetujuan/ })).toHaveAttribute('href', '/borrowed-books?status=pending');
     expect(screen.getByRole('link', { name: /1\s*Peminjaman terlambat/ })).toHaveAttribute('href', '/borrowed-books?status=overdue');
     expect(screen.getByRole('link', { name: /0\s*Jatuh tempo hari ini/ })).toBeInTheDocument();
     expect(screen.getByRole('link', { name: /4\s*Buku dipinjam/ })).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: /IDR 6\.000\s*Denda belum dibayar/ })).toHaveAttribute('href', '/fines');
+    expect(screen.getByRole('link', { name: /Rp6\.000\s*Denda belum dibayar/ })).toHaveAttribute('href', '/fines');
     expect(screen.getByRole('link', { name: 'Pinjamkan buku di meja layanan' })).toHaveAttribute('href', '/borrowed-books/new');
   });
 
@@ -80,12 +80,12 @@ describe('Desk pages in Bahasa Indonesia', () => {
     renderApp('/fines');
 
     const row = (await screen.findByText('Anak Semua Bangsa')).closest('tr');
-    expect(row).toHaveTextContent(/Siti.*LIB-000007.*3 hari terlambat.*IDR 3\.000.*Belum dibayar/);
+    expect(row).toHaveTextContent(/Siti.*LIB-000007.*terlambat 3 hari.*Rp3\.000.*Belum dibayar/);
     expect(screen.getByRole('option', { name: 'Belum dibayar' })).toHaveValue('UNPAID');
     expect(screen.getByRole('option', { name: 'Dihapuskan' })).toHaveValue('WAIVED');
     expect(within(row).getByRole('button', { name: 'Hapuskan' })).toBeInTheDocument();
     await userEvent.click(within(row).getByRole('button', { name: 'Catat pembayaran' }));
-    expect(window.confirm).toHaveBeenCalledWith('Catat bahwa Siti telah membayar IDR 3.000 untuk "Anak Semua Bangsa"?');
+    expect(window.confirm).toHaveBeenCalledWith('Catat bahwa Siti telah membayar Rp3.000 untuk "Anak Semua Bangsa"?');
   });
 
   it('says who waived a fine in Indonesian', async () => {
@@ -126,7 +126,7 @@ describe('Desk pages in Bahasa Indonesia', () => {
     expect(await screen.findByText('Buku dipinjamkan')).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: 'Laporan' })).toBeInTheDocument();
     expect(screen.getByText('Dikembalikan terlambat').closest('.card')).toHaveTextContent(/67%.*2 dari 3 peminjaman yang jatuh tempo/);
-    expect(screen.getByText('Denda dikenakan').closest('.card')).toHaveTextContent(/IDR 7\.000.*IDR 4\.000 terkumpul/);
+    expect(screen.getByText('Denda dikenakan').closest('.card')).toHaveTextContent(/Rp7\.000.*Rp4\.000 terkumpul/);
     expect(screen.getByText('Anggota aktif').closest('.card')).toHaveTextContent('2 baru');
     expect(screen.getByLabelText('Dari')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: '30 hari terakhir' })).toBeInTheDocument();

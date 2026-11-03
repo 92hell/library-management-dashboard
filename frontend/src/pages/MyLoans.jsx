@@ -1,5 +1,6 @@
 import { useNavigate } from 'react-router-dom';
 import { Button, Table } from 'reactstrap';
+import { focusPageHeading } from '../a11y';
 import { api } from '../api';
 import { ErrorAlert, Loading } from '../components/Feedback';
 import BookCover from '../components/BookCover';
@@ -23,7 +24,10 @@ export default function MyLoans() {
         ? t('Cancel the copy set aside for you for "{title}"?', { title })
         : t('Cancel your request for "{title}"?', { title });
     if (!window.confirm(question)) return;
-    if (await action.run(() => api.post(`/api/my/loans/${loan.id}/cancel`))) loans.reload();
+    if (await action.run(() => api.post(`/api/my/loans/${loan.id}/cancel`))) {
+      loans.reload();
+      focusPageHeading();
+    }
   }
 
   /** Issues (or reuses) the receipt for this loan and opens it for printing. */
@@ -35,7 +39,10 @@ export default function MyLoans() {
   }
 
   async function renew(loan) {
-    if (await action.run(() => api.post(`/api/my/loans/${loan.id}/renew`))) loans.reload();
+    if (await action.run(() => api.post(`/api/my/loans/${loan.id}/renew`))) {
+      loans.reload();
+      focusPageHeading();
+    }
   }
 
   if (loans.error) return <ErrorAlert error={loans.error} />;
@@ -44,6 +51,7 @@ export default function MyLoans() {
   return (
     <>
       <h1 className="h3 mb-3 page-title">{t('My loans')}</h1>
+      <ErrorAlert error={fines.error} />
       <FineBalance fines={fines.data} />
       <ErrorAlert error={action.error} onDismiss={action.clearError} />
       {loans.data.length === 0 ? (
