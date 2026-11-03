@@ -1,7 +1,7 @@
-import { Table } from 'reactstrap';
 import { useT } from '../i18n';
 import { ErrorAlert, Loading } from './Feedback';
 import Pager from './Pager';
+import ResponsiveTable from './ResponsiveTable';
 
 /**
  * Renders a list returned by usePagedList: loading and error states, an empty message,
@@ -20,7 +20,7 @@ export default function PagedTable({ list, headers, renderRow, emptyMessage }) {
 
   return (
     <>
-      <Table responsive hover className={`align-middle shadow-sm ${loading ? 'opacity-50' : ''}`} aria-busy={loading}>
+      <ResponsiveTable responsive hover className={`align-middle shadow-sm ${loading ? 'opacity-50' : ''}`} aria-busy={loading}>
         <thead className="table-library">
           <tr>
             {headers.map((header, i) => (
@@ -31,7 +31,7 @@ export default function PagedTable({ list, headers, renderRow, emptyMessage }) {
           </tr>
         </thead>
         <tbody>{data.content.map(renderRow)}</tbody>
-      </Table>
+      </ResponsiveTable>
       <div className="d-flex flex-column flex-sm-row align-items-center justify-content-between gap-2">
         <span className="text-muted small">{t('{count} total', { count: data.totalElements })}</span>
         <Pager page={page} totalPages={data.totalPages} onPageChange={setPage} />

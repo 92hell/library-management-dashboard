@@ -19,9 +19,19 @@ export default defineConfig({
   projects: [
     {
       name: 'chromium',
+      testIgnore: /mobile\.spec\.js/,
       use: {
         ...devices['Desktop Chrome'],
         // Lets a machine with a preinstalled Chromium skip `playwright install`.
+        ...(process.env.PW_CHROMIUM_PATH ? { launchOptions: { executablePath: process.env.PW_CHROMIUM_PATH } } : {}),
+      },
+    },
+    {
+      // Phone-sized checks (mobile.spec.js). Pixel 7 runs on Chromium, the browser CI installs.
+      name: 'phone',
+      testMatch: /mobile\.spec\.js/,
+      use: {
+        ...devices['Pixel 7'],
         ...(process.env.PW_CHROMIUM_PATH ? { launchOptions: { executablePath: process.env.PW_CHROMIUM_PATH } } : {}),
       },
     },

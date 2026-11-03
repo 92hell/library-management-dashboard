@@ -1,11 +1,12 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Button, ButtonGroup, Card, CardBody, Col, Input, Label, Row, Table } from 'reactstrap';
+import { Button, ButtonGroup, Card, CardBody, Col, Input, Label, Row } from 'reactstrap';
 import { buildUrl } from '../api';
 import { ErrorAlert, Loading } from '../components/Feedback';
 import { formatDate, formatMoney, formatNumber, todayIso } from '../format';
 import { useApi, useDebouncedValue } from '../hooks';
 import { msg, useT } from '../i18n';
+import ResponsiveTable from '../components/ResponsiveTable';
 
 /** "YYYY-MM-DD" for `days` days before today. */
 function daysAgoIso(days) {
@@ -167,7 +168,7 @@ function Ranking({ id, title, headers, empty, children }) {
       {children.length === 0 ? (
         <p className="empty-state">{empty}</p>
       ) : (
-        <Table responsive className="align-middle shadow-sm" aria-labelledby={`${id}-heading`}>
+        <ResponsiveTable responsive className="align-middle shadow-sm" aria-labelledby={`${id}-heading`}>
           <thead className="table-library">
             <tr>
               {headers.map((h) => (
@@ -178,7 +179,7 @@ function Ranking({ id, title, headers, empty, children }) {
             </tr>
           </thead>
           <tbody>{children}</tbody>
-        </Table>
+        </ResponsiveTable>
       )}
     </section>
   );

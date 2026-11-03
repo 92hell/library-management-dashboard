@@ -7,7 +7,7 @@ Run everything: `mvn clean verify` (backend; add `-Pmariadb` to run it on MariaD
 `cd frontend && npm test` (frontend), and after `mvn -Pfullstack package` also
 `cd e2e && npm test` (end-to-end, in a real browser).
 
-Totals: 215 backend test methods (parameterised ones run once per case), 144 frontend tests, 12 end-to-end journeys.
+Totals: 215 backend test methods (parameterised ones run once per case), 146 frontend tests, 14 end-to-end journeys.
 
 ## Backend (JUnit, `src/test/java`)
 
@@ -462,6 +462,13 @@ live in `support/`.
 - customers opening a staff page are sent to their home page
 - after logging out, the next sign-in starts on the home page, not the previous user\'s page
 
+### `frontend/src/components/ResponsiveTable.test.jsx`
+
+**ResponsiveTable**
+
+- labels every cell with its column header, so rows can be shown as cards on phones
+- keeps the labels in step when the headers change (e.g. a language switch)
+
 ### `frontend/src/format.test.js`
 
 **Formatting**
@@ -723,6 +730,11 @@ creates its own uniquely named data through the API, then works through the UI.
 
 - a late return by barcode charges a fee, which the librarian records as paid
 - reports show the period and download a CSV of loans
+
+### `e2e/tests/mobile.spec.js`
+
+- a member can use every page on a phone
+- a librarian can work the desk on a phone
 
 ### `e2e/tests/receipts.spec.js`
 

@@ -37,6 +37,6 @@ Items marked *(hook ready)* already have an extension point in the code.
 
 - Rate limiting on all public endpoints; distributed lockout store (Redis) for several instances
 - Structured JSON logs and metrics (Micrometer + Prometheus/Grafana); alerting on error rate
-- End-to-end: more journeys (registration and card linking, notifications), mobile viewport
+- End-to-end: more journeys (registration and card linking, notifications)
 - Manual screen-reader pass (NVDA / VoiceOver) beyond the automated WCAG checks
 - Deployment: container registry + one-click deploy (Render / Fly.io / Railway), HTTPS, backups

@@ -1,5 +1,5 @@
 import { Link, useParams } from 'react-router-dom';
-import { Button, Table } from 'reactstrap';
+import { Button } from 'reactstrap';
 import { useAuth } from '../auth';
 import { ErrorAlert, Loading } from '../components/Feedback';
 import QrCode from '../components/QrCode';
@@ -8,6 +8,7 @@ import { EVENT_LABELS, FINE_LABELS, STATUS_LABELS } from '../components/receiptL
 import { formatDate, formatMoney, localIsoDate } from '../format';
 import { locale, useT } from '../i18n';
 import { useApi } from '../hooks';
+import ResponsiveTable from '../components/ResponsiveTable';
 
 /** "3 Nov 2026, 15.00" in the reader's time zone. */
 export function formatInstant(iso) {
@@ -96,7 +97,7 @@ export default function ReceiptPage() {
         <h2 id="receipt-history" className="h6 mt-4">
           {t('History')}
         </h2>
-        <Table size="sm" className="receipt-history" aria-labelledby="receipt-history">
+        <ResponsiveTable size="sm" className="receipt-history" aria-labelledby="receipt-history">
           <thead>
             <tr>
               <th scope="col">{t('When')}</th>
@@ -115,7 +116,7 @@ export default function ReceiptPage() {
               </tr>
             ))}
           </tbody>
-        </Table>
+        </ResponsiveTable>
         <footer className="receipt-signature small">
           <p className="mb-1">
             {t('Digitally signed with {algorithm} (key {keyId}). SHA-256 of the signed record:', { algorithm: r.algorithm, keyId: r.keyId })}

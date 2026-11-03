@@ -50,6 +50,8 @@ React 18 · Vite · React Router 6 · Bootstrap 5 / reactstrap.
   `Accept-Language`; Indonesian server texts are in `src/main/resources/i18n/messages_id.json` and
   `ValidationMessages_id.properties`, and a test fails when one is missing. Emails and the history
   lines on signed receipts stay in English.
+- Works on phones: lists turn into cards with their buttons in reach; the browser tests check every
+  page at phone size (no sideways scrolling, nothing off screen)
 - Accessibility: WCAG 2.1 AA checked automatically (axe) on every main page in the browser tests;
   skip link, focus moves to the page on navigation, form errors and hints read with their field
 
