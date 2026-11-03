@@ -1,0 +1,11 @@
+/* Tables fade while the next page loads in the background. */
+.table {
+  transition: opacity 0.15s ease-in-out;
+}
+
+/* Read-only forms render disabled inputs; keep them legible rather than greyed out. */
+fieldset:disabled .form-control,
+fieldset:disabled .form-select {
+  background-color: var(--bs-tertiary-bg);
+  opacity: 1;
+}
