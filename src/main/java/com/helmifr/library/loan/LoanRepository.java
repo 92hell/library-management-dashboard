@@ -8,6 +8,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
@@ -154,4 +155,20 @@ public interface LoanRepository extends JpaRepository<Loan, Long> {
 
     @Query("SELECT COUNT(l) FROM Loan l WHERE l.deleted = false AND l.status = " + ACTIVE + " AND l.dueDate = :day")
     long countDueOn(@Param("day") LocalDate day);
+
+    // ---- Merging duplicate members ------------------------------------------------------------
+
+    /** Books the member has any loan record of (to lock before moving those loans). */
+    @Query("SELECT DISTINCT l.book.id FROM Loan l WHERE l.member.id = :memberId")
+    List<Long> findBookIdsOfMember(@Param("memberId") Long memberId);
+
+    /** Titles both members have an open request or loan for. */
+    @Query("SELECT DISTINCT a.book.title FROM Loan a, Loan b WHERE a.member.id = :one AND b.member.id = :other"
+            + " AND a.book = b.book AND a.deleted = false AND b.deleted = false"
+            + " AND a.status IN " + OPEN + " AND b.status IN " + OPEN)
+    List<String> findTitlesOpenForBoth(@Param("one") Long one, @Param("other") Long other);
+
+    @Modifying(flushAutomatically = true, clearAutomatically = true)
+    @Query("UPDATE Loan l SET l.member.id = :to WHERE l.member.id = :from")
+    int moveAllToMember(@Param("from") Long from, @Param("to") Long to);
 }

@@ -39,9 +39,10 @@ public class HoldQueue {
     public void serve(Book book) {
         List<Loan> queue = loans.findQueue(book.getId());
         for (Loan next : queue) {
-            // Members who could not collect (inactive card, unpaid fines) keep their place but are
-            // skipped; they are served again when that changes (see onFinesSettled).
-            if (!next.getMember().isActive() || !fines.canBorrow(next.getMember())) {
+            // Members who could not collect (inactive or expired card, unpaid fines) keep their place
+            // but are skipped; they are served again when that changes (onFinesSettled, onCardRenewed).
+            if (!next.getMember().isActive() || next.getMember().cardExpiredOn(LocalDate.now(clock))
+                    || !fines.canBorrow(next.getMember())) {
                 continue;
             }
             Optional<Copy> free = freeCopy(book);
@@ -78,6 +79,14 @@ public class HoldQueue {
     @EventListener
     @Transactional
     public void onFinesSettled(com.helmifr.library.fine.FinesSettled event) {
+        loans.findWaitlistedBooksOfMember(event.memberId()).forEach(bookId ->
+                books.findActiveForUpdate(bookId).ifPresent(this::serve));
+    }
+
+    /** A member's expired card was renewed: serve the titles they are queued for. */
+    @EventListener
+    @Transactional
+    public void onCardRenewed(com.helmifr.library.member.CardRenewed event) {
         loans.findWaitlistedBooksOfMember(event.memberId()).forEach(bookId ->
                 books.findActiveForUpdate(bookId).ifPresent(this::serve));
     }

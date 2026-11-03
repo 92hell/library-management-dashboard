@@ -1,5 +1,6 @@
 package com.helmifr.library.report;
 
+import com.helmifr.library.common.FieldValidationException;
 import com.helmifr.library.fine.FinePolicy;
 import com.helmifr.library.loan.Loan;
 import com.helmifr.library.loan.LoanStatus;
@@ -44,7 +45,9 @@ public class ReportService {
         return new Summary(r.from(), r.to(), queries.loans(r), queries.returns(r), due, late, lateRate,
                 queries.activeMembers(r), queries.newMembers(start, end), queries.finesCharged(start, end),
                 queries.finesCollected(start, end), finePolicy.currency(),
-                queries.mostBorrowed(r, TOP), queries.mostActiveMembers(r, TOP));
+                queries.mostBorrowed(r, TOP), queries.mostActiveMembers(r, TOP),
+                Trends.weekly(r, queries.loansPerDay(r)),
+                Trends.monthly(r, queries.returnsPerDay(r, false), queries.returnsPerDay(r, true)));
     }
 
     public byte[] loansCsv(ReportRange r) {
@@ -53,8 +56,9 @@ public class ReportService {
                 "Copy barcode", "Member", "Library card ID");
         List<Loan> rows = queries.loansIn(r, maxCsvRows + 1);
         if (rows.size() > maxCsvRows) {
-            throw new com.helmifr.library.common.FieldValidationException("from",
-                    "More than %,d loans in this range; please choose a shorter range".formatted(maxCsvRows));
+            String limit = "%,d".formatted(maxCsvRows);
+            throw new FieldValidationException("from", "More than {0} loans in this range; please choose a shorter range",
+                    limit);
         }
         for (Loan l : rows) {
             csv.row(l.getId(), l.getBorrowDate(), l.getDueDate(), l.getReturnDate(), l.getStatus(), daysLate(l, today),

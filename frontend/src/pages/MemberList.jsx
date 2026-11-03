@@ -73,6 +73,11 @@ export default function MemberList() {
                 </td>
                 <td>
                   <Badge color={member.active ? 'success' : 'secondary'}>{member.active ? t('Active') : t('Inactive')}</Badge>
+                  {member.cardExpired && (
+                    <Badge color="danger" className="ms-1">
+                      {t('Card expired')}
+                    </Badge>
+                  )}
                 </td>
                 <td>
                   <Button

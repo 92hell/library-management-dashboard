@@ -29,9 +29,16 @@ public class Api {
         return new Caller(account);
     }
 
+    /**
+     * A visitor who is not signed in, from a network address of its own: per-address limits
+     * (login lockout, sign-up cap) then never carry over from one test to another. Tests of those
+     * limits set the address themselves.
+     */
     public Caller anonymous() {
         return new Caller(null);
     }
+
+    private static final java.util.concurrent.atomic.AtomicInteger VISITORS = new java.util.concurrent.atomic.AtomicInteger();
 
     public final class Caller {
         private final UserAccount account;
@@ -69,6 +76,14 @@ public class Api {
             request.with(csrf());
             if (account != null) {
                 request.with(user(new AccountPrincipal(account)));
+            } else {
+                int n = VISITORS.incrementAndGet();
+                String address = "192.0.2." + (n % 250 + 1);
+                String unique = "2001:db8::" + Integer.toHexString(n);
+                request.with(r -> {
+                    r.setRemoteAddr(n <= 250 ? address : unique);
+                    return r;
+                });
             }
             return mvc.perform(request);
         }

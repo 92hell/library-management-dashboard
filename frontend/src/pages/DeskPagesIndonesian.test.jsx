@@ -5,6 +5,9 @@ import { setLanguage } from '../i18n';
 import { librarian, loan, page, renderApp, signedInAs } from '../test/utils';
 
 const fine = {
+  paidAmount: 0,
+  outstanding: 3000,
+  payments: [],
   id: 5,
   loanId: 30,
   book: { id: 3, title: 'Anak Semua Bangsa' },
@@ -73,7 +76,7 @@ describe('Desk pages in Bahasa Indonesia', () => {
   });
 
   it('runs the fines desk in Indonesian, amounts included', async () => {
-    vi.spyOn(window, 'confirm').mockReturnValue(false);
+    vi.spyOn(window, 'prompt').mockReturnValue(null);
     signedInAs(librarian, { 'GET /api/fines': page([fine]) });
     setLanguage('id');
 
@@ -85,7 +88,7 @@ describe('Desk pages in Bahasa Indonesia', () => {
     expect(screen.getByRole('option', { name: 'Dihapuskan' })).toHaveValue('WAIVED');
     expect(within(row).getByRole('button', { name: 'Hapuskan' })).toBeInTheDocument();
     await userEvent.click(within(row).getByRole('button', { name: 'Catat pembayaran' }));
-    expect(window.confirm).toHaveBeenCalledWith('Catat bahwa Siti telah membayar Rp3.000 untuk "Anak Semua Bangsa"?');
+    expect(window.prompt).toHaveBeenCalledWith('Berapa yang dibayar Siti untuk "Anak Semua Bangsa"? Sisa: Rp3.000', '3000');
   });
 
   it('says who waived a fine in Indonesian', async () => {
@@ -117,15 +120,18 @@ describe('Desk pages in Bahasa Indonesia', () => {
         currency: 'IDR',
         mostBorrowed: [{ bookId: 3, title: 'Laskar Pelangi', authorName: 'Andrea Hirata', loans: 4 }],
         mostActiveMembers: [],
+        weekly: [{ start: '2026-10-05', end: '2026-10-11', loans: 12 }],
+        monthly: [{ start: '2026-10-05', end: '2026-10-31', onTime: 7, late: 2 }],
       },
     });
     setLanguage('id');
 
     renderApp('/reports');
 
-    expect(await screen.findByText('Buku dipinjamkan')).toBeInTheDocument();
+    const tile = (label) => screen.getAllByText(label).find((el) => el.closest('.tile')).closest('.card');
+    expect((await screen.findAllByText('Buku dipinjamkan')).length).toBeGreaterThan(0);
     expect(screen.getByRole('heading', { name: 'Laporan' })).toBeInTheDocument();
-    expect(screen.getByText('Dikembalikan terlambat').closest('.card')).toHaveTextContent(/67%.*2 dari 3 peminjaman yang jatuh tempo/);
+    expect(tile('Dikembalikan terlambat')).toHaveTextContent(/67%.*2 dari 3 peminjaman yang jatuh tempo/);
     expect(screen.getByText('Denda dikenakan').closest('.card')).toHaveTextContent(/Rp7\.000.*Rp4\.000 terkumpul/);
     expect(screen.getByText('Anggota aktif').closest('.card')).toHaveTextContent('2 baru');
     expect(screen.getByLabelText('Dari')).toBeInTheDocument();

@@ -17,6 +17,9 @@
   --lib-green-dark: #1f3d34;
   --lib-burgundy: #8b2e2e;
   --lib-brass: #b08d57;
+  /* Chart series (checked for colour-blind separation and contrast on the card colour). */
+  --chart-1: #0f7d58;
+  --chart-2: #c8741e;
 
   --bs-body-bg: var(--lib-paper);
   --bs-body-color: var(--lib-ink);
@@ -232,3 +235,44 @@ main:focus { outline: none; }
   .receipt { border: none; box-shadow: none; padding: 0; background: #fff; }
   .receipt-stamp { opacity: 1; }
 }
+
+/* ---- Tables on phones: each row becomes a card (ResponsiveTable) ------------------------------ */
+@media screen and (max-width: 767.98px) {
+  .receipt { padding: 1.1rem; }
+  .receipt-details { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.15rem 1rem; }
+  .table-stack thead {
+    position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap;
+  }
+  .table-stack, .table-stack tbody, .table-stack tr, .table-stack td { display: block; width: 100%; }
+  .table-stack { box-shadow: none !important; background: transparent; }
+  .table-stack tr {
+    background: var(--lib-card); border: 1px solid var(--lib-rule); border-radius: 0.6rem;
+    padding: 0.6rem 0.85rem; margin-bottom: 0.75rem; box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+  }
+  .table-stack > :not(caption) > * > * { border-bottom-width: 0; background: transparent; box-shadow: none; }
+  .table-stack td { padding: 0.3rem 0; display: flex; gap: 1rem; justify-content: space-between; align-items: baseline; text-align: right; }
+  .table-stack td[data-label]::before {
+    content: attr(data-label); flex: 0 0 auto; text-align: left; font-size: 0.75rem; font-weight: 600;
+    text-transform: uppercase; letter-spacing: 0.04em; color: var(--lib-muted);
+  }
+  .table-stack td:not([data-label]) { justify-content: flex-start; text-align: left; }
+  .table-stack td.table-stack-title { font-size: 1.02rem; padding-bottom: 0.55rem; margin-bottom: 0.2rem; border-bottom: 1px solid var(--lib-rule); }
+  .table-stack td:empty { display: none; }
+  .table-stack td.table-stack-actions { flex-wrap: wrap; gap: 0.4rem; padding-top: 0.6rem; margin-top: 0.3rem; border-top: 1px dashed var(--lib-rule); }
+  .table-stack td.table-stack-actions .btn-group { flex-wrap: wrap; gap: 0.4rem; }
+  .table-stack td.table-stack-actions .btn-group > .btn { border-radius: 0.375rem !important; margin-left: 0 !important; }
+  .table-stack td.text-nowrap { white-space: normal; }
+  .table-responsive:has(> .table-stack) { overflow-x: visible; }
+}
+
+/* Report charts: hairline grid, muted axis text, the readout follows the pointer or the arrow keys. */
+.chart-grid { stroke: var(--lib-rule); stroke-width: 1; shape-rendering: crispEdges; }
+.chart-axis { fill: var(--lib-muted); font-size: 11px; }
+.chart-highlight { fill: var(--bs-tertiary-bg); }
+.chart-box { border-radius: 0.375rem; }
+.chart-box:focus-visible { outline: 2px solid var(--lib-green); outline-offset: 2px; }
+.chart-tooltip {
+  position: absolute; top: 0; width: 190px; padding: 0.375rem 0.5rem; pointer-events: none;
+  background: var(--lib-card); border: 1px solid var(--lib-rule); border-radius: 0.375rem;
+}
+.chart-key { display: inline-block; width: 10px; height: 2px; margin-right: 0.375rem; vertical-align: middle; }

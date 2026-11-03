@@ -22,8 +22,25 @@ const summary = (overrides = {}) => ({
     { bookId: 4, title: 'Bumi Manusia', authorName: 'Pramoedya Ananta Toer', loans: 2 },
   ],
   mostActiveMembers: [{ memberId: 7, name: 'Siti', libraryCardId: 'LIB-000007', loans: 3 }],
+  weekly: [
+    { start: '2026-10-05', end: '2026-10-11', loans: 3 },
+    { start: '2026-10-12', end: '2026-10-18', loans: 0 },
+    { start: '2026-10-19', end: '2026-10-25', loans: 7 },
+    { start: '2026-10-26', end: '2026-11-01', loans: 2 },
+    { start: '2026-11-02', end: '2026-11-03', loans: 1 },
+  ],
+  monthly: [
+    { start: '2026-10-05', end: '2026-10-31', onTime: 6, late: 2 },
+    { start: '2026-11-01', end: '2026-11-03', onTime: 1, late: 0 },
+  ],
   ...overrides,
 });
+
+/** The stat tile with this label (the same words also appear in the charts). */
+async function tile(label) {
+  const labels = await screen.findAllByText(label);
+  return labels.find((el) => el.closest('.tile')).closest('.card');
+}
 
 function summaryCalls(fetchMock) {
   return fetchMock.mock.calls.map(([url]) => String(url)).filter((url) => url.startsWith('/api/reports/summary'));
@@ -35,9 +52,8 @@ describe('Reports', () => {
 
     renderApp('/reports');
 
-    expect(await screen.findByText('Books lent')).toBeInTheDocument();
-    expect(screen.getByText('Books lent').closest('.card')).toHaveTextContent('12');
-    expect(screen.getByText('Returned late').closest('.card')).toHaveTextContent(/67%.*2 of 3 loans that fell due/);
+    expect(await tile('Books lent')).toHaveTextContent('12');
+    expect(await tile('Returned late')).toHaveTextContent(/67%.*2 of 3 loans that fell due/);
     expect(screen.getByText('Fines charged').closest('.card')).toHaveTextContent(/IDR 7,000.*IDR 4,000 collected/);
     const top = screen.getByRole('table', { name: 'Most borrowed' });
     expect(within(top).getByRole('link', { name: 'Laskar Pelangi' })).toHaveAttribute('href', '/catalogue/3');
@@ -51,7 +67,7 @@ describe('Reports', () => {
     const fetchMock = signedInAs(librarian, { 'GET /api/reports/summary': summary() });
 
     renderApp('/reports');
-    await screen.findByText('Books lent');
+    await tile('Books lent');
     const from = screen.getByLabelText('From');
     await userEvent.clear(from);
     await userEvent.type(from, '2026-01-01');
@@ -71,8 +87,7 @@ describe('Reports', () => {
 
     renderApp('/reports');
 
-    expect(await screen.findByText('Returned late')).toBeInTheDocument();
-    expect(screen.getByText('Returned late').closest('.card')).toHaveTextContent(/—.*Nothing fell due/);
+    expect(await tile('Returned late')).toHaveTextContent(/—.*Nothing fell due/);
   });
 
   it('formats the tile numbers for the language', async () => {
@@ -80,12 +95,11 @@ describe('Reports', () => {
 
     renderApp('/reports');
 
-    expect(await screen.findByText('Books lent')).toBeInTheDocument();
-    expect(screen.getByText('Books lent').closest('.card')).toHaveTextContent('12,345');
+    expect(await tile('Books lent')).toHaveTextContent('12,345');
     expect(screen.getByText('Active members').closest('.card')).toHaveTextContent(/1,500.*1,200 new/);
 
     act(() => setLanguage('id'));
-    expect(screen.getByText('Buku dipinjamkan').closest('.card')).toHaveTextContent('12.345');
+    expect(await tile('Buku dipinjamkan')).toHaveTextContent('12.345');
     expect(screen.getByText('Anggota aktif').closest('.card')).toHaveTextContent(/1\.500.*1\.200 baru/);
     expect(screen.getByText('Dikembalikan').closest('.card')).toHaveTextContent('2.048');
   });
@@ -96,5 +110,58 @@ describe('Reports', () => {
     renderApp('/');
 
     expect(await screen.findByRole('link', { name: 'Reports' })).toHaveAttribute('href', '/reports');
+  });
+});
+
+describe('Report charts', () => {
+  it('draws books lent per week and returns per month, with a legend only where there are two series', async () => {
+    signedInAs(librarian, { 'GET /api/reports/summary': summary() });
+
+    renderApp('/reports');
+
+    const weekly = await screen.findByRole('figure', { name: 'Books lent per week' });
+    const monthly = screen.getByRole('figure', { name: 'Returns per month' });
+    expect(within(weekly).queryByRole('list', { name: 'Legend' })).not.toBeInTheDocument();
+    const legend = within(monthly).getByRole('list', { name: 'Legend' });
+    expect(within(legend).getAllByRole('listitem').map((li) => li.textContent)).toEqual(['Returned on time', 'Returned late']);
+  });
+
+  it('has the same numbers as a table', async () => {
+    signedInAs(librarian, { 'GET /api/reports/summary': summary() });
+
+    renderApp('/reports');
+    const monthly = await screen.findByRole('figure', { name: 'Returns per month' });
+    await userEvent.click(within(monthly).getByText('Show the numbers'));
+
+    const rows = within(within(monthly).getByRole('table')).getAllByRole('row');
+    expect(rows[0]).toHaveTextContent('PeriodReturned on timeReturned late');
+    expect(rows[1]).toHaveTextContent('Oct 5, 2026 – Oct 31, 2026');
+    expect(rows[1]).toHaveTextContent(/62$/);
+  });
+
+  it('reads one column at a time with the arrow keys', async () => {
+    signedInAs(librarian, { 'GET /api/reports/summary': summary() });
+
+    renderApp('/reports');
+    const chart = await screen.findByRole('group', { name: /Books lent per week: use the left and right arrow keys/ });
+    chart.focus();
+    await userEvent.keyboard('{ArrowRight}');
+    expect(within(chart).getByText('Oct 5, 2026 – Oct 11, 2026')).toBeVisible();
+    expect(within(chart).getByText('3')).toBeInTheDocument();
+    await userEvent.keyboard('{End}');
+    expect(within(chart).getByText('Nov 2, 2026 – Nov 3, 2026')).toBeInTheDocument();
+    await userEvent.keyboard('{ArrowLeft}');
+    expect(within(chart).getByText('Oct 26, 2026 – Nov 1, 2026')).toBeInTheDocument();
+  });
+
+  it('reads in Bahasa Indonesia', async () => {
+    act(() => setLanguage('id'));
+    signedInAs(librarian, { 'GET /api/reports/summary': summary() });
+
+    renderApp('/reports');
+
+    expect(await screen.findByRole('figure', { name: 'Buku dipinjamkan per minggu' })).toBeInTheDocument();
+    expect(screen.getByRole('figure', { name: 'Pengembalian per bulan' })).toHaveTextContent('Dikembalikan tepat waktu');
+    act(() => setLanguage('en'));
   });
 });

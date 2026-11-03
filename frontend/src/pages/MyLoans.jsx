@@ -1,5 +1,5 @@
 import { useNavigate } from 'react-router-dom';
-import { Button, Table } from 'reactstrap';
+import { Button } from 'reactstrap';
 import { focusPageHeading } from '../a11y';
 import { api } from '../api';
 import { ErrorAlert, Loading } from '../components/Feedback';
@@ -9,6 +9,7 @@ import LoanStatus from '../components/LoanStatus';
 import { formatDate, formatMoney } from '../format';
 import { useAction, useApi } from '../hooks';
 import { msg, useT } from '../i18n';
+import ResponsiveTable from '../components/ResponsiveTable';
 
 export default function MyLoans() {
   const loans = useApi('/api/my/loans');
@@ -57,7 +58,7 @@ export default function MyLoans() {
       {loans.data.length === 0 ? (
         <p className="empty-state">{t('You have not borrowed or requested any books yet.')}</p>
       ) : (
-        <Table responsive className="align-middle shadow-sm">
+        <ResponsiveTable responsive className="align-middle shadow-sm">
           <thead className="table-library">
             <tr>
               <th scope="col">{t('Book')}</th>
@@ -107,7 +108,7 @@ export default function MyLoans() {
               </tr>
             ))}
           </tbody>
-        </Table>
+        </ResponsiveTable>
       )}
       {fines.data?.fines.length > 0 && <FeeHistory fines={fines.data.fines} />}
     </>
@@ -124,7 +125,7 @@ function FeeHistory({ fines }) {
       <h2 id="late-fees-heading" className="h5">
         {t('Late fees')}
       </h2>
-      <Table responsive className="align-middle shadow-sm" aria-labelledby="late-fees-heading">
+      <ResponsiveTable responsive className="align-middle shadow-sm" aria-labelledby="late-fees-heading">
         <thead className="table-library">
           <tr>
             <th scope="col">{t('Book')}</th>
@@ -145,12 +146,17 @@ function FeeHistory({ fines }) {
               <td className="text-nowrap">{formatMoney(fine.amount, fine.currency)}</td>
               <td>
                 {FEE_STATUS[fine.status] && t(FEE_STATUS[fine.status])}
+                {fine.status === 'UNPAID' && fine.paidAmount > 0 && (
+                  <span className="d-block small text-muted">
+                    {t('{amount} still due', { amount: formatMoney(fine.outstanding, fine.currency) })}
+                  </span>
+                )}
                 {fine.status === 'WAIVED' && fine.note && <span className="d-block small text-muted">{fine.note}</span>}
               </td>
             </tr>
           ))}
         </tbody>
-      </Table>
+      </ResponsiveTable>
     </section>
   );
 }

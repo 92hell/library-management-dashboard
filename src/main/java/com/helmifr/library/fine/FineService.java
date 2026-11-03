@@ -2,6 +2,7 @@ package com.helmifr.library.fine;
 
 import com.helmifr.library.common.Audit;
 import com.helmifr.library.common.ConflictException;
+import com.helmifr.library.common.FieldValidationException;
 import com.helmifr.library.common.NotFoundException;
 import com.helmifr.library.common.PageResponse;
 import com.helmifr.library.common.SearchPatterns;
@@ -19,6 +20,7 @@ import com.helmifr.library.security.CurrentUser;
 import java.time.Clock;
 import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
+import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -42,6 +44,7 @@ public class FineService {
     private final Clock clock;
     private final LoanEvents history;
     private final org.springframework.context.ApplicationEventPublisher events;
+    private final FinePaymentRepository payments;
 
     /** Called when a loan is returned: charges the late fee, if any, and tells the member. */
     @Transactional
@@ -91,6 +94,9 @@ public class FineService {
                     ? new ConflictException("The late fee for this loan was already paid; a correction cannot change it.")
                     : new ConflictException("The late fee for this loan was already waived; a correction cannot change it.");
         }
+        if (fine.getPaidAmount() > 0) {
+            throw new ConflictException("The late fee for this loan is already partly paid; a correction cannot change it.");
+        }
         String before = policy.format(fine.getAmount());
         if (amount == 0) {
             settle(fine, FineStatus.WAIVED, "No longer late after a correction");
@@ -109,11 +115,11 @@ public class FineService {
     public LoanFine onLoan(Loan loan, LocalDate today) {
         if (loan.getStatus() == LoanStatus.ACTIVE) {
             long amount = policy.feeFor(daysLate(loan.getDueDate(), today));
-            return amount == 0 ? null : new LoanFine(amount, policy.currency(), FineStatus.ACCRUING);
+            return amount == 0 ? null : new LoanFine(amount, policy.currency(), FineStatus.ACCRUING, amount);
         }
         if (loan.getStatus() == LoanStatus.RETURNED && daysLate(loan.getDueDate(), loan.getReturnDate()) > 0) {
             return fines.findByLoanId(loan.getId())
-                    .map(f -> new LoanFine(f.getAmount(), policy.currency(), f.getStatus()))
+                    .map(f -> new LoanFine(f.getAmount(), policy.currency(), f.getStatus(), f.outstanding()))
                     .orElse(null);
         }
         return null;
@@ -155,29 +161,61 @@ public class FineService {
         return fines.sumUnpaid();
     }
 
+    /**
+     * Records a payment towards the fee: {@code amount} (1 up to what is still due), or everything still
+     * due when null. The fine is paid once nothing is left.
+     */
     @Transactional
-    public FineResponse pay(Long id) {
+    public FineResponse pay(Long id, Long amount) {
         Fine fine = requireUnpaid(id);
-        settle(fine, FineStatus.PAID, null);
-        Audit.event("FINE_PAID", "fineId={} memberId={} amount={} by={}", id, fine.getMember().getId(),
-                fine.getAmount(), CurrentUser.username());
-        history.record(fine.getLoan(), LoanEventType.FINE_PAID, "Paid " + policy.format(fine.getAmount()));
+        long due = fine.outstanding();
+        long paying = amount == null ? due : amount;
+        if (paying < 1 || paying > due) {
+            throw new FieldValidationException("amount", "must be between 1 and {0}",
+                    policy.format(due));
+        }
+        boolean wasBlocked = policy.blocks(fines.sumUnpaidByMember(fine.getMember().getId()));
+        FinePayment payment = new FinePayment();
+        payment.setFine(fine);
+        payment.setAmount(paying);
+        payment.setPaidAt(clock.instant().truncatedTo(java.time.temporal.ChronoUnit.SECONDS));
+        payment.setRecordedBy(history.currentActorName());
+        payments.save(payment);
+        fine.setPaidAmount(fine.getPaidAmount() + paying);
+        long left = fine.getAmount() - fine.getPaidAmount();
+        Audit.event("FINE_PAID", "fineId={} memberId={} amount={} left={} by={}", id, fine.getMember().getId(),
+                paying, left, CurrentUser.username());
+        history.record(fine.getLoan(), LoanEventType.FINE_PAID, left == 0
+                ? "Paid %s; late fee settled".formatted(policy.format(paying))
+                : "Paid %s; %s still due".formatted(policy.format(paying), policy.format(left)));
+        if (left == 0) {
+            settle(fine, FineStatus.PAID, null, wasBlocked);
+        } else {
+            fines.flush();
+            if (wasBlocked && canBorrow(fine.getMember())) {
+                events.publishEvent(new FinesSettled(fine.getMember().getId()));
+            }
+        }
         return view(fine);
     }
 
     @Transactional
     public FineResponse waive(Long id, String reason) {
         Fine fine = requireUnpaid(id);
+        long forgiven = fine.outstanding();
         settle(fine, FineStatus.WAIVED, reason.trim());
         Audit.event("FINE_WAIVED", "fineId={} memberId={} amount={} by={}", id, fine.getMember().getId(),
-                fine.getAmount(), CurrentUser.username());
+                forgiven, CurrentUser.username());
         history.record(fine.getLoan(), LoanEventType.FINE_WAIVED,
-                "Waived %s: %s".formatted(policy.format(fine.getAmount()), reason.trim()));
+                "Waived %s: %s".formatted(policy.format(forgiven), reason.trim()));
         return view(fine);
     }
 
     private void settle(Fine fine, FineStatus status, String note) {
-        boolean wasBlocked = policy.blocks(fines.sumUnpaidByMember(fine.getMember().getId()));
+        settle(fine, status, note, policy.blocks(fines.sumUnpaidByMember(fine.getMember().getId())));
+    }
+
+    private void settle(Fine fine, FineStatus status, String note, boolean wasBlocked) {
         fine.setStatus(status);
         fine.setSettledAt(clock.instant());
         fine.setSettledBy(CurrentUser.username());
@@ -199,7 +237,14 @@ public class FineService {
     }
 
     private FineResponse view(Fine fine) {
-        return FineResponse.from(fine, policy.currency());
+        return FineResponse.from(fine, policy.currency(), paymentsOf(fine.getId()));
+    }
+
+    /** Every payment towards the fine, oldest first. */
+    public List<FineDtos.PaymentView> paymentsOf(Long fineId) {
+        return payments.findAllByFineIdOrderByIdAsc(fineId).stream()
+                .map(p -> new FineDtos.PaymentView(p.getAmount(), p.getPaidAt(), p.getRecordedBy()))
+                .toList();
     }
 
     private static long daysLate(LocalDate due, LocalDate returned) {

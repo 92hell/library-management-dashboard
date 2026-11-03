@@ -16,6 +16,22 @@ export function formatDate(isoDate, fallback = '—') {
   return dateFormats.get(lang).format(new Date(Date.UTC(year, month - 1, day)));
 }
 
+const partFormats = new Map();
+
+/** A "YYYY-MM-DD" date with only some parts, e.g. { month: 'short', day: 'numeric' } -> "Nov 3". */
+export function formatDateParts(isoDate, parts) {
+  const lang = getLanguage();
+  const key = `${lang}|${JSON.stringify(parts)}`;
+  if (!partFormats.has(key)) partFormats.set(key, new Intl.DateTimeFormat(locale(lang), { ...parts, timeZone: 'UTC' }));
+  const [year, month, day] = isoDate.split('-').map(Number);
+  return partFormats.get(key).format(new Date(Date.UTC(year, month - 1, day)));
+}
+
+/** "3 Nov 2026, 15.00" in the reader's time zone. */
+export function formatInstant(iso) {
+  return iso ? new Date(iso).toLocaleString(locale(), { dateStyle: 'medium', timeStyle: 'short' }) : '—';
+}
+
 /** The reader's local date of an instant (e.g. "2026-11-02T18:30:00Z" is "2026-11-03" in Jakarta). */
 export function localIsoDate(instant) {
   return isoDateOf(new Date(instant));

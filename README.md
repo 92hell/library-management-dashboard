@@ -33,14 +33,20 @@ React 18 · Vite · React Router 6 · Bootstrap 5 / reactstrap.
 - Renew loans; mark books returned
 - Reports for any date range (up to a year): books lent and returned, late-return rate, active
   and new members, fines charged and collected, most borrowed titles, most active members;
+  charts of books lent per week and returns per month (on time / late), readable by keyboard and
+  with the same numbers as a table;
   CSV downloads (spreadsheet-safe: formulas in data are neutralised; every export is audited)
-- Fines desk: late fees charged on return; record a payment or waive a fee with a reason (audited)
+- Fines desk: late fees charged on return; record a payment (all of it or part of it, as often as
+  needed) or waive what is left with a reason (audited); print the signed receipt after a payment
 - Desk checkout for walk-in members who have no online account; record past loans
 - Physical copies with barcodes: a title can have several copies ("2 of 3 on shelf"); lend a
   scanned copy, return by barcode, look up who has a copy, add or withdraw copies
 - Add a book by ISBN: look it up at Open Library to fill in title, author, publisher, year and
   categories; covers come from Open Library (a drawn spine when there is none)
 - Manage books, authors, members (each with a library card ID) and librarian accounts
+- Library cards: renew a card (valid 12 months), replace a lost or damaged one (new ID, the old one
+  kept in the card history and still finds the member), and merge a duplicate member record into
+  the right one (loans, fines, receipts and the online account move over)
 - Notified of every new borrow request
 
 **For everyone**
@@ -50,12 +56,15 @@ React 18 · Vite · React Router 6 · Bootstrap 5 / reactstrap.
   `Accept-Language`; Indonesian server texts are in `src/main/resources/i18n/messages_id.json` and
   `ValidationMessages_id.properties`, and a test fails when one is missing. Emails and the history
   lines on signed receipts stay in English.
+- Works on phones: lists turn into cards with their buttons in reach; the browser tests check every
+  page at phone size (no sideways scrolling, nothing off screen)
 - Accessibility: WCAG 2.1 AA checked automatically (axe) on every main page in the browser tests;
   skip link, focus moves to the page on navigation, form errors and hints read with their field
 
 **Loan receipts (printable evidence)**
 - Every status change of a loan is recorded (who, when, what): requested, approved, lent,
-  collected, renewed, returned, late fee charged / paid / waived, corrections
+  collected, renewed, returned, late fee charged / paid / waived, corrections; every payment is
+  listed on the receipt with what is still due
 - A receipt is a numbered snapshot (R-2026-000123) of the loan and that history, printable from
   the browser or downloadable as a bilingual PDF (English / Bahasa Indonesia) with the library
   stamp and a QR code. Librarians issue them for any loan, members for their own.
@@ -72,12 +81,16 @@ React 18 · Vite · React Router 6 · Bootstrap 5 / reactstrap.
 - At most 3 open requests/loans per customer; no duplicate request for the same book
 - Due date defaults to 14 days; dates are validated (no future borrow date, no return before borrow)
 - A copy coming back skips members who cannot collect it (unpaid fines over the limit, inactive
-  card); they keep their place and are served as soon as they pay
+  or expired card); they keep their place and are served as soon as they pay or renew
 - Holds are kept for 3 days; a loan can be renewed once, not when overdue and not while someone is
   waiting for the book
 - Late returns cost IDR 1,000 a day, at most IDR 30,000 per loan (also for past loans recorded at
   the desk as returned late); a member owing IDR 20,000 or more
   cannot request, borrow or collect a hold until they pay
+- An expired card cannot request, borrow, collect a hold or renew a loan until it is renewed at the
+  desk (renewing early adds 12 months to the current expiry); members see the expiry on their
+  profile and are warned a month ahead. Cards that existed before this feature run for a year from
+  the upgrade. A replaced or merged card ID is never issued again and cannot be used to register
 - Soft deletes; authors with books, books on loan and members with open loans cannot be deleted
 - Deleting a member disables their online account
 
@@ -151,6 +164,7 @@ environment variables:
 | `RECEIPT_PRIVATE_KEY`, `RECEIPT_PUBLIC_KEY` | generated, kept in the database | Ed25519 receipt signing key (base64 PKCS#8 / X.509); set both in production to keep the key out of the database |
 | `library.reports.max-csv-rows` | `20000` | Largest CSV export; a bigger range asks for a shorter one |
 | `FINE_PER_DAY`, `FINE_MAX_PER_LOAN`, `FINE_BLOCK_AT`, `FINE_CURRENCY` | `1000`, `30000`, `20000`, `IDR` | Late fees (whole currency units; `FINE_BLOCK_AT=0` never blocks) |
+| `MEMBER_CARD_VALIDITY_MONTHS` | `12` | How long a new or renewed library card is valid (`0` = cards do not expire) |
 | `LOAN_REMINDER_CRON` | `0 0 8 * * *` | Daily job: expire uncollected holds, due-soon / overdue reminders (`-` disables) |
 | `APP_BASE_URL` | `http://localhost:8080` | Used for links in emails / messages |
 | `NOTIFY_EMAIL_ENABLED`, `NOTIFY_EMAIL_FROM` + `SPRING_MAIL_HOST`, `SPRING_MAIL_PORT`, `SPRING_MAIL_USERNAME`, `SPRING_MAIL_PASSWORD` | off | Email notifications over SMTP |
@@ -220,7 +234,10 @@ are replaced so user input cannot forge log lines.
   address, and after 20 failures per address across usernames (bounded in memory)
 - Request DTOs with validation (clients cannot set ids, flags or audit fields); RFC 7807 errors without internals
 - Content-Security-Policy, `X-Frame-Options: DENY`, `nosniff`, strict referrer policy
-- Linking a walk-in card needs the card ID **and** matching email/phone; wrong attempts count towards the lockout
+- Linking a walk-in card needs the card ID **and** matching email/phone
+- Registration does not reveal who is a member: card mismatches and "you already have a card" get one
+  generic answer, every refused attempt (taken username included) counts towards the address's
+  lockout, and at most 3 accounts can be created per address per hour (`library.security.max-signups-per-hour`)
 - Lending is consistent under concurrent requests: every change to a loan, its copy or its fee takes
   the book's (or fine's) row lock first and re-reads under it, at READ COMMITTED isolation (tested
   with two threads against real MariaDB)

@@ -15,8 +15,10 @@ import com.helmifr.library.common.PhoneNumbers;
 import com.helmifr.library.common.SearchPatterns;
 import com.helmifr.library.demo.DemoProperties;
 import com.helmifr.library.member.Member;
-import com.helmifr.library.member.LibraryCardIds;
+import com.helmifr.library.member.MemberCards;
 import com.helmifr.library.member.MemberRepository;
+import java.time.Clock;
+import java.time.LocalDate;
 import java.util.Locale;
 import java.util.Objects;
 import lombok.RequiredArgsConstructor;
@@ -32,9 +34,10 @@ public class AccountService {
 
     private final UserAccountRepository accounts;
     private final MemberRepository members;
-    private final LibraryCardIds libraryCardIds;
+    private final MemberCards memberCards;
     private final PasswordEncoder passwordEncoder;
     private final DemoProperties demo;
+    private final Clock clock;
 
     // ---- Registration --------------------------------------------------------------------------
 
@@ -54,22 +57,23 @@ public class AccountService {
                     .filter(m -> m.getEmail().equalsIgnoreCase(request.email().trim())
                             || PhoneNumbers.same(m.getPhone(), request.phone()))
                     .orElseThrow(() -> new FieldValidationException("libraryCardId",
-                            "No library card matches this ID with your email or phone number"));
+                            "These details cannot be used to register. If you already have a library card, enter its ID with the email or phone number the library has on file."));
         } else {
             boolean existingCard = members.findUnlinkedByEmailOrPhoneContaining(
                             request.email().trim(), PhoneNumbers.lastDigits(request.phone(), 4)).stream()
                     .anyMatch(m -> m.getEmail().equalsIgnoreCase(request.email().trim())
                             || PhoneNumbers.same(m.getPhone(), request.phone()));
             if (existingCard) {
+                // Same answer as a wrong card ID, so the reply never confirms who is a member.
                 throw new FieldValidationException("libraryCardId",
-                        "You already have a library card with us. Enter its ID to link it to this account.");
+                        "These details cannot be used to register. If you already have a library card, enter its ID with the email or phone number the library has on file.");
             }
             member = new Member();
             member.setName(request.name().trim());
             member.setDateOfBirth(request.dateOfBirth());
             member.setEmail(normalizeEmail(request.email()));
             member.setPhone(PhoneNumbers.normalize(request.phone()));
-            member.setLibraryCardId(libraryCardIds.next());
+            memberCards.issue(member);
             member = members.save(member);
         }
 
@@ -90,7 +94,7 @@ public class AccountService {
     // ---- Own profile ---------------------------------------------------------------------------
 
     public ProfileResponse profile(Long accountId) {
-        return ProfileResponse.of(require(accountId));
+        return ProfileResponse.of(require(accountId), LocalDate.now(clock));
     }
 
     public SessionUser sessionUser(Long accountId) {
@@ -113,7 +117,7 @@ public class AccountService {
             }
         }
         Audit.event("PROFILE_UPDATED", "username={}", account.getUsername());
-        return ProfileResponse.of(account);
+        return ProfileResponse.of(account, LocalDate.now(clock));
     }
 
     /** @return the updated account, so the caller can refresh the current session */

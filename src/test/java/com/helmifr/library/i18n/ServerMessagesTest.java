@@ -32,7 +32,7 @@ class ServerMessagesTest {
 
     /** Calls whose string literals are message templates. */
     private static final Pattern CALL = Pattern.compile(
-            "new (ConflictException|NotFoundException|FieldValidationException|ServiceUnavailableException)\\("
+            "new (?:[\\w.]+\\.)?(ConflictException|NotFoundException|FieldValidationException|ServiceUnavailableException)\\("
                     + "|\\b(notifyMember|notifyLibrarians|notifyAccount|setAside|problem|messages\\.get|Messages\\.english)\\(");
     private static final Pattern LITERAL = Pattern.compile("\"((?:[^\"\\\\]|\\\\.)*)\"");
 

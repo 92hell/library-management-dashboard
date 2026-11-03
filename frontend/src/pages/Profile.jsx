@@ -4,7 +4,8 @@ import { api } from '../api';
 import { useAuth } from '../auth';
 import { ErrorAlert, Loading } from '../components/Feedback';
 import Field from '../components/Field';
-import { formatDate } from '../format';
+import { CardValidity } from '../components/MemberCardPanel';
+import { formatDate, todayIso } from '../format';
 import { useAction, useApi, useFormFields } from '../hooks';
 import { msg, useT } from '../i18n';
 
@@ -50,17 +51,49 @@ function ProfileView({ profile, onSaved }) {
               <div className="library-card-body">
                 <p className="library-card-id mb-1">{card.libraryCardId}</p>
                 <p className="mb-1 fw-semibold">{card.name}</p>
-                <p className="small text-muted mb-0">
+                <p className="small text-muted mb-1">
                   {t('Born {date}', { date: formatDate(card.dateOfBirth) })} ·{' '}
                   {t('Show this card ID at the desk to borrow in person.')}
+                </p>
+                <p className="small mb-0">
+                  <CardValidity member={card} />
                 </p>
               </div>
             </section>
           )}
+          {card && <CardExpiryNotice card={card} />}
           {!readOnly && <PasswordForm />}
         </Col>
       </Row>
     </>
+  );
+}
+
+/** Days a member is warned before their card expires. */
+const EXPIRY_WARNING_DAYS = 30;
+
+function daysUntil(isoDate) {
+  const [y, m, d] = isoDate.split('-').map(Number);
+  const [ty, tm, td] = todayIso().split('-').map(Number);
+  return Math.round((Date.UTC(y, m - 1, d) - Date.UTC(ty, tm - 1, td)) / 86400000);
+}
+
+/** Tells the member to renew at the desk when their card has expired or expires within 30 days. */
+function CardExpiryNotice({ card }) {
+  const t = useT();
+  if (!card.cardExpiresOn) return null;
+  if (card.cardExpired) {
+    return (
+      <Alert color="danger">
+        {t('Your library card expired on {date}. Renew it at the desk to borrow again.', { date: formatDate(card.cardExpiresOn) })}
+      </Alert>
+    );
+  }
+  if (daysUntil(card.cardExpiresOn) > EXPIRY_WARNING_DAYS) return null;
+  return (
+    <Alert color="warning">
+      {t('Your library card expires on {date}. Renew it at the desk to keep borrowing.', { date: formatDate(card.cardExpiresOn) })}
+    </Alert>
   );
 }
 

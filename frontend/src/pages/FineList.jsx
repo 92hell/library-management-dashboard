@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Button, ButtonGroup, Col, Input, Label, Row } from 'reactstrap';
 import { focusPageHeading } from '../a11y';
 import { api } from '../api';
@@ -24,26 +25,56 @@ export default function FineList() {
   const q = useDebouncedValue(search.trim());
   const fines = usePagedList('/api/fines', { q, status });
   const action = useAction();
-  // Shown when a waive is confirmed without a reason (an Error so ErrorAlert translates it).
+  // Shown for a waive without a reason or a payment amount that can't be right (an Error for ErrorAlert).
   const [missingReason, setMissingReason] = useState(null);
+  // The last payment recorded, with a button to print the loan's receipt.
+  const [paid, setPaid] = useState(null);
+  const navigate = useNavigate();
   const t = useT();
 
   /** Settling a fine removes it from the Unpaid view, like a deletion, and its buttons with it. */
   async function perform(call) {
     setMissingReason(null);
-    if (await action.run(call)) {
-      if (status === 'UNPAID') fines.refreshAfterRemoval();
+    setPaid(null);
+    let result = null;
+    if (await action.run(async () => {
+      result = await call();
+    })) {
+      if (status === 'UNPAID' && result?.status !== 'UNPAID') fines.refreshAfterRemoval();
       else fines.reload();
       focusPageHeading();
     }
+    return result;
   }
 
-  function pay(fine) {
-    const amount = formatMoney(fine.amount, fine.currency);
-    if (!window.confirm(t('Record that {name} paid {amount} for "{title}"?', { name: fine.member.name, amount, title: fine.book.title }))) {
+  /** Records what the member paid now: all that is still due, or part of it. */
+  async function pay(fine) {
+    const due = fine.outstanding ?? fine.amount;
+    const answer = window.prompt(
+      t('How much did {name} pay for "{title}"? Still due: {amount}', {
+        name: fine.member.name, title: fine.book.title, amount: formatMoney(due, fine.currency),
+      }),
+      String(due),
+    );
+    if (answer === null) return;
+    const digits = answer.replace(/[^\d]/g, '');
+    const amount = Number(digits);
+    if (!digits || amount < 1 || amount > due) {
+      action.clearError();
+      setPaid(null);
+      setMissingReason(new Error(t('Enter an amount between 1 and {max}.', { max: formatMoney(due, fine.currency) })));
       return;
     }
-    perform(() => api.post(`/api/fines/${fine.id}/pay`));
+    const result = await perform(() => api.post(`/api/fines/${fine.id}/pay`, { amount }));
+    if (result) setPaid({ fine: result, amount, name: fine.member.name });
+  }
+
+  /** The loan's receipt (it lists every payment) for the member to keep. */
+  async function printReceipt(loanId) {
+    let receipt = null;
+    if (await action.run(async () => {
+      receipt = await api.post(`/api/borrowed-books/${loanId}/receipt`);
+    })) navigate(`/receipts/${encodeURIComponent(receipt.number)}`);
   }
 
   function waive(fine) {
@@ -83,6 +114,21 @@ export default function FineList() {
           </Input>
         </Col>
       </Row>
+      <div role="status" aria-live="polite">
+        {paid && (
+          <div className="alert alert-success d-flex flex-wrap gap-2 justify-content-between align-items-center">
+            <span>
+              {t('Payment of {amount} recorded for {name}.', { amount: formatMoney(paid.amount, paid.fine.currency), name: paid.name })}{' '}
+              {paid.fine.outstanding > 0
+                ? t('{amount} still due.', { amount: formatMoney(paid.fine.outstanding, paid.fine.currency) })
+                : t('The late fee is settled.')}
+            </span>
+            <Button size="sm" color="success" outline onClick={() => printReceipt(paid.fine.loanId)} disabled={action.pending}>
+              {t('Print receipt')}
+            </Button>
+          </div>
+        )}
+      </div>
       <ErrorAlert error={missingReason} onDismiss={() => setMissingReason(null)} />
       <ErrorAlert error={action.error} onDismiss={action.clearError} />
       <PagedTable
@@ -100,7 +146,15 @@ export default function FineList() {
             <td className="text-nowrap">
               {fine.daysLate === 1 ? t('{n} day late', { n: fine.daysLate }) : t('{n} days late', { n: fine.daysLate })}
             </td>
-            <td className="text-nowrap fw-semibold">{formatMoney(fine.amount, fine.currency)}</td>
+            <td className="text-nowrap">
+              <span className="fw-semibold">{formatMoney(fine.amount, fine.currency)}</span>
+              {fine.status === 'UNPAID' && fine.paidAmount > 0 && (
+                <span className="d-block small text-muted">
+                  {t('{paid} paid', { paid: formatMoney(fine.paidAmount, fine.currency) })} ·{' '}
+                  {t('{amount} still due', { amount: formatMoney(fine.outstanding, fine.currency) })}
+                </span>
+              )}
+            </td>
             <td>
               <FineState fine={fine} />
             </td>

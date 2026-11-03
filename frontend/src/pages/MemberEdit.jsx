@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { Navigate, useNavigate, useParams } from 'react-router-dom';
 import { Form, FormGroup, Input, Label } from 'reactstrap';
 import { api } from '../api';
@@ -5,6 +6,7 @@ import { useAuth } from '../auth';
 import { ErrorAlert, Loading } from '../components/Feedback';
 import Field from '../components/Field';
 import FormActions from '../components/FormActions';
+import MemberCardPanel from '../components/MemberCardPanel';
 import MemberLoans from '../components/MemberLoans';
 import { emptyToNull } from '../format';
 import { useAction, useApi, useFormFields } from '../hooks';
@@ -37,19 +39,31 @@ export default function MemberEdit() {
   const isNew = id === 'new';
   const { isLibrarian } = useAuth();
   const member = useApi(isNew ? null : `/api/members/${id}`);
+  // A merge brings in the duplicate's loans: bumping this reloads the history below.
+  const [changes, setChanges] = useState(0);
   const t = useT();
 
   if (isNew && !isLibrarian) return <Navigate to="/members" replace />;
   if (member.error) return <ErrorAlert error={member.error} />;
-  if (member.loading) return <Loading />;
+  if (!member.data && member.loading) return <Loading />;
+
+  function changed() {
+    member.reload();
+    setChanges((count) => count + 1);
+  }
 
   return (
     <>
       <MemberForm key={id} member={member.data} readOnly={!isLibrarian} />
+      {!isNew && isLibrarian && (
+        <div className="mt-4">
+          <MemberCardPanel member={member.data} onChanged={changed} />
+        </div>
+      )}
       {!isNew && (
         <section className="mt-4">
           <h2 className="h5">{t('Borrowing history')}</h2>
-          <MemberLoans memberId={id} />
+          <MemberLoans key={changes} memberId={id} />
         </section>
       )}
     </>

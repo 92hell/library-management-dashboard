@@ -87,6 +87,7 @@ public class ReceiptService {
     private final LoanEvents history;
     private final FineRepository fines;
     private final FinePolicy finePolicy;
+    private final com.helmifr.library.fine.FineService fineService;
     private final ReceiptSigner signer;
     private final ReceiptProperties properties;
     private final Clock clock;
@@ -107,7 +108,10 @@ public class ReceiptService {
                 .map(e -> new EventPart(e.type().name(), e.status().name(), e.occurredAt().toString(), e.actor(), e.detail()))
                 .toList());
         FinePart fine = fines.findByLoanId(loanId)
-                .map(f -> new FinePart(f.getAmount(), finePolicy.currency(), f.getStatus().name(), f.getDaysLate()))
+                .map(f -> new FinePart(f.getAmount(), finePolicy.currency(), f.getStatus().name(), f.getDaysLate(),
+                        f.getPaidAmount(), f.outstanding(), fineService.paymentsOf(f.getId()).stream()
+                                .map(p -> new ReceiptContent.PaymentPart(p.amount(), p.paidAt().toString(), p.recordedBy()))
+                                .toList()))
                 .orElse(null);
         String fingerprint = sha256(canonical(Map.of("loan", loanPart, "events", events, "fine", fine == null ? "-" : fine)));
 

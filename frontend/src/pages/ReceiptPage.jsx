@@ -1,18 +1,14 @@
 import { Link, useParams } from 'react-router-dom';
-import { Button, Table } from 'reactstrap';
+import { Button } from 'reactstrap';
 import { useAuth } from '../auth';
 import { ErrorAlert, Loading } from '../components/Feedback';
 import QrCode from '../components/QrCode';
 import ReceiptStamp from '../components/ReceiptStamp';
 import { EVENT_LABELS, FINE_LABELS, STATUS_LABELS } from '../components/receiptLabels';
-import { formatDate, formatMoney, localIsoDate } from '../format';
-import { locale, useT } from '../i18n';
+import { formatDate, formatInstant, formatMoney, localIsoDate } from '../format';
+import { useT } from '../i18n';
 import { useApi } from '../hooks';
-
-/** "3 Nov 2026, 15.00" in the reader's time zone. */
-export function formatInstant(iso) {
-  return iso ? new Date(iso).toLocaleString(locale(), { dateStyle: 'medium', timeStyle: 'short' }) : '—';
-}
+import ResponsiveTable from '../components/ResponsiveTable';
 
 /** Shown on receipts the public demo issued: they look real, so say plainly that they are not. */
 export function DemoWarning() {
@@ -90,13 +86,27 @@ export default function ReceiptPage() {
                 </dd>
               </div>
             )}
+            {fine?.payments?.map((p, i) => (
+              <div key={`paid-${i}`}>
+                <dt>{t('Paid')}</dt>
+                <dd>
+                  {formatMoney(p.amount, fine.currency)} · {formatInstant(p.paidAt)} · {p.recordedBy}
+                </dd>
+              </div>
+            ))}
+            {fine?.payments?.length > 0 && fine.outstanding > 0 && (
+              <div>
+                <dt>{t('Still due')}</dt>
+                <dd>{formatMoney(fine.outstanding, fine.currency)}</dd>
+              </div>
+            )}
           </dl>
           <ReceiptStamp library={library} date={formatDate(localIsoDate(r.issuedAt))} />
         </div>
         <h2 id="receipt-history" className="h6 mt-4">
           {t('History')}
         </h2>
-        <Table size="sm" className="receipt-history" aria-labelledby="receipt-history">
+        <ResponsiveTable size="sm" className="receipt-history" aria-labelledby="receipt-history">
           <thead>
             <tr>
               <th scope="col">{t('When')}</th>
@@ -115,7 +125,7 @@ export default function ReceiptPage() {
               </tr>
             ))}
           </tbody>
-        </Table>
+        </ResponsiveTable>
         <footer className="receipt-signature small">
           <p className="mb-1">
             {t('Digitally signed with {algorithm} (key {keyId}). SHA-256 of the signed record:', { algorithm: r.algorithm, keyId: r.keyId })}

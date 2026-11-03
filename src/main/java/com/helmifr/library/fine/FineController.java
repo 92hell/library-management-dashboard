@@ -26,8 +26,9 @@ public class FineController {
     }
 
     @PostMapping("/api/fines/{id}/pay")
-    public FineResponse pay(@PathVariable Long id) {
-        return fineService.pay(id);
+    public FineResponse pay(@PathVariable Long id,
+                            @RequestBody(required = false) com.helmifr.library.fine.FineDtos.PaymentRequest payment) {
+        return fineService.pay(id, payment == null ? null : payment.amount());
     }
 
     @PostMapping("/api/fines/{id}/waive")

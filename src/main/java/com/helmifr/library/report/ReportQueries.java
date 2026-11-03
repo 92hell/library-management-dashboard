@@ -6,7 +6,9 @@ import com.helmifr.library.report.ReportDtos.TitleCount;
 import jakarta.persistence.EntityManager;
 import java.time.Instant;
 import java.time.LocalDate;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Repository;
 
@@ -47,6 +49,27 @@ class ReportQueries {
                 .getSingleResult();
     }
 
+    /** Books lent on each day of the range that had any. */
+    Map<LocalDate, Long> loansPerDay(ReportRange r) {
+        return perDay("SELECT l.borrowDate, COUNT(l) FROM Loan l WHERE " + BORROWED_IN + " GROUP BY l.borrowDate", r);
+    }
+
+    /** Books returned on each day of the range that had any; only those returned after their due date if {@code lateOnly}. */
+    Map<LocalDate, Long> returnsPerDay(ReportRange r, boolean lateOnly) {
+        return perDay("SELECT l.returnDate, COUNT(l) FROM Loan l WHERE " + LENT
+                + " AND l.status = com.helmifr.library.loan.LoanStatus.RETURNED AND l.returnDate BETWEEN :from AND :to"
+                + (lateOnly ? " AND l.returnDate > l.dueDate" : "") + " GROUP BY l.returnDate", r);
+    }
+
+    private Map<LocalDate, Long> perDay(String jpql, ReportRange r) {
+        Map<LocalDate, Long> counts = new HashMap<>();
+        for (Object[] row : em.createQuery(jpql, Object[].class)
+                .setParameter("from", r.from()).setParameter("to", r.to()).getResultList()) {
+            counts.put((LocalDate) row[0], (Long) row[1]);
+        }
+        return counts;
+    }
+
     long activeMembers(ReportRange r) {
         return count("SELECT COUNT(DISTINCT l.member.id) FROM Loan l WHERE " + BORROWED_IN, r);
     }
@@ -66,9 +89,9 @@ class ReportQueries {
     }
 
     long finesCollected(Instant from, Instant toExclusive) {
-        return em.createQuery("SELECT COALESCE(SUM(f.amount), 0) FROM Fine f"
-                        + " WHERE f.loan.deleted = false AND f.status = com.helmifr.library.fine.FineStatus.PAID"
-                        + " AND f.settledAt >= :from AND f.settledAt < :to", Long.class)
+        // Money actually taken in the period: every payment, including part payments.
+        return em.createQuery("SELECT COALESCE(SUM(p.amount), 0) FROM FinePayment p"
+                        + " WHERE p.fine.loan.deleted = false AND p.paidAt >= :from AND p.paidAt < :to", Long.class)
                 .setParameter("from", from).setParameter("to", toExclusive)
                 .getSingleResult();
     }

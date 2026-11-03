@@ -1,12 +1,13 @@
 import { useParams, useSearchParams } from 'react-router-dom';
-import { Alert, Container, Table } from 'reactstrap';
+import { Alert, Container } from 'reactstrap';
 import { ErrorAlert, Loading } from '../components/Feedback';
 import LanguageSwitch from '../components/LanguageSwitch';
 import { EVENT_LABELS, FINE_LABELS, STATUS_LABELS } from '../components/receiptLabels';
-import { formatDate, formatMoney } from '../format';
+import { formatDate, formatInstant, formatMoney } from '../format';
 import { useT } from '../i18n';
 import { useApi } from '../hooks';
-import { DemoWarning, formatInstant } from './ReceiptPage';
+import { DemoWarning } from './ReceiptPage';
+import ResponsiveTable from '../components/ResponsiveTable';
 
 /** Public page behind a receipt's QR code: is it genuine, and what does the library's record say? */
 export default function VerifyReceipt() {
@@ -61,6 +62,13 @@ export default function VerifyReceipt() {
                 <dt>{t('Late fee')}</dt>
                 <dd>
                   {formatMoney(v.fine.amount, v.fine.currency)} · {t(FINE_LABELS[v.fine.status] ?? v.fine.status)}
+                  {v.fine.paid > 0 && v.fine.status === 'UNPAID' && (
+                    <>
+                      {' · '}
+                      {t('{paid} paid', { paid: formatMoney(v.fine.paid, v.fine.currency) })} ·{' '}
+                      {t('{amount} still due', { amount: formatMoney(v.fine.outstanding, v.fine.currency) })}
+                    </>
+                  )}
                 </dd>
               </div>
             )}
@@ -68,7 +76,7 @@ export default function VerifyReceipt() {
           <h2 id="verify-history" className="h6">
             {t('History')}
           </h2>
-          <Table size="sm" aria-labelledby="verify-history">
+          <ResponsiveTable size="sm" aria-labelledby="verify-history">
             <thead>
               <tr>
                 <th scope="col">{t('When')}</th>
@@ -83,7 +91,7 @@ export default function VerifyReceipt() {
                 </tr>
               ))}
             </tbody>
-          </Table>
+          </ResponsiveTable>
           <p className="small text-muted">
             {t('Signature: {algorithm}, key {keyId}.', { algorithm: v.algorithm, keyId: v.keyId })}{' '}
             <a href="/api/receipts/public-key">{t('Public key')}</a>

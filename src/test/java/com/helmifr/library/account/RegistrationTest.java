@@ -22,6 +22,10 @@ import org.springframework.beans.factory.annotation.Autowired;
 @DisplayName("Customer self-registration")
 class RegistrationTest {
 
+    /** The same answer whether or not someone with these details is a member (no enumeration). */
+    static final String GENERIC = "These details cannot be used to register. If you already have a library card, enter its ID with the email or phone number the library has on file.";
+
+
     @Autowired Api api;
     @Autowired TestData data;
     @Autowired UserAccountRepository accounts;
@@ -79,8 +83,7 @@ class RegistrationTest {
         api.anonymous().post("/api/auth/register",
                         registration("rina", "someone@else.com", "0899999999", walkIn.getLibraryCardId()))
                 .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.errors.libraryCardId")
-                        .value("No library card matches this ID with your email or phone number"));
+                .andExpect(jsonPath("$.errors.libraryCardId").value(GENERIC));
     }
 
     @Test
@@ -96,13 +99,13 @@ class RegistrationTest {
     }
 
     @Test
-    @DisplayName("registering without a card ID, with the email of an unlinked walk-in card, asks for the card ID")
+    @DisplayName("registering without a card ID, with the email of an unlinked walk-in card, gets the same generic answer")
     void preventsDuplicateCards() throws Exception {
         Member walkIn = data.member("Rina Wijaya");
 
         api.anonymous().post("/api/auth/register", registration("rina", walkIn.getEmail(), "0899999999", null))
                 .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.errors.libraryCardId", startsWith("You already have a library card")));
+                .andExpect(jsonPath("$.errors.libraryCardId").value(GENERIC));
     }
 
     @Test

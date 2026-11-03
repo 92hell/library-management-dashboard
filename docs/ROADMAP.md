@@ -19,24 +19,23 @@ Items marked *(hook ready)* already have an extension point in the code.
 
 - Member language preference, so emails/SMS can be sent in Bahasa Indonesia too
 - Certified e-signature for receipts via a PSrE (BSrE / Privy) as a `ReceiptSigner`; key rotation UI
-- Fines: partial payments, printed receipts, online payment (e.g. Midtrans / Xendit)
-- Member card expiry and renewal; card replacement keeps history
-- Merge duplicate member records (e.g. someone registered online before linking their card)
+- Fines: online payment (e.g. Midtrans / Xendit)
+- Card expiry reminder by email/SMS a month ahead (the profile already warns); printable member card
 - Fallback ISBN lookup (Google Books) when Open Library has no record
-- Reports: charts over time, scheduled monthly report by email
+- Reports: scheduled monthly report by email
 - Branches / locations and inter-branch transfers
 
 ## Security follow-ups (from the security review)
 
-- Registration: generic "username taken" / existing-card responses to stop enumeration; CAPTCHA
-  or rate limit on successful sign-ups; verify email ownership (also stops the email channel from
-  being used to mail arbitrary addresses)
-- Upgrade the dev-only eslint toolchain (5 moderate advisories in `minimatch`; not shipped)
+- Registration: verify email ownership (removes the last difference between "created" and
+  "refused" for someone else's email, and stops the email channel being used to mail arbitrary
+  addresses); CAPTCHA if sign-up abuse appears
+- Drop the `minimatch` override in `frontend/package.json` once eslint depends on minimatch 11+
 
 ## Platform
 
 - Rate limiting on all public endpoints; distributed lockout store (Redis) for several instances
 - Structured JSON logs and metrics (Micrometer + Prometheus/Grafana); alerting on error rate
-- End-to-end: more journeys (registration and card linking, notifications), mobile viewport
+- End-to-end: more journeys (registration and card linking, notifications)
 - Manual screen-reader pass (NVDA / VoiceOver) beyond the automated WCAG checks
 - Deployment: container registry + one-click deploy (Render / Fly.io / Railway), HTTPS, backups

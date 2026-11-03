@@ -35,6 +35,9 @@ class LoanViews {
         if (loan.isOverdue(today)) {
             return new ConflictException("Overdue loans cannot be renewed; please return the book.");
         }
+        if (loan.getMember().cardExpiredOn(today)) {
+            return new ConflictException("The library card has expired; renew it at the desk before renewing loans.");
+        }
         if (loan.getRenewalCount() >= policy.maxRenewals()) {
             return new ConflictException("This loan has already been renewed the maximum number of times.");
         }

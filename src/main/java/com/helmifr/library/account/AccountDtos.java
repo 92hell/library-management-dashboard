@@ -53,15 +53,17 @@ public final class AccountDtos {
         }
     }
 
+    /** The member's own card; {@code cardExpiresOn} null = it does not expire. */
     public record MemberCard(Long id, String libraryCardId, String name, String email, String phone,
-                             LocalDate dateOfBirth, boolean active) {}
+                             LocalDate dateOfBirth, boolean active, LocalDate cardExpiresOn, boolean cardExpired) {}
 
     public record ProfileResponse(Long id, String username, Role role, String displayName, String email,
                                   MemberCard member) {
-        static ProfileResponse of(UserAccount a) {
+        static ProfileResponse of(UserAccount a, LocalDate today) {
             var m = a.getMember();
             MemberCard card = m == null ? null : new MemberCard(m.getId(), m.getLibraryCardId(), m.getName(),
-                    m.getEmail(), m.getPhone(), m.getDateOfBirth(), m.isActive());
+                    m.getEmail(), m.getPhone(), m.getDateOfBirth(), m.isActive(), m.getCardExpiresOn(),
+                    m.cardExpiredOn(today));
             return new ProfileResponse(a.getId(), a.getUsername(), a.getRole(), a.getDisplayName(), a.getEmail(), card);
         }
     }

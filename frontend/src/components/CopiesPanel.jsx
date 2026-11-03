@@ -1,10 +1,11 @@
-import { Button, Col, Form, Row, Table } from 'reactstrap';
+import { Button, Col, Form, Row } from 'reactstrap';
 import { api } from '../api';
 import { formatDate } from '../format';
 import { useAction, useApi, useFormFields } from '../hooks';
 import { useT } from '../i18n';
 import { ErrorAlert, Loading } from './Feedback';
 import Field from './Field';
+import ResponsiveTable from './ResponsiveTable';
 
 /** The physical copies of a book: barcode, shelf, who has it; add and withdraw copies. */
 export default function CopiesPanel({ bookId }) {
@@ -39,7 +40,7 @@ export default function CopiesPanel({ bookId }) {
       ) : copies.data.length === 0 ? (
         <p className="empty-state">{t('No copies yet. Add the first one below.')}</p>
       ) : (
-        <Table responsive className="align-middle">
+        <ResponsiveTable responsive className="align-middle">
           <thead className="table-library">
             <tr>
               <th scope="col">{t('Barcode')}</th>
@@ -77,7 +78,7 @@ export default function CopiesPanel({ bookId }) {
               </tr>
             ))}
           </tbody>
-        </Table>
+        </ResponsiveTable>
       )}
       <Form onSubmit={addCopy} noValidate className="mt-3">
         <Row className="g-2 align-items-end">

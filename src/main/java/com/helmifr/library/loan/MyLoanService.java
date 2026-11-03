@@ -39,9 +39,13 @@ public class MyLoanService {
 
     @Transactional
     public LoanResponse request(Long memberId, Long bookId) {
-        Member member = memberService.require(memberId);
+        Member member = memberService.lock(memberId);
         if (!member.isActive()) {
             throw new ConflictException("Your library card is inactive. Please contact the library.");
+        }
+        if (member.cardExpiredOn(LocalDate.now(clock))) {
+            throw new ConflictException("Your library card expired on {0}. Please renew it at the desk.",
+                    member.getCardExpiresOn());
         }
         fines.ensureCanBorrow(member, true);
         Book book = loanService.lockBook(bookId);

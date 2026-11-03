@@ -6,6 +6,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
@@ -19,11 +20,13 @@ public interface FineRepository extends JpaRepository<Fine, Long> {
     @EntityGraph(attributePaths = {"loan", "loan.book", "member"})
     List<Fine> findAllByMemberIdAndLoanDeletedFalseOrderByIdDesc(Long memberId);
 
-    @Query("SELECT COALESCE(SUM(f.amount), 0) FROM Fine f WHERE f.member.id = :memberId AND f.loan.deleted = false"
-            + " AND f.status = " + UNPAID)
+    /** What the member still owes (unpaid fines, less any part payments). */
+    @Query("SELECT COALESCE(SUM(f.amount - f.paidAmount), 0) FROM Fine f WHERE f.member.id = :memberId"
+            + " AND f.loan.deleted = false AND f.status = " + UNPAID)
     long sumUnpaidByMember(@Param("memberId") Long memberId);
 
-    @Query("SELECT COALESCE(SUM(f.amount), 0) FROM Fine f WHERE f.loan.deleted = false AND f.status = " + UNPAID)
+    @Query("SELECT COALESCE(SUM(f.amount - f.paidAmount), 0) FROM Fine f WHERE f.loan.deleted = false AND f.status = "
+            + UNPAID)
     long sumUnpaid();
 
     /** Locks the fine row, so paying and waiving the same fine cannot both succeed. */
@@ -48,4 +51,9 @@ public interface FineRepository extends JpaRepository<Fine, Long> {
                    OR LOWER(m.libraryCardId) LIKE :pattern ESCAPE '!'
                    OR LOWER(b.title) LIKE :pattern ESCAPE '!')""")
     Page<Fine> search(@Param("pattern") String pattern, @Param("status") FineStatus status, Pageable pageable);
+
+    /** Merging duplicate members: the duplicate's fines become the kept member's. */
+    @Modifying(flushAutomatically = true, clearAutomatically = true)
+    @Query("UPDATE Fine f SET f.member.id = :to WHERE f.member.id = :from")
+    int moveAllToMember(@Param("from") Long from, @Param("to") Long to);
 }

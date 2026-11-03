@@ -21,7 +21,7 @@ import com.helmifr.library.receipt.ReceiptRepository;
 import com.helmifr.library.loan.LoanRepository;
 import com.helmifr.library.loan.LoanStatus;
 import com.helmifr.library.member.Member;
-import com.helmifr.library.member.LibraryCardIds;
+import com.helmifr.library.member.MemberCards;
 import com.helmifr.library.member.MemberRepository;
 import com.helmifr.library.common.Audit;
 import com.helmifr.library.notification.NotificationRepository;
@@ -56,7 +56,8 @@ public class DemoDataSeeder {
     private final AuthorRepository authors;
     private final BookRepository books;
     private final MemberRepository members;
-    private final LibraryCardIds libraryCardIds;
+    private final MemberCards memberCards;
+    private final com.helmifr.library.member.RetiredCardRepository retiredCards;
     private final LoanRepository loans;
     private final PasswordEncoder passwordEncoder;
     private final Clock clock;
@@ -79,6 +80,7 @@ public class DemoDataSeeder {
         fines.deleteAllInBatch();
         loans.deleteAllInBatch();
         accounts.deleteAllExcept(securityProperties.librarian().username());
+        retiredCards.deleteAllInBatch();
         members.deleteAllInBatch();
         copies.deleteAllInBatch();
         books.deleteAllInBatch();
@@ -163,6 +165,8 @@ public class DemoDataSeeder {
 
         // Three months of past loans, all returned on time, so the reports have something to show.
         Member rina = member("Rina Wulandari", "rina@example.com", LocalDate.of(2001, 5, 21));
+        // Her card ran out last week, so the members list shows an expired card to renew.
+        rina.setCardExpiresOn(today.minusDays(5));
         Book[] popular = {laskar, laskar, bumi, pemimpi, laskar, supernova, bumi, ronggeng, laskar, pemimpi, cantik, bumi};
         Member[] readers = {demoCustomer, walkIn, rina};
         for (int i = 0; i < popular.length; i++) {
@@ -240,7 +244,7 @@ public class DemoDataSeeder {
         m.setEmail(email);
         m.setPhone("081200000000");
         m.setDateOfBirth(dateOfBirth);
-        m.setLibraryCardId(libraryCardIds.next());
+        memberCards.issue(m);
         return members.save(m);
     }
 

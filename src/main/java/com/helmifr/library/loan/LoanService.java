@@ -133,6 +133,7 @@ public class LoanService {
         if (!loan.getMember().isActive()) {
             throw new ConflictException("The member's card is inactive.");
         }
+        requireValidCard(loan.getMember());
         fines.ensureCanBorrow(loan.getMember(), false);
         Book book = loan.getBook();
         loan.setDecidedBy(CurrentUser.username());
@@ -162,6 +163,7 @@ public class LoanService {
         if (!loan.getMember().isActive()) {
             throw new ConflictException("The member's card is inactive.");
         }
+        requireValidCard(loan.getMember());
         fines.ensureCanBorrow(loan.getMember(), false);
         LocalDate today = today();
         loan.setStatus(LoanStatus.ACTIVE);
@@ -279,6 +281,13 @@ public class LoanService {
         return loan;
     }
 
+    private void requireValidCard(Member member) {
+        if (member.cardExpiredOn(today())) {
+            throw new ConflictException("The library card expired on {0}; renew it before lending.",
+                    member.getCardExpiresOn());
+        }
+    }
+
     private Loan requireStatus(Long id, LoanStatus expected) {
         Loan loan = lockLoan(id);
         if (loan.getStatus() != expected) {
@@ -313,14 +322,19 @@ public class LoanService {
         if (scanned != null && request.bookId() != null && !scanned.getBook().getId().equals(request.bookId())) {
             throw new FieldValidationException("copyBarcode", "belongs to another book");
         }
+        // Member before book: the lock order of MemberMerge, so a loan cannot land on a merged-away record.
+        Member member = memberService.lock(request.memberId());
         Book book = lockBook(scanned != null ? scanned.getBook().getId() : request.bookId());
         LoanStatus status = request.returnDate() == null ? LoanStatus.ACTIVE : LoanStatus.RETURNED;
         Copy copy = chooseCopy(loan, book, scanned, status);
 
-        Member member = memberService.require(request.memberId());
         boolean memberChanged = loan.getMember() == null || !Objects.equals(loan.getMember().getId(), member.getId());
         if (memberChanged && !member.isActive()) {
             throw new FieldValidationException("memberId", "Member is inactive and cannot borrow books");
+        }
+        if (memberChanged && status == LoanStatus.ACTIVE && member.cardExpiredOn(today)) {
+            throw new FieldValidationException("memberId", "The library card expired on {0}; renew it before lending",
+                    member.getCardExpiresOn());
         }
         if (memberChanged && status == LoanStatus.ACTIVE) {
             fines.ensureCanBorrow(member, false);

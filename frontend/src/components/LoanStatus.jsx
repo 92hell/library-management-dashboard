@@ -17,7 +17,10 @@ export default function LoanStatus({ loan }) {
     <>
       <Stamp loan={loan} />
       <span className={`d-block small mt-1 ${fine.status === 'UNPAID' || fine.status === 'ACCRUING' ? 'text-danger' : 'text-muted'}`}>
-        {fine.status === 'ACCRUING' ? t('Late fee so far: {amount}', { amount }) : t(FEE_LINES[fine.status], { amount })}
+        {fine.status === 'ACCRUING'
+          ? t('Late fee so far: {amount}', { amount })
+          : fine.status === 'UNPAID' && fine.outstanding != null && fine.outstanding < fine.amount
+            ? t('Late fee: {amount} ({due} still due)', { amount, due: formatMoney(fine.outstanding, fine.currency) }) : t(FEE_LINES[fine.status], { amount })}
       </span>
     </>
   );
