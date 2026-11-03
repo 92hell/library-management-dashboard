@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom';
 import { Card, CardBody, Col, Row } from 'reactstrap';
 import { useAuth } from '../auth';
 import { ErrorAlert, Loading } from '../components/Feedback';
+import { formatMoney } from '../format';
 import { useApi } from '../hooks';
 
 const TILES = [
@@ -12,6 +13,7 @@ const TILES = [
   { key: 'activeLoans', label: 'Books on loan', to: '/borrowed-books?status=active' },
   { key: 'books', label: 'Books', to: '/books' },
   { key: 'members', label: 'Members', to: '/members' },
+  { key: 'unpaidFines', label: 'Unpaid fines', to: '/fines', highlight: 'danger', money: true },
 ];
 
 export default function LibrarianHome() {
@@ -26,16 +28,17 @@ export default function LibrarianHome() {
       {summary.loading && !summary.data ? (
         <Loading />
       ) : (
-        <Row xs="2" md="4" lg="7" className="g-3">
-          {TILES.map(({ key, label, to, highlight }) => {
+        <Row xs="2" md="4" lg="4" className="g-3">
+          {TILES.map(({ key, label, to, highlight, money }) => {
             const value = summary.data?.[key] ?? 0;
+            const shown = money ? formatMoney(value, summary.data?.currency ?? '') : value;
             const tone = highlight && value > 0 ? (highlight === 'danger' ? 'tile-attention' : 'tile-info') : '';
             return (
               <Col key={key}>
                 <Card className={`h-100 shadow-sm tile ${tone}`}>
                   <CardBody>
                     <Link to={to} className="stretched-link text-reset text-decoration-none">
-                      <span className="d-block display-6 fw-semibold">{value}</span>
+                      <span className={`d-block fw-semibold ${money ? 'h4 my-2' : 'display-6'}`}>{shown}</span>
                       <span className="small">{label}</span>
                     </Link>
                   </CardBody>

@@ -1,7 +1,24 @@
-import { formatDate } from '../format';
+import { formatDate, formatMoney } from '../format';
 
-/** Loan status drawn as a library date-due stamp, including derived "Overdue" and the decline reason. */
+const FEE_STATES = { UNPAID: 'unpaid', PAID: 'paid', WAIVED: 'waived' };
+
+/** Loan status drawn as a library date-due stamp, with the late fee (so far) underneath when there is one. */
 export default function LoanStatus({ loan }) {
+  const { fine } = loan;
+  if (!fine) return <Stamp loan={loan} />;
+  const amount = formatMoney(fine.amount, fine.currency);
+  return (
+    <>
+      <Stamp loan={loan} />
+      <span className={`d-block small mt-1 ${fine.status === 'UNPAID' || fine.status === 'ACCRUING' ? 'text-danger' : 'text-muted'}`}>
+        {fine.status === 'ACCRUING' ? `Late fee so far: ${amount}` : `Late fee: ${amount} (${FEE_STATES[fine.status]})`}
+      </span>
+    </>
+  );
+}
+
+/** The stamp itself, including derived "Overdue" and the decline reason. */
+function Stamp({ loan }) {
   switch (loan.status) {
     case 'PENDING':
       return <span className="stamp stamp-pending">Requested</span>;

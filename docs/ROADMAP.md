@@ -17,7 +17,7 @@ Items marked *(hook ready)* already have an extension point in the code.
 
 ## Library operations
 
-- Fines for overdue books, payments and receipts
+- Fines: partial payments, printed receipts, online payment (e.g. Midtrans / Xendit)
 - Member card expiry and renewal; card replacement keeps history
 - Merge duplicate member records (e.g. someone registered online before linking their card)
 - Book covers, descriptions and ISBN lookup (Open Library / Google Books API)

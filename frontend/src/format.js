@@ -19,3 +19,8 @@ export function todayIso() {
 export function emptyToNull(value) {
   return value === '' ? null : value;
 }
+
+/** "IDR 25,000": amounts are whole units of the currency. */
+export function formatMoney(amount, currency) {
+  return `${currency} ${Number(amount).toLocaleString('en')}`;
+}

@@ -19,7 +19,9 @@ public enum NotificationType {
     /** To the customer: a book is due within the next few days. */
     DUE_SOON("Book due soon"),
     /** To the customer: a book is past its due date. */
-    OVERDUE("Overdue book");
+    OVERDUE("Overdue book"),
+    /** To the customer: a book came back late and a late fee was charged. */
+    FINE_ISSUED("Late fee");
 
     private final String title;
 

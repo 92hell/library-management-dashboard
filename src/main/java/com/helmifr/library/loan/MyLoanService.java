@@ -4,6 +4,7 @@ import com.helmifr.library.book.Book;
 import com.helmifr.library.common.Audit;
 import com.helmifr.library.common.ConflictException;
 import com.helmifr.library.common.NotFoundException;
+import com.helmifr.library.fine.FineService;
 import com.helmifr.library.member.Member;
 import com.helmifr.library.member.MemberService;
 import com.helmifr.library.notification.NotificationService;
@@ -29,6 +30,7 @@ public class MyLoanService {
     private final Clock clock;
     private final HoldQueue holdQueue;
     private final LoanViews views;
+    private final FineService fines;
 
     public List<LoanResponse> list(Long memberId) {
         return loanService.findByMember(memberId);
@@ -40,6 +42,7 @@ public class MyLoanService {
         if (!member.isActive()) {
             throw new ConflictException("Your library card is inactive. Please contact the library.");
         }
+        fines.ensureCanBorrow(member, true);
         Book book = loanService.lockBook(bookId);
         if (loans.existsOpenForMemberAndBook(memberId, bookId)) {
             throw new ConflictException("You already have an open request or loan for this book.");

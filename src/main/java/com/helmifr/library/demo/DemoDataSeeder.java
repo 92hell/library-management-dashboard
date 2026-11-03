@@ -11,6 +11,8 @@ import com.helmifr.library.book.BookRepository;
 import com.helmifr.library.book.Copy;
 import com.helmifr.library.book.CopyBarcodes;
 import com.helmifr.library.book.CopyRepository;
+import com.helmifr.library.fine.Fine;
+import com.helmifr.library.fine.FineRepository;
 import com.helmifr.library.loan.Loan;
 import com.helmifr.library.loan.LoanRepository;
 import com.helmifr.library.loan.LoanStatus;
@@ -57,6 +59,7 @@ public class DemoDataSeeder {
     private final NotificationRepository notifications;
     private final CopyRepository copies;
     private final CopyBarcodes barcodes;
+    private final FineRepository fines;
     private final SecurityProperties securityProperties;
     private final EntityManager entityManager;
 
@@ -64,6 +67,7 @@ public class DemoDataSeeder {
     @Transactional
     public void reset() {
         notifications.deleteAllInBatch();
+        fines.deleteAllInBatch();
         loans.deleteAllInBatch();
         accounts.deleteAllExcept(securityProperties.librarian().username());
         members.deleteAllInBatch();
@@ -114,7 +118,7 @@ public class DemoDataSeeder {
 
         // Popular titles have several copies, as in a real library.
         Book bumi = book("Bumi Manusia", pram, 1980, "Historical Fiction,Classics", 2, "FIC PRA");
-        book("Anak Semua Bangsa", pram, 1980, "Historical Fiction,Classics", 1, "FIC PRA");
+        Book anak = book("Anak Semua Bangsa", pram, 1980, "Historical Fiction,Classics", 1, "FIC PRA");
         Book laskar = book("Laskar Pelangi", hirata, 2005, "Fiction,Young Adult", 3, "FIC HIR");
         book("Sang Pemimpi", hirata, 2006, "Fiction,Young Adult", 2, "FIC HIR");
         Book cantik = book("Cantik Itu Luka", eka, 2002, "Fiction,Historical Fiction", 1, "FIC KUR");
@@ -131,6 +135,15 @@ public class DemoDataSeeder {
         Loan hold = loan(supernova, walkIn, LoanStatus.READY, null, null);
         hold.setRequestedAt(clock.instant());
         hold.setReadyUntil(today.plusDays(2));
+        // A book the demo customer brought back 3 days late, with its late fee still to pay.
+        Loan late = loan(anak, demoCustomer, LoanStatus.RETURNED, today.minusDays(30), today.minusDays(16));
+        late.setReturnDate(today.minusDays(13));
+        Fine fee = new Fine();
+        fee.setLoan(late);
+        fee.setMember(demoCustomer);
+        fee.setDaysLate(3);
+        fee.setAmount(3000);
+        fines.save(fee);
     }
 
     private Author author(String name) {
@@ -173,7 +186,7 @@ public class DemoDataSeeder {
         l.setStatus(status);
         l.setBorrowDate(borrowDate);
         l.setDueDate(dueDate);
-        if (status.holdsCopy()) {
+        if (status.holdsCopy() || status == LoanStatus.RETURNED) {
             // Seeded loans use different titles, so the first copy is free.
             l.setCopy(copies.findAllByBookIdAndDeletedFalseOrderByIdAsc(book.getId()).get(0));
         }

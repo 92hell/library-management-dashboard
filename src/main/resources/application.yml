@@ -70,6 +70,13 @@ library:
     max-renewals: ${LOAN_MAX_RENEWALS:1}
     # Daily reminder run (second minute hour day month weekday); "-" disables it.
     reminder-cron: ${LOAN_REMINDER_CRON:0 0 8 * * *}
+  fines:
+    # Late fee per day a book is returned late, the most one loan can cost, and the unpaid total
+    # at which a member cannot borrow until they pay (0 = never). Whole units of the currency.
+    per-day: ${FINE_PER_DAY:1000}
+    max-per-loan: ${FINE_MAX_PER_LOAN:30000}
+    block-at: ${FINE_BLOCK_AT:20000}
+    currency: ${FINE_CURRENCY:IDR}
   notifications:
     # Public address of the app; links in emails/messages are built from it.
     base-url: ${APP_BASE_URL:http://localhost:8080}

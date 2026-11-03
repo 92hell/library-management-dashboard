@@ -1,23 +1,25 @@
 package com.helmifr.library.loan;
 
+import com.helmifr.library.fine.FineService;
 import java.time.Clock;
 import java.time.LocalDate;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
-/** Builds LoanResponses, adding what needs a lookup: queue position and whether it can be renewed. */
+/** Builds LoanResponses, adding what needs a lookup: queue position, whether it can be renewed, late fee. */
 @Component
 @RequiredArgsConstructor
 class LoanViews {
 
     private final LoanRepository loans;
     private final LoanPolicy policy;
+    private final FineService fines;
     private final Clock clock;
 
     LoanResponse of(Loan loan) {
         LocalDate today = LocalDate.now(clock);
-        return LoanResponse.from(loan, today, queuePosition(loan), canRenew(loan, today));
+        return LoanResponse.from(loan, today, queuePosition(loan), canRenew(loan, today), fines.onLoan(loan, today));
     }
 
     List<LoanResponse> ofAll(List<Loan> list) {

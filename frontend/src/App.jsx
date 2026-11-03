@@ -10,6 +10,7 @@ import BookList from './pages/BookList';
 import BorrowedBookEdit from './pages/BorrowedBookEdit';
 import BorrowedBookList from './pages/BorrowedBookList';
 import Catalogue from './pages/Catalogue';
+import FineList from './pages/FineList';
 import Home from './pages/Home';
 import Login from './pages/Login';
 import MemberEdit from './pages/MemberEdit';
@@ -61,6 +62,7 @@ export function AppRoutes() {
           <Route path="authors/:id" element={<AuthorEdit />} />
           <Route path="members" element={<MemberList />} />
           <Route path="members/:id" element={<MemberEdit />} />
+          <Route path="fines" element={<FineList />} />
           <Route path="users" element={<Users />} />
         </Route>
       </Route>

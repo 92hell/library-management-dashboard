@@ -1,12 +1,14 @@
 import { Link } from 'react-router-dom';
 import { Alert, Card, CardBody, Col, Row } from 'reactstrap';
 import { useAuth } from '../auth';
+import FineBalance from '../components/FineBalance';
 import { formatDate } from '../format';
 import { useApi } from '../hooks';
 
 export default function CustomerHome() {
   const { user } = useAuth();
   const { data: loans = [] } = useApi('/api/my/loans');
+  const { data: fines } = useApi('/api/my/fines');
   const active = loans.filter((loan) => loan.status === 'ACTIVE');
   const pending = loans.filter((loan) => ['PENDING', 'WAITLISTED'].includes(loan.status));
   const overdue = active.filter((loan) => loan.overdue);
@@ -28,6 +30,7 @@ export default function CustomerHome() {
           .
         </Alert>
       )}
+      <FineBalance fines={fines} />
       {overdue.length > 0 && (
         <Alert color="danger">
           You have {overdue.length} overdue {overdue.length === 1 ? 'book' : 'books'}. Please return{' '}

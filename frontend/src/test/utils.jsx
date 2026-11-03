@@ -57,6 +57,7 @@ export function signedInAs(user, routes = {}) {
     'GET /api/notifications/unread-count': { count: 0 },
     'GET /api/dashboard': { pendingRequests: 0, activeLoans: 0, overdueLoans: 0, dueToday: 0, books: 0, members: 0 },
     'GET /api/my/loans': [],
+    'GET /api/my/fines': { balance: 0, currency: 'IDR', blocked: false, blockAt: 20000, fines: [] },
     'GET /api/auth/demo': { enabled: false, registrationOpen: true, accounts: [] },
     ...routes,
   });

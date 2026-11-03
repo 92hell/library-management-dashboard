@@ -6,6 +6,7 @@ import com.helmifr.library.book.Copy;
 import com.helmifr.library.book.CopyRepository;
 import com.helmifr.library.book.CopyService;
 import com.helmifr.library.common.Audit;
+import com.helmifr.library.fine.FineService;
 import com.helmifr.library.common.ConflictException;
 import com.helmifr.library.common.FieldValidationException;
 import com.helmifr.library.common.NotFoundException;
@@ -44,6 +45,7 @@ public class LoanService {
     private final LoanViews views;
     private final CopyRepository copies;
     private final NotificationService notifications;
+    private final FineService fines;
     private final LoanPolicy policy;
     private final Clock clock;
 
@@ -123,6 +125,7 @@ public class LoanService {
         if (!loan.getMember().isActive()) {
             throw new ConflictException("The member's card is inactive.");
         }
+        fines.ensureCanBorrow(loan.getMember(), false);
         LocalDate today = today();
         loan.setStatus(LoanStatus.ACTIVE);
         loan.setBorrowDate(today);
@@ -165,7 +168,7 @@ public class LoanService {
         return views.of(loan);
     }
 
-    /** The book is back: the copy goes to the next in the queue, if anyone is waiting. */
+    /** The book is back: a late fee is charged if it is late; the copy goes to the next in the queue. */
     @Transactional
     public LoanResponse markReturned(Long id) {
         Loan loan = requireStatus(id, LoanStatus.ACTIVE);
@@ -174,6 +177,7 @@ public class LoanService {
         loan.setReturnDate(today());
         Audit.event("LOAN_RETURNED", "loanId={} bookId={} memberId={} by={}", loan.getId(), loan.getBook().getId(),
                 loan.getMember().getId(), CurrentUser.username());
+        fines.chargeIfLate(loan);
         holdQueue.serve(book);
         return views.of(loan);
     }
@@ -253,6 +257,9 @@ public class LoanService {
         boolean memberChanged = loan.getMember() == null || !Objects.equals(loan.getMember().getId(), member.getId());
         if (memberChanged && !member.isActive()) {
             throw new FieldValidationException("memberId", "Member is inactive and cannot borrow books");
+        }
+        if (memberChanged && status == LoanStatus.ACTIVE) {
+            fines.ensureCanBorrow(member, false);
         }
 
         boolean datesChanged = !Objects.equals(loan.getDueDate(), dueDate);
