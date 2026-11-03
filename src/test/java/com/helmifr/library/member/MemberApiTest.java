@@ -36,11 +36,11 @@ class MemberApiTest {
     }
 
     @Test
-    @DisplayName("a walk-in member gets a member code and no online account")
+    @DisplayName("a walk-in member gets a library card ID and no online account")
     void createWalkInMember() throws Exception {
         api.as(librarian).post("/api/members", VALID_MEMBER)
                 .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.memberCode", startsWith("LIB-")))
+                .andExpect(jsonPath("$.libraryCardId", startsWith("LIB-")))
                 .andExpect(jsonPath("$.email").value("budi@example.com"))
                 .andExpect(jsonPath("$.accountUsername").doesNotExist());
     }

@@ -8,7 +8,8 @@ import lombok.Setter;
 import org.hibernate.annotations.CreationTimestamp;
 
 /**
- * Library member (the "library card"). May or may not have an online customer account.
+ * A library member, identified by their library card ID. A walk-in (unregistered) member has
+ * no online account; registering links an account, verified by the email or phone on file.
  * Loans are reached through {@link com.helmifr.library.loan.Loan}; there is
  * deliberately no collection mapping onto borrowed_books here (the old many-to-many mapping
  * deleted a member's loans whenever the member was updated).
@@ -22,9 +23,9 @@ public class Member {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    /** Library card number, e.g. LIB-7KQ2XM. Customers use it to link an online account. */
-    @Column(name = "member_code", nullable = false, length = 20, updatable = false)
-    private String memberCode;
+    /** The customer's key, printed on their library card, e.g. LIB-7KQ2XM. */
+    @Column(name = "library_card_id", nullable = false, length = 20, updatable = false)
+    private String libraryCardId;
 
     @Column(name = "name", nullable = false)
     private String name;
@@ -35,7 +36,7 @@ public class Member {
     @Column(name = "email", nullable = false)
     private String email;
 
-    @Column(name = "phone", nullable = false, length = 15)
+    @Column(name = "phone", nullable = false, length = 20)
     private String phone;
 
     @Column(name = "is_active", nullable = false)

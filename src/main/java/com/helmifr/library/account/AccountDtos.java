@@ -1,5 +1,6 @@
 package com.helmifr.library.account;
 
+import com.helmifr.library.common.PhoneNumbers;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -14,10 +15,10 @@ public final class AccountDtos {
 
     static final String USERNAME_REGEX = "^[A-Za-z0-9._-]{3,50}$";
     static final String USERNAME_MESSAGE = "must be 3-50 letters, digits, dots, dashes or underscores";
-    static final String PHONE_REGEX = "^\\+?[0-9][0-9 -]{4,13}$";
-    static final String PHONE_MESSAGE = "must be 5-15 characters of digits, spaces or dashes, optionally starting with +";
+    static final String PHONE_REGEX = PhoneNumbers.PATTERN;
+    static final String PHONE_MESSAGE = PhoneNumbers.PATTERN_MESSAGE;
 
-    /** Self-registration. With memberCode, an existing (walk-in) member record is linked instead of created. */
+    /** Self-registration. With libraryCardId, an existing (walk-in) member record is linked instead of created. */
     public record RegisterRequest(
             @NotBlank @Pattern(regexp = USERNAME_REGEX, message = USERNAME_MESSAGE) String username,
             @NotBlank @Size(min = 10, max = 200) String password,
@@ -25,7 +26,7 @@ public final class AccountDtos {
             @NotBlank @Email @Size(max = 255) String email,
             @NotBlank @Pattern(regexp = PHONE_REGEX, message = PHONE_MESSAGE) String phone,
             @NotNull @Past LocalDate dateOfBirth,
-            @Size(max = 20) String memberCode) {}
+            @Size(max = 20) String libraryCardId) {}
 
     public record NewLibrarianRequest(
             @NotBlank @Pattern(regexp = USERNAME_REGEX, message = USERNAME_MESSAGE) String username,
@@ -52,14 +53,14 @@ public final class AccountDtos {
         }
     }
 
-    public record MemberCard(Long id, String memberCode, String name, String email, String phone,
+    public record MemberCard(Long id, String libraryCardId, String name, String email, String phone,
                              LocalDate dateOfBirth, boolean active) {}
 
     public record ProfileResponse(Long id, String username, Role role, String displayName, String email,
                                   MemberCard member) {
         static ProfileResponse of(UserAccount a) {
             var m = a.getMember();
-            MemberCard card = m == null ? null : new MemberCard(m.getId(), m.getMemberCode(), m.getName(),
+            MemberCard card = m == null ? null : new MemberCard(m.getId(), m.getLibraryCardId(), m.getName(),
                     m.getEmail(), m.getPhone(), m.getDateOfBirth(), m.isActive());
             return new ProfileResponse(a.getId(), a.getUsername(), a.getRole(), a.getDisplayName(), a.getEmail(), card);
         }

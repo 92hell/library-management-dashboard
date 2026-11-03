@@ -71,7 +71,7 @@ public class TestData {
         m.setDateOfBirth(LocalDate.of(1990, 5, 17));
         m.setEmail(slug(name) + "@example.com");
         m.setPhone("081234567890");
-        m.setMemberCode("TEST-" + SEQ.incrementAndGet());
+        m.setLibraryCardId("TEST-" + SEQ.incrementAndGet());
         return members.save(m);
     }
 

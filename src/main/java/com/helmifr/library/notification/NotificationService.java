@@ -8,13 +8,15 @@ import com.helmifr.library.common.PageResponse;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 /**
- * In-app notifications. Delivery is a database row the UI polls for; an email or push channel
- * can be added later behind {@link #notifyAccount}.
+ * Notifications. Each one is stored for the in-app inbox (the UI polls it) and published as a
+ * {@link NotificationCreated} event, which the external channels (email, SMS, WhatsApp) pick up
+ * after the transaction commits - see {@code notification.channel}.
  */
 @Service
 @RequiredArgsConstructor
@@ -25,6 +27,7 @@ public class NotificationService {
 
     private final NotificationRepository notifications;
     private final UserAccountRepository accounts;
+    private final ApplicationEventPublisher events;
 
     @Transactional
     public void notifyAccount(Long accountId, NotificationType type, String message, String link) {
@@ -33,7 +36,8 @@ public class NotificationService {
         n.setType(type);
         n.setMessage(message.length() > 500 ? message.substring(0, 497) + "..." : message);
         n.setLink(link);
-        notifications.save(n);
+        n = notifications.save(n);
+        events.publishEvent(new NotificationCreated(n.getId(), accountId, type, n.getMessage(), link));
         log.debug("Notification {} queued for account {}", type, accountId);
     }
 

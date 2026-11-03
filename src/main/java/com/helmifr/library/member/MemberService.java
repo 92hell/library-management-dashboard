@@ -6,6 +6,7 @@ import com.helmifr.library.common.Audit;
 import com.helmifr.library.common.ConflictException;
 import com.helmifr.library.common.NotFoundException;
 import com.helmifr.library.common.PageResponse;
+import com.helmifr.library.common.PhoneNumbers;
 import com.helmifr.library.common.Ref;
 import com.helmifr.library.common.SearchPatterns;
 import com.helmifr.library.loan.LoanRepository;
@@ -27,7 +28,7 @@ public class MemberService {
     private final MemberRepository members;
     private final LoanRepository loans;
     private final UserAccountRepository accounts;
-    private final MemberCodes memberCodes;
+    private final LibraryCardIds libraryCardIds;
 
     public PageResponse<MemberResponse> search(String q, Pageable pageable) {
         Page<Member> page = members.search(SearchPatterns.contains(q), pageable);
@@ -38,7 +39,7 @@ public class MemberService {
 
     public List<Ref> options() {
         return members.findAllByDeletedFalseAndActiveTrueOrderByNameAsc().stream()
-                .map(m -> new Ref(m.getId(), m.getName() + " (" + m.getMemberCode() + ")"))
+                .map(m -> new Ref(m.getId(), m.getName() + " (" + m.getLibraryCardId() + ")"))
                 .toList();
     }
 
@@ -54,10 +55,10 @@ public class MemberService {
     @Transactional
     public MemberResponse create(MemberRequest request) {
         Member member = new Member();
-        member.setMemberCode(memberCodes.next());
+        member.setLibraryCardId(libraryCardIds.next());
         apply(member, request);
         member = members.save(member);
-        Audit.event("MEMBER_CREATED", "memberId={} code={}", member.getId(), member.getMemberCode());
+        Audit.event("MEMBER_CREATED", "memberId={} code={}", member.getId(), member.getLibraryCardId());
         return toResponse(member);
     }
 
@@ -77,7 +78,7 @@ public class MemberService {
         }
         member.setDeleted(true);
         accounts.findByMemberId(id).ifPresent(account -> account.setEnabled(false));
-        Audit.event("MEMBER_DELETED", "memberId={} code={}", member.getId(), member.getMemberCode());
+        Audit.event("MEMBER_DELETED", "memberId={} code={}", member.getId(), member.getLibraryCardId());
     }
 
     private MemberResponse toResponse(Member m) {
@@ -89,7 +90,7 @@ public class MemberService {
         member.setName(request.name().trim());
         member.setDateOfBirth(request.dateOfBirth());
         member.setEmail(request.email().trim().toLowerCase(Locale.ROOT));
-        member.setPhone(request.phone().trim());
+        member.setPhone(PhoneNumbers.normalize(request.phone()));
         member.setActive(request.active() == null || request.active());
     }
 }

@@ -58,7 +58,7 @@ public interface LoanRepository extends JpaRepository<Loan, Long> {
             WHERE l.deleted = false
               AND (:pattern IS NULL
                    OR LOWER(m.name) LIKE :pattern ESCAPE '!'
-                   OR LOWER(m.memberCode) LIKE :pattern ESCAPE '!'
+                   OR LOWER(m.libraryCardId) LIKE :pattern ESCAPE '!'
                    OR LOWER(b.title) LIKE :pattern ESCAPE '!'
                    OR LOWER(a.name) LIKE :pattern ESCAPE '!')
               AND (:borrowDate IS NULL OR l.borrowDate = :borrowDate)
@@ -70,7 +70,7 @@ public interface LoanRepository extends JpaRepository<Loan, Long> {
             WHERE l.deleted = false
               AND (:pattern IS NULL
                    OR LOWER(m.name) LIKE :pattern ESCAPE '!'
-                   OR LOWER(m.memberCode) LIKE :pattern ESCAPE '!'
+                   OR LOWER(m.libraryCardId) LIKE :pattern ESCAPE '!'
                    OR LOWER(b.title) LIKE :pattern ESCAPE '!'
                    OR LOWER(a.name) LIKE :pattern ESCAPE '!')
               AND (:borrowDate IS NULL OR l.borrowDate = :borrowDate)

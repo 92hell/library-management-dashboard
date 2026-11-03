@@ -7,11 +7,11 @@ import java.time.LocalDate;
  *
  * @param accountUsername the linked online account, or null for walk-in members
  */
-public record MemberResponse(Long id, String memberCode, String name, LocalDate dateOfBirth, String email,
+public record MemberResponse(Long id, String libraryCardId, String name, LocalDate dateOfBirth, String email,
                              String phone, boolean active, String accountUsername) {
 
     static MemberResponse from(Member m, String accountUsername) {
-        return new MemberResponse(m.getId(), m.getMemberCode(), m.getName(), m.getDateOfBirth(), m.getEmail(),
+        return new MemberResponse(m.getId(), m.getLibraryCardId(), m.getName(), m.getDateOfBirth(), m.getEmail(),
                 m.getPhone(), m.isActive(), accountUsername);
     }
 }

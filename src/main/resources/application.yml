@@ -15,6 +15,12 @@ server:
 spring:
   application:
     name: library-dashboard
+  mail:
+    # SMTP server for email notifications. Set SPRING_MAIL_HOST (plus SPRING_MAIL_PORT,
+    # SPRING_MAIL_USERNAME, SPRING_MAIL_PASSWORD) to turn it on; no host = no mail sender.
+    properties:
+      mail.smtp.auth: ${MAIL_SMTP_AUTH:true}
+      mail.smtp.starttls.enable: ${MAIL_STARTTLS:true}
   datasource:
     url: ${DB_URL:jdbc:mariadb://localhost:3306/library_sandbox}
     username: ${DB_USERNAME:library}
@@ -46,6 +52,27 @@ library:
     due-soon-days: ${LOAN_DUE_SOON_DAYS:2}
     # Daily reminder run (second minute hour day month weekday); "-" disables it.
     reminder-cron: ${LOAN_REMINDER_CRON:0 0 8 * * *}
+  notifications:
+    # Public address of the app; links in emails/messages are built from it.
+    base-url: ${APP_BASE_URL:http://localhost:8080}
+    # In-app notifications are always on. External channels are off until configured:
+    email:
+      # Also needs an SMTP server: SPRING_MAIL_HOST etc. (see spring.mail above).
+      enabled: ${NOTIFY_EMAIL_ENABLED:false}
+      sender: ${NOTIFY_EMAIL_FROM:Library <no-reply@library.local>}
+    sms:
+      # Dry run (logged) until a provider integration is written; see PhoneMessagingChannel.
+      enabled: ${NOTIFY_SMS_ENABLED:false}
+      provider: ${NOTIFY_SMS_PROVIDER:twilio}
+      sender: ${NOTIFY_SMS_SENDER:}
+      api-url: ${NOTIFY_SMS_API_URL:}
+      api-key: ${NOTIFY_SMS_API_KEY:}
+    whatsapp:
+      enabled: ${NOTIFY_WHATSAPP_ENABLED:false}
+      provider: ${NOTIFY_WHATSAPP_PROVIDER:meta-cloud-api}
+      sender: ${NOTIFY_WHATSAPP_SENDER:}
+      api-url: ${NOTIFY_WHATSAPP_API_URL:}
+      api-key: ${NOTIFY_WHATSAPP_API_KEY:}
   demo:
     # Seeds sample data and shows demo customer/librarian logins on the login page.
     enabled: ${DEMO_MODE:false}

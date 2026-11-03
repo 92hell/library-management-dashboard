@@ -1,10 +1,13 @@
 -- Online accounts, borrow requests with a status workflow, due dates and notifications.
 
--- Every member gets a library card code; walk-in members use it to link an online account later.
-ALTER TABLE members ADD COLUMN member_code VARCHAR(20) NULL;
-UPDATE members SET member_code = CONCAT('LIB-', id) WHERE member_code IS NULL;
-ALTER TABLE members MODIFY member_code VARCHAR(20) NOT NULL;
-CREATE UNIQUE INDEX uq_members_member_code ON members (member_code);
+-- Every member gets a library card ID (the customer's key). Walk-in members link an online
+-- account to it later by registering with the ID plus the email or phone on file.
+ALTER TABLE members ADD COLUMN library_card_id VARCHAR(20) NULL;
+UPDATE members SET library_card_id = CONCAT('LIB-', id) WHERE library_card_id IS NULL;
+ALTER TABLE members MODIFY library_card_id VARCHAR(20) NOT NULL;
+CREATE UNIQUE INDEX uq_members_library_card_id ON members (library_card_id);
+-- Room for international numbers such as +6281234567890 (E.164 allows 15 digits plus '+').
+ALTER TABLE members MODIFY phone VARCHAR(20) NOT NULL;
 
 -- Staff (LIBRARIAN) and customer (CUSTOMER) logins. A customer account points at its member record.
 CREATE TABLE user_accounts (

@@ -12,9 +12,17 @@ public interface MemberRepository extends JpaRepository<Member, Long> {
 
     Optional<Member> findByIdAndDeletedFalse(Long id);
 
-    Optional<Member> findByMemberCodeIgnoreCaseAndDeletedFalse(String memberCode);
+    Optional<Member> findByLibraryCardIdIgnoreCaseAndDeletedFalse(String libraryCardId);
 
-    boolean existsByMemberCode(String memberCode);
+    boolean existsByLibraryCardId(String libraryCardId);
+
+    /** Cards without an online account whose email matches, or whose phone contains the given digits. */
+    @Query("""
+            SELECT m FROM Member m
+            WHERE m.deleted = false
+              AND NOT EXISTS (SELECT 1 FROM UserAccount u WHERE u.member = m)
+              AND (LOWER(m.email) = LOWER(:email) OR m.phone LIKE CONCAT('%', :phoneDigits, '%'))""")
+    List<Member> findUnlinkedByEmailOrPhoneContaining(@Param("email") String email, @Param("phoneDigits") String phoneDigits);
 
     long countByDeletedFalse();
 
@@ -28,7 +36,7 @@ public interface MemberRepository extends JpaRepository<Member, Long> {
                    OR LOWER(m.name) LIKE :pattern ESCAPE '!'
                    OR LOWER(m.email) LIKE :pattern ESCAPE '!'
                    OR LOWER(m.phone) LIKE :pattern ESCAPE '!'
-                   OR LOWER(m.memberCode) LIKE :pattern ESCAPE '!')
+                   OR LOWER(m.libraryCardId) LIKE :pattern ESCAPE '!')
             ORDER BY m.createdAt DESC, m.id DESC""")
     Page<Member> search(@Param("pattern") String pattern, Pageable pageable);
 }

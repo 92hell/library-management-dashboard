@@ -117,7 +117,7 @@ public class AuthController {
             SessionUser created = accountService.register(registration);
             return ResponseEntity.created(URI.create("/api/profile")).body(created);
         } catch (FieldValidationException e) {
-            if (e.getFieldErrors().containsKey("memberCode")) {
+            if (e.getFieldErrors().containsKey("libraryCardId")) {
                 limiter.recordFailure("register", address);
                 Audit.event("REGISTER_LINK_FAILED", "username={} ip={}", registration.username(), address);
             }

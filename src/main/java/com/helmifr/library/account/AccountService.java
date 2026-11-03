@@ -11,9 +11,10 @@ import com.helmifr.library.common.Audit;
 import com.helmifr.library.common.FieldValidationException;
 import com.helmifr.library.common.NotFoundException;
 import com.helmifr.library.common.PageResponse;
+import com.helmifr.library.common.PhoneNumbers;
 import com.helmifr.library.common.SearchPatterns;
 import com.helmifr.library.member.Member;
-import com.helmifr.library.member.MemberCodes;
+import com.helmifr.library.member.LibraryCardIds;
 import com.helmifr.library.member.MemberRepository;
 import java.util.Locale;
 import java.util.Objects;
@@ -28,17 +29,18 @@ import org.springframework.transaction.annotation.Transactional;
 @Transactional(readOnly = true)
 public class AccountService {
 
-    static final String NO_MATCHING_MEMBERSHIP = "No membership matches this code and date of birth";
+    static final String NO_MATCHING_CARD = "No library card matches this ID with your email or phone number";
+    static final String CARD_EXISTS = "You already have a library card with us. Enter its ID to link it to this account.";
 
     private final UserAccountRepository accounts;
     private final MemberRepository members;
-    private final MemberCodes memberCodes;
+    private final LibraryCardIds libraryCardIds;
     private final PasswordEncoder passwordEncoder;
 
     // ---- Registration --------------------------------------------------------------------------
 
     /**
-     * Creates a customer account. With a member code, the existing member record (e.g. a walk-in
+     * Creates a customer account. With a library card ID, the existing member record (e.g. a walk-in
      * member with loan history) is linked, after checking the date of birth; otherwise a new
      * member record is created from the registration details.
      */
@@ -47,18 +49,26 @@ public class AccountService {
         requireFreeUsername(request.username());
 
         Member member;
-        if (request.memberCode() != null && !request.memberCode().isBlank()) {
-            member = members.findByMemberCodeIgnoreCaseAndDeletedFalse(request.memberCode().trim())
-                    .filter(m -> m.getDateOfBirth().equals(request.dateOfBirth()))
+        if (request.libraryCardId() != null && !request.libraryCardId().isBlank()) {
+            member = members.findByLibraryCardIdIgnoreCaseAndDeletedFalse(request.libraryCardId().trim())
                     .filter(m -> accounts.findByMemberId(m.getId()).isEmpty())
-                    .orElseThrow(() -> new FieldValidationException("memberCode", NO_MATCHING_MEMBERSHIP));
+                    .filter(m -> m.getEmail().equalsIgnoreCase(request.email().trim())
+                            || PhoneNumbers.same(m.getPhone(), request.phone()))
+                    .orElseThrow(() -> new FieldValidationException("libraryCardId", NO_MATCHING_CARD));
         } else {
+            boolean existingCard = members.findUnlinkedByEmailOrPhoneContaining(
+                            request.email().trim(), PhoneNumbers.lastDigits(request.phone(), 4)).stream()
+                    .anyMatch(m -> m.getEmail().equalsIgnoreCase(request.email().trim())
+                            || PhoneNumbers.same(m.getPhone(), request.phone()));
+            if (existingCard) {
+                throw new FieldValidationException("libraryCardId", CARD_EXISTS);
+            }
             member = new Member();
             member.setName(request.name().trim());
             member.setDateOfBirth(request.dateOfBirth());
             member.setEmail(normalizeEmail(request.email()));
-            member.setPhone(request.phone().trim());
-            member.setMemberCode(memberCodes.next());
+            member.setPhone(PhoneNumbers.normalize(request.phone()));
+            member.setLibraryCardId(libraryCardIds.next());
             member = members.save(member);
         }
 
@@ -71,8 +81,8 @@ public class AccountService {
         account.setMember(member);
         account = accounts.save(account);
 
-        Audit.event("ACCOUNT_REGISTERED", "username={} memberCode={} linkedExisting={}",
-                account.getUsername(), member.getMemberCode(), request.memberCode() != null);
+        Audit.event("ACCOUNT_REGISTERED", "username={} libraryCardId={} linkedExistingCard={}",
+                account.getUsername(), member.getLibraryCardId(), request.libraryCardId() != null);
         return SessionUser.of(account);
     }
 
@@ -97,7 +107,7 @@ public class AccountService {
             member.setName(account.getDisplayName());
             member.setEmail(account.getEmail());
             if (request.phone() != null && !request.phone().isBlank()) {
-                member.setPhone(request.phone().trim());
+                member.setPhone(PhoneNumbers.normalize(request.phone()));
             }
         }
         Audit.event("PROFILE_UPDATED", "username={}", account.getUsername());

@@ -28,7 +28,7 @@ class ProfileTest {
         api.as(customer).get("/api/profile")
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.role").value("CUSTOMER"))
-                .andExpect(jsonPath("$.member.memberCode").value(customer.getMember().getMemberCode()));
+                .andExpect(jsonPath("$.member.libraryCardId").value(customer.getMember().getLibraryCardId()));
     }
 
     @Test

@@ -1,0 +1,7 @@
+# Try the app without MariaDB: java -jar target/library-dashboard-*.jar --spring.profiles.active=h2
+# Data is kept in ./data/ (delete the folder to start over). Not meant for production.
+spring:
+  datasource:
+    url: jdbc:h2:file:./data/library;MODE=MariaDB;DATABASE_TO_LOWER=TRUE;AUTO_SERVER=FALSE
+    username: sa
+    password:

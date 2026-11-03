@@ -65,6 +65,9 @@
 
     <!-- Quiet down chatty frameworks; raise these when debugging. -->
     <logger name="org.hibernate" level="WARN"/>
+    <!-- Startup notice that hibernate.type.preferred_instant_jdbc_type is "incubating"; we rely on it
+         deliberately (Instant audit columns stored as plain TIMESTAMP), so keep it out of error.log. -->
+    <logger name="org.hibernate.orm.incubating" level="ERROR"/>
     <logger name="org.hibernate.engine.jdbc.spi.SqlExceptionHelper" level="ERROR"/>
     <logger name="com.zaxxer.hikari" level="WARN"/>
     <logger name="org.flywaydb" level="INFO"/>

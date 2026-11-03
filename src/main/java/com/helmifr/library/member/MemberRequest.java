@@ -1,5 +1,6 @@
 package com.helmifr.library.member;
 
+import com.helmifr.library.common.PhoneNumbers;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -13,7 +14,6 @@ public record MemberRequest(
         @NotNull @Past LocalDate dateOfBirth,
         @NotBlank @Email @Size(max = 255) String email,
         @NotBlank
-        @Pattern(regexp = "^\\+?[0-9][0-9 -]{4,13}$",
-                message = "must be 5-15 characters of digits, spaces or dashes, optionally starting with +")
+        @Pattern(regexp = PhoneNumbers.PATTERN, message = PhoneNumbers.PATTERN_MESSAGE)
         String phone,
         Boolean active) {}

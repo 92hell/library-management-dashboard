@@ -16,8 +16,11 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.test.context.event.ApplicationEvents;
+import org.springframework.test.context.event.RecordApplicationEvents;
 
 @IntegrationTest
+@RecordApplicationEvents
 @DisplayName("Notifications")
 class NotificationTest {
 
@@ -26,6 +29,7 @@ class NotificationTest {
     @Autowired Api api;
     @Autowired TestData data;
     @Autowired LoanReminderJob reminders;
+    @Autowired ApplicationEvents events;
     UserAccount librarian;
     UserAccount customer;
     Book book;
@@ -103,5 +107,17 @@ class NotificationTest {
         api.as(librarian).get("/api/notifications/unread-count").andExpect(jsonPath("$.count").value(1));
         api.as(librarian).post("/api/notifications/read-all").andExpect(status().isNoContent());
         api.as(librarian).get("/api/notifications/unread-count").andExpect(jsonPath("$.count").value(0));
+    }
+
+    @Test
+    @DisplayName("every in-app notification is also published for the external channels (email/SMS/WhatsApp)")
+    void publishesForExternalChannels() throws Exception {
+        api.as(customer).post("/api/my/loans", "{\"bookId\": %d}".formatted(book.getId()));
+
+        org.assertj.core.api.Assertions.assertThat(events.stream(NotificationCreated.class))
+                .anySatisfy(e -> {
+                    org.assertj.core.api.Assertions.assertThat(e.accountId()).isEqualTo(librarian.getId());
+                    org.assertj.core.api.Assertions.assertThat(e.type()).isEqualTo(NotificationType.BORROW_REQUESTED);
+                });
     }
 }

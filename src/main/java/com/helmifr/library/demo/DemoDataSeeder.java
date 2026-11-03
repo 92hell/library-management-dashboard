@@ -12,7 +12,7 @@ import com.helmifr.library.loan.Loan;
 import com.helmifr.library.loan.LoanRepository;
 import com.helmifr.library.loan.LoanStatus;
 import com.helmifr.library.member.Member;
-import com.helmifr.library.member.MemberCodes;
+import com.helmifr.library.member.LibraryCardIds;
 import com.helmifr.library.member.MemberRepository;
 import java.time.Clock;
 import java.time.LocalDate;
@@ -39,7 +39,7 @@ public class DemoDataSeeder {
     private final AuthorRepository authors;
     private final BookRepository books;
     private final MemberRepository members;
-    private final MemberCodes memberCodes;
+    private final LibraryCardIds libraryCardIds;
     private final LoanRepository loans;
     private final PasswordEncoder passwordEncoder;
     private final Clock clock;
@@ -117,7 +117,7 @@ public class DemoDataSeeder {
         m.setEmail(email);
         m.setPhone("081200000000");
         m.setDateOfBirth(dateOfBirth);
-        m.setMemberCode(memberCodes.next());
+        m.setLibraryCardId(libraryCardIds.next());
         return members.save(m);
     }
 
