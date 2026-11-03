@@ -9,6 +9,17 @@ services:
     plan: free
     region: singapore
     healthCheckPath: /actuator/health
+    # Save build minutes: changes that cannot affect the running app do not trigger a deploy.
+    buildFilter:
+      ignoredPaths:
+        - "**/*.md"
+        - docs/**
+        - scripts/**
+        - .github/**
+        - src/test/**
+        - "frontend/src/**/*.test.jsx"
+        - "frontend/src/**/*.test.js"
+        - frontend/src/test/**
     envVars:
       - key: SPRING_PROFILES_ACTIVE
         value: h2
