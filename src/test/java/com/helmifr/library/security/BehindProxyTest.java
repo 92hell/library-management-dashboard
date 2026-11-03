@@ -87,4 +87,19 @@ class BehindProxyTest {
         assertThat(login.headers().allValues("Set-Cookie"))
                 .anySatisfy(c -> assertThat(c).startsWith("JSESSIONID=").containsIgnoringCase("Secure"));
     }
+
+    @Test
+    @DisplayName("two visitors relayed by the same Cloudflare server are throttled separately")
+    void cloudflareVisitorsAreSeparate() throws Exception {
+        // Render's proxy (trusted, loopback here) appends the Cloudflare server that relayed the
+        // request; Cloudflare appended the real visitor before that.
+        Visitor attacker = new Visitor("203.0.113.66, 162.158.88.84");
+        for (int i = 0; i < LoginAttemptLimiter.MAX_FAILURES; i++) {
+            attacker.login("librarian", "wrong-guess");
+        }
+        assertThat(attacker.login("librarian", "librarian-test-pw").statusCode()).isEqualTo(429);
+
+        Visitor neighbour = new Visitor("198.51.100.77, 162.158.88.84");
+        assertThat(neighbour.login("librarian", "librarian-test-pw").statusCode()).isEqualTo(200);
+    }
 }

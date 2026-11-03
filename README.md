@@ -101,6 +101,7 @@ environment variables:
 | `NOTIFY_EMAIL_ENABLED`, `NOTIFY_EMAIL_FROM` + `SPRING_MAIL_HOST`, `SPRING_MAIL_PORT`, `SPRING_MAIL_USERNAME`, `SPRING_MAIL_PASSWORD` | off | Email notifications over SMTP |
 | `NOTIFY_SMS_*`, `NOTIFY_WHATSAPP_*` (`ENABLED`, `PROVIDER`, `SENDER`, `API_URL`, `API_KEY`) | off | SMS / WhatsApp channels - dry run (logged) until a provider is integrated |
 | `SESSION_COOKIE_SECURE` | `true` | HTTPS-only session cookie (browsers accept it on `http://localhost`); set `false` only for plain-HTTP testing on another host |
+| `EDGE_PROXY_RANGES` | Cloudflare's published ranges | CDN servers in front of the host (Render uses Cloudflare): requests relayed by them take the visitor address from `CF-Connecting-IP` |
 | `SERVER_TOMCAT_REMOTEIP_INTERNAL_PROXIES` | private address ranges | Which proxy addresses are trusted for `X-Forwarded-For` / `-Proto`; only needed if your proxy connects from a public address |
 | `LOG_PATH` | `logs` | Log folder |
 
