@@ -146,6 +146,7 @@ environment variables:
 | `LOAN_PERIOD_DAYS`, `LOAN_MAX_OPEN_PER_MEMBER`, `LOAN_DUE_SOON_DAYS` | `14`, `3`, `2` | Lending rules |
 | `LOAN_PICKUP_DAYS`, `LOAN_MAX_RENEWALS` | `3`, `1` | How long a hold waits at the desk; renewals per loan |
 | `BOOK_COVERS`, `ISBN_LOOKUP_URL`, `ISBN_LOOKUP_TIMEOUT` | `true`, `https://openlibrary.org`, `5s` | Open Library covers and ISBN lookup (blank URL turns the lookup off) |
+| `VITE_PUBLIC_URL` (frontend build) | `https://helmi-library-demo.onrender.com` (`frontend/.env.production`) | Public address used in link previews (WhatsApp, Slack…); set it when deploying elsewhere. The preview image is `frontend/public/og-image.png`, rendered from `scripts/og-image/` |
 | `LIBRARY_NAME`, `PUBLIC_URL` | `Community Library`, request address | Name on receipts and their stamp; base of the QR verification link |
 | `RECEIPT_PRIVATE_KEY`, `RECEIPT_PUBLIC_KEY` | generated, kept in the database | Ed25519 receipt signing key (base64 PKCS#8 / X.509); set both in production to keep the key out of the database |
 | `library.reports.max-csv-rows` | `20000` | Largest CSV export; a bigger range asks for a shorter one |

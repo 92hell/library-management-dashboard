@@ -1,0 +1,73 @@
+<!doctype html>
+<!-- Source of frontend/public/og-image.png (the link preview image). Render with: node scripts/og-image/render.mjs -->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<style>
+  @font-face { font-family: Lora; font-weight: 600; src: url(../../frontend/node_modules/@fontsource/lora/files/lora-latin-600-normal.woff2); }
+  @font-face { font-family: Lora; font-weight: 700; src: url(../../frontend/node_modules/@fontsource/lora/files/lora-latin-700-normal.woff2); }
+  @font-face { font-family: 'Source Sans 3'; font-weight: 400; src: url(../../frontend/node_modules/@fontsource/source-sans-3/files/source-sans-3-latin-400-normal.woff2); }
+  @font-face { font-family: 'Source Sans 3'; font-weight: 600; src: url(../../frontend/node_modules/@fontsource/source-sans-3/files/source-sans-3-latin-600-normal.woff2); }
+  * { box-sizing: border-box; margin: 0; }
+  body { width: 1200px; height: 630px; overflow: hidden; font-family: 'Source Sans 3', sans-serif; color: #f3e9d2;
+         background: #1f3d34; position: relative; }
+  .rule { position: absolute; left: 0; right: 0; top: 0; height: 10px; background: #b08d57; }
+  .text { position: absolute; left: 72px; top: 78px; width: 610px; }
+  .label { font-weight: 600; letter-spacing: .18em; font-size: 20px; color: #d9b77e; text-transform: uppercase; }
+  h1 { font-family: Lora, serif; font-weight: 700; font-size: 82px; line-height: 1.02; margin-top: 18px; }
+  .lead { font-size: 31px; line-height: 1.32; margin-top: 26px; color: #efe6d2; }
+  .features { margin-top: 26px; font-size: 23px; color: #c8bea9; line-height: 1.45; }
+  .features b { color: #d9b77e; font-weight: 600; padding: 0 8px; }
+  .foot { position: absolute; left: 72px; bottom: 54px; display: flex; gap: 14px; align-items: center; font-size: 22px; }
+  .chip { border: 2px solid #b08d57; color: #f3e9d2; border-radius: 999px; padding: 6px 18px; font-weight: 600; }
+  .url { color: #c8bea9; margin-left: 10px; }
+  /* Bookshelf */
+  .shelf { position: absolute; right: 64px; top: 96px; width: 410px; height: 330px; }
+  .books { position: absolute; left: 0; right: 0; bottom: 26px; display: flex; align-items: flex-end; gap: 7px; padding: 0 14px; }
+  .book { width: 48px; border-radius: 3px 5px 0 0; position: relative; box-shadow: inset 6px 0 0 rgba(0,0,0,.22), inset -2px 0 0 rgba(255,255,255,.12);
+          display: flex; justify-content: center; }
+  .book span { writing-mode: vertical-rl; transform: rotate(180deg); font-family: Lora, serif; font-weight: 600; font-size: 19px;
+               color: #f3e9d2; margin-bottom: 14px; align-self: flex-end; letter-spacing: .04em; white-space: nowrap; }
+  .book::before { content: ''; position: absolute; left: 10px; right: 8px; top: 16px; height: 3px; background: #b08d57; opacity: .85; }
+  .lean { transform: rotate(-9deg); transform-origin: bottom right; margin-left: 10px; }
+  .board { position: absolute; left: 0; right: 0; bottom: 0; height: 28px; background: linear-gradient(#8a6a3e, #6e5230);
+           border-radius: 3px; box-shadow: 0 8px 18px rgba(0,0,0,.35); }
+  .stamp { position: absolute; right: 44px; bottom: 26px; width: 190px; height: 190px; border-radius: 50%; border: 5px solid #c9584f;
+           color: #e0736a; transform: rotate(-13deg); display: flex; flex-direction: column; align-items: center; justify-content: center;
+           text-align: center; background: rgba(20, 42, 35, .55); }
+  .stamp::after { content: ''; position: absolute; inset: 9px; border-radius: 50%; border: 2px solid #c9584f; }
+  .stamp .s1 { font-size: 14px; font-weight: 600; letter-spacing: .12em; }
+  .stamp .s2 { font-family: Lora, serif; font-weight: 700; font-size: 24px; line-height: 1.05; margin: 6px 0; }
+  .stamp .s3 { font-size: 13px; font-weight: 600; letter-spacing: .08em; }
+</style>
+</head>
+<body>
+  <div class="rule"></div>
+  <div class="text">
+    <div class="label">Live demo · Demo langsung</div>
+    <h1>Library Dashboard</h1>
+    <p class="lead">A working library system. Try it as a librarian or a member, no sign-up needed.</p>
+    <p class="features">Barcodes<b>·</b>Holds queue<b>·</b>Late fees<b>·</b>Reports<b>·</b>Signed receipts</p>
+  </div>
+  <div class="foot">
+    <span class="chip">English</span><span class="chip">Bahasa Indonesia</span>
+    <span class="url">helmi-library-demo.onrender.com</span>
+  </div>
+  <div class="shelf">
+    <div class="books">
+      <div class="book" style="height:250px;background:#7a2e2e"><span>Bumi Manusia</span></div>
+      <div class="book" style="height:222px;background:#2b4a6f"><span>Laskar Pelangi</span></div>
+      <div class="book" style="height:262px;background:#2f5d50;width:54px"><span>Cantik Itu Luka</span></div>
+      <div class="book" style="height:205px;background:#8a5a1f"><span>Supernova</span></div>
+      <div class="book" style="height:240px;background:#4a3f6b"><span>Sang Pemimpi</span></div>
+      <div class="book lean" style="height:228px;background:#5b2e4f"><span>Ronggeng</span></div>
+    </div>
+    <div class="board"></div>
+  </div>
+  <div class="stamp">
+    <div class="s1">LOAN RECEIPT</div>
+    <div class="s2">Signed &amp;<br>verified</div>
+    <div class="s3">BUKTI PINJAM</div>
+  </div>
+</body>
+</html>

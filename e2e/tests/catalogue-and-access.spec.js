@@ -37,3 +37,14 @@ test('visitors must sign in, and customers cannot open staff pages', async ({ pa
   await expect(page.getByRole('link', { name: 'Fines' })).toHaveCount(0);
   expect((await page.request.get('/api/fines')).status()).toBe(403);
 });
+
+test('a shared link shows a preview: description and image for anonymous visitors', async ({ request }) => {
+  const page = await (await request.get('/')).text();
+  expect(page).toContain('<meta property="og:title" content="Library Dashboard · live demo"');
+  expect(page).toMatch(/<meta property="og:image" content="https:\/\/[^"%]+\/og-image\.png"/);
+
+  const image = await request.get('/og-image.png');
+  expect(image.status()).toBe(200);
+  expect(image.headers()['content-type']).toBe('image/png');
+});
+
