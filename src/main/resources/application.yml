@@ -5,6 +5,9 @@ server:
   # address (the proxy). Clients on the internet cannot spoof it. If your proxy connects from a
   # public address, set SERVER_TOMCAT_REMOTEIP_INTERNAL_PROXIES to a regex matching it.
   forward-headers-strategy: native
+  # gzip text responses (HTML, JS, CSS, JSON) - hosting plans meter outbound bandwidth.
+  compression:
+    enabled: true
   servlet:
     session:
       timeout: 30m
