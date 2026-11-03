@@ -1,0 +1,20 @@
+# Render Blueprint: Dashboard -> New -> Blueprint -> pick this repository -> Apply.
+# A public demo on the free plan: the built-in H2 database lives inside the container, so all data
+# resets on every deploy, restart and wake-up - which is what a public demo wants (see Demo mode
+# in the README). For real users, use a MariaDB database and DEMO_MODE=false instead.
+services:
+  - type: web
+    name: helmi-library-demo
+    runtime: docker
+    plan: free
+    region: singapore
+    healthCheckPath: /actuator/health
+    envVars:
+      - key: SPRING_PROFILES_ACTIVE
+        value: h2
+      - key: DEMO_MODE
+        value: "true"
+      # Owner librarian password: random, set once by Render. Read it in the dashboard
+      # (Environment tab) to sign in as "librarian"; it also resets the owner account on start-up.
+      - key: LIBRARIAN_PASSWORD
+        generateValue: true

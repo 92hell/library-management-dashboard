@@ -72,6 +72,19 @@ Open http://localhost:5173.
 On first start the app creates the librarian account `librarian`. Set `LIBRARIAN_PASSWORD`, or
 read the generated password from the log.
 
+## Deploy on Render
+
+`render.yaml` describes a public demo on Render's free plan:
+
+1. In the Render dashboard: **New → Blueprint**, connect GitHub and pick this repository.
+2. Render shows the `helmi-library-demo` web service; click **Apply**. The first build takes a few minutes.
+3. Open the service URL (`https://<name>.onrender.com`) and use the demo buttons on the login page.
+   The owner login is `librarian` with the generated `LIBRARIAN_PASSWORD` from the service's
+   **Environment** tab.
+
+Free services sleep after about 15 minutes without visitors and take about a minute to wake up;
+the demo data resets each time. Every push to `main` redeploys automatically.
+
 ## Configuration
 
 All settings have defaults in `src/main/resources/application.yml` and can be overridden with

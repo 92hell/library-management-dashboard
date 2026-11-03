@@ -18,8 +18,12 @@ FROM eclipse-temurin:17-jre
 RUN useradd --system --create-home library
 WORKDIR /app
 COPY --from=backend /app/target/library-dashboard-*.jar app.jar
-RUN mkdir -p /app/logs && chown library /app/logs
+# logs/ and data/ (the H2 database of the "h2" profile) must be writable by the app user.
+RUN mkdir -p /app/logs /app/data && chown library /app/logs /app/data
 USER library
 EXPOSE 8080
 ENV LOG_PATH=/app/logs
+# Fit small containers (e.g. Render's free 512 MB instance): heap sized from the container limit,
+# a lean GC, and faster start-up on a fraction of a CPU.
+ENV JAVA_TOOL_OPTIONS="-XX:MaxRAMPercentage=70 -XX:+UseSerialGC -XX:TieredStopAtLevel=1 -Xss512k"
 ENTRYPOINT ["java", "-jar", "app.jar"]
