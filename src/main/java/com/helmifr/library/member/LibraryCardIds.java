@@ -6,7 +6,8 @@ import org.springframework.stereotype.Component;
 
 /**
  * Generates library card IDs such as LIB-7KQ2XM: random (not guessable from other members'
- * IDs) and free of look-alike characters (0/O, 1/I) so they can be read out at the desk.
+ * IDs) and free of look-alike characters (0/O, 1/I) so they can be read out at the desk. An ID
+ * is never issued twice, including IDs of cards that were replaced or merged away.
  */
 @Component
 @RequiredArgsConstructor
@@ -17,6 +18,7 @@ public class LibraryCardIds {
     private static final SecureRandom RANDOM = new SecureRandom();
 
     private final MemberRepository members;
+    private final RetiredCardRepository retiredCards;
 
     public String next() {
         String id;
@@ -26,7 +28,11 @@ public class LibraryCardIds {
                 sb.append(ALPHABET.charAt(RANDOM.nextInt(ALPHABET.length())));
             }
             id = sb.toString();
-        } while (members.existsByLibraryCardId(id));
+        } while (taken(id));
         return id;
+    }
+
+    boolean taken(String id) {
+        return members.existsByLibraryCardId(id) || retiredCards.existsByLibraryCardIdIgnoreCase(id);
     }
 }

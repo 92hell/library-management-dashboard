@@ -83,5 +83,12 @@
   "Too many new accounts from this network. Please try again later.": "Terlalu banyak akun baru dari jaringan ini. Silakan coba lagi nanti.",
   "must be between 1 and {0}": "harus antara 1 dan {0}",
   "The late fee for this loan is already partly paid; a correction cannot change it.": "Denda keterlambatan untuk peminjaman ini sudah dibayar sebagian; koreksi tidak dapat mengubahnya.",
-  "More than {0} loans in this range; please choose a shorter range": "Lebih dari {0} peminjaman dalam rentang ini; silakan pilih rentang yang lebih pendek"
+  "More than {0} loans in this range; please choose a shorter range": "Lebih dari {0} peminjaman dalam rentang ini; silakan pilih rentang yang lebih pendek",
+  "Your library card expired on {0}. Please renew it at the desk.": "Kartu perpustakaan Anda habis berlaku pada {0}. Silakan perpanjang di meja layanan.",
+  "The library card expired on {0}; renew it before lending.": "Kartu perpustakaan habis berlaku pada {0}; perpanjang dulu sebelum meminjamkan.",
+  "The library card expired on {0}; renew it before lending": "Kartu perpustakaan habis berlaku pada {0}; perpanjang dulu sebelum meminjamkan",
+  "The library card has expired; renew it at the desk before renewing loans.": "Kartu perpustakaan sudah habis berlaku; perpanjang di meja layanan sebelum memperpanjang pinjaman.",
+  "A member cannot be merged with itself.": "Anggota tidak dapat digabungkan dengan dirinya sendiri.",
+  "Both members have an online account, so they cannot be merged.": "Kedua anggota memiliki akun daring, jadi tidak dapat digabungkan.",
+  "Both members have an open request or loan for \"{0}\". Cancel or finish one of them first.": "Kedua anggota memiliki permintaan atau pinjaman aktif untuk \"{0}\". Batalkan atau selesaikan salah satunya dulu."
 }

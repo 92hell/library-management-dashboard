@@ -16,6 +16,11 @@ export function formatDate(isoDate, fallback = '—') {
   return dateFormats.get(lang).format(new Date(Date.UTC(year, month - 1, day)));
 }
 
+/** "3 Nov 2026, 15.00" in the reader's time zone. */
+export function formatInstant(iso) {
+  return iso ? new Date(iso).toLocaleString(locale(), { dateStyle: 'medium', timeStyle: 'short' }) : '—';
+}
+
 /** The reader's local date of an instant (e.g. "2026-11-02T18:30:00Z" is "2026-11-03" in Jakarta). */
 export function localIsoDate(instant) {
   return isoDateOf(new Date(instant));

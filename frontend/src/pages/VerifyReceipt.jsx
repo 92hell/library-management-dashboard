@@ -3,10 +3,10 @@ import { Alert, Container } from 'reactstrap';
 import { ErrorAlert, Loading } from '../components/Feedback';
 import LanguageSwitch from '../components/LanguageSwitch';
 import { EVENT_LABELS, FINE_LABELS, STATUS_LABELS } from '../components/receiptLabels';
-import { formatDate, formatMoney } from '../format';
+import { formatDate, formatInstant, formatMoney } from '../format';
 import { useT } from '../i18n';
 import { useApi } from '../hooks';
-import { DemoWarning, formatInstant } from './ReceiptPage';
+import { DemoWarning } from './ReceiptPage';
 import ResponsiveTable from '../components/ResponsiveTable';
 
 /** Public page behind a receipt's QR code: is it genuine, and what does the library's record say? */

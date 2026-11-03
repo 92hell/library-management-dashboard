@@ -75,6 +75,10 @@ library:
     max-renewals: ${LOAN_MAX_RENEWALS:1}
     # Daily reminder run (second minute hour day month weekday); "-" disables it.
     reminder-cron: ${LOAN_REMINDER_CRON:0 0 8 * * *}
+  members:
+    # Months a new or renewed library card is valid; an expired card cannot borrow until renewed
+    # at the desk (0 = cards do not expire).
+    card-validity-months: ${MEMBER_CARD_VALIDITY_MONTHS:12}
   catalogue:
     # Cover images from Open Library for books with an ISBN (loaded by the browser).
     covers: ${BOOK_COVERS:true}

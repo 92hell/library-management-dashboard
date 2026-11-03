@@ -61,11 +61,16 @@ test('a member can use every page on a phone', async ({ page, baseURL }) => {
   await librarianApi.dispose();
 });
 
-test('a librarian can work the desk on a phone', async ({ page }) => {
+test('a librarian can work the desk on a phone', async ({ page, baseURL }) => {
+  const librarianApi = await apiAs(baseURL, LIBRARIAN.username, LIBRARIAN.password);
+  const member = await librarianApi.post('/api/members', {
+    name: `Phone Member ${unique()}`, dateOfBirth: '1990-01-01', email: `phone-${unique()}@example.com`, phone: '081200000005',
+  });
+  await librarianApi.dispose();
   await signIn(page, LIBRARIAN.username, LIBRARIAN.password);
   await expectFitsOnPhone(page, 'librarian home');
   for (const path of ['/borrowed-books', '/borrowed-books/new', '/books', '/books/new', '/authors', '/members',
-    '/members/new', '/fines', '/reports', '/users']) {
+    '/members/new', `/members/${member.id}`, '/fines', '/reports', '/users']) {
     await page.goto(path);
     await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
     await expectFitsOnPhone(page, path);

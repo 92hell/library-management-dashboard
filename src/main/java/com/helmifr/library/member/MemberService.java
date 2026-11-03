@@ -10,6 +10,8 @@ import com.helmifr.library.common.PhoneNumbers;
 import com.helmifr.library.common.Ref;
 import com.helmifr.library.common.SearchPatterns;
 import com.helmifr.library.loan.LoanRepository;
+import java.time.Clock;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -28,13 +30,15 @@ public class MemberService {
     private final MemberRepository members;
     private final LoanRepository loans;
     private final UserAccountRepository accounts;
-    private final LibraryCardIds libraryCardIds;
+    private final MemberCards cards;
+    private final Clock clock;
 
     public PageResponse<MemberResponse> search(String q, Pageable pageable) {
         Page<Member> page = members.search(SearchPatterns.contains(q), pageable);
         Map<Long, String> usernames = accounts.findAllByMemberIdIn(page.map(Member::getId).getContent()).stream()
                 .collect(Collectors.toMap(a -> a.getMember().getId(), UserAccount::getUsername));
-        return PageResponse.of(page.map(m -> MemberResponse.from(m, usernames.get(m.getId()))));
+        LocalDate today = LocalDate.now(clock);
+        return PageResponse.of(page.map(m -> MemberResponse.from(m, usernames.get(m.getId()), today)));
     }
 
     public List<Ref> options() {
@@ -52,10 +56,18 @@ public class MemberService {
         return members.findByIdAndDeletedFalse(id).orElseThrow(() -> new NotFoundException("Member", id));
     }
 
+    /**
+     * Loads and locks a member that has not been deleted (404 otherwise). Everything that adds a
+     * loan for a member takes this before any book lock; see {@link MemberMerge}.
+     */
+    public Member lock(Long id) {
+        return members.findForUpdate(id).orElseThrow(() -> new NotFoundException("Member", id));
+    }
+
     @Transactional
     public MemberResponse create(MemberRequest request) {
         Member member = new Member();
-        member.setLibraryCardId(libraryCardIds.next());
+        cards.issue(member);
         apply(member, request);
         member = members.save(member);
         Audit.event("MEMBER_CREATED", "memberId={} code={}", member.getId(), member.getLibraryCardId());
@@ -83,7 +95,7 @@ public class MemberService {
 
     private MemberResponse toResponse(Member m) {
         String username = accounts.findByMemberId(m.getId()).map(UserAccount::getUsername).orElse(null);
-        return MemberResponse.from(m, username);
+        return MemberResponse.from(m, username, LocalDate.now(clock));
     }
 
     private static void apply(Member member, MemberRequest request) {

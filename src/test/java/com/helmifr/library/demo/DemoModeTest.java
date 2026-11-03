@@ -134,6 +134,26 @@ class DemoModeTest {
 
     @Autowired com.helmifr.library.receipt.ReceiptRepository receipts;
     @Autowired com.helmifr.library.loan.LoanEventRepository loanEvents;
+    @Autowired com.helmifr.library.member.RetiredCardRepository retiredCards;
+    @Autowired com.helmifr.library.member.MemberRepository members;
+
+    @Test
+    @DisplayName("the reset also clears replaced and merged cards, and the demo has an expired card to renew")
+    void resetClearsCardHistory() throws Exception {
+        var walkIn = data.member("Visitor duplicate");
+        api.as(demoLibrarian).post("/api/members/" + demoCustomer.getMember().getId() + "/card/replace", "{\"reason\": \"Lost\"}")
+                .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.status().isOk());
+        api.as(demoLibrarian).post("/api/members/" + demoCustomer.getMember().getId() + "/merge",
+                        "{\"duplicateId\": %d}".formatted(walkIn.getId()))
+                .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.status().isOk());
+
+        seeder.reset();
+
+        assertThat(retiredCards.count()).isZero();
+        assertThat(members.findAll()).anyMatch(m -> m.cardExpiredOn(java.time.LocalDate.now()));
+        UserAccount customer = accounts.findByUsernameIgnoreCase(DemoDataSeeder.DEMO_CUSTOMER).orElseThrow();
+        assertThat(customer.getMember().cardExpiredOn(java.time.LocalDate.now())).isFalse();
+    }
 
     @Test
     @DisplayName("receipts issued by the public demo say so: marked as demo and watermarked in the PDF")

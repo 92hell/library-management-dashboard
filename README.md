@@ -42,6 +42,9 @@ React 18 · Vite · React Router 6 · Bootstrap 5 / reactstrap.
 - Add a book by ISBN: look it up at Open Library to fill in title, author, publisher, year and
   categories; covers come from Open Library (a drawn spine when there is none)
 - Manage books, authors, members (each with a library card ID) and librarian accounts
+- Library cards: renew a card (valid 12 months), replace a lost or damaged one (new ID, the old one
+  kept in the card history and still finds the member), and merge a duplicate member record into
+  the right one (loans, fines, receipts and the online account move over)
 - Notified of every new borrow request
 
 **For everyone**
@@ -76,12 +79,16 @@ React 18 · Vite · React Router 6 · Bootstrap 5 / reactstrap.
 - At most 3 open requests/loans per customer; no duplicate request for the same book
 - Due date defaults to 14 days; dates are validated (no future borrow date, no return before borrow)
 - A copy coming back skips members who cannot collect it (unpaid fines over the limit, inactive
-  card); they keep their place and are served as soon as they pay
+  or expired card); they keep their place and are served as soon as they pay or renew
 - Holds are kept for 3 days; a loan can be renewed once, not when overdue and not while someone is
   waiting for the book
 - Late returns cost IDR 1,000 a day, at most IDR 30,000 per loan (also for past loans recorded at
   the desk as returned late); a member owing IDR 20,000 or more
   cannot request, borrow or collect a hold until they pay
+- An expired card cannot request, borrow, collect a hold or renew a loan until it is renewed at the
+  desk (renewing early adds 12 months to the current expiry); members see the expiry on their
+  profile and are warned a month ahead. Cards that existed before this feature run for a year from
+  the upgrade. A replaced or merged card ID is never issued again and cannot be used to register
 - Soft deletes; authors with books, books on loan and members with open loans cannot be deleted
 - Deleting a member disables their online account
 
@@ -155,6 +162,7 @@ environment variables:
 | `RECEIPT_PRIVATE_KEY`, `RECEIPT_PUBLIC_KEY` | generated, kept in the database | Ed25519 receipt signing key (base64 PKCS#8 / X.509); set both in production to keep the key out of the database |
 | `library.reports.max-csv-rows` | `20000` | Largest CSV export; a bigger range asks for a shorter one |
 | `FINE_PER_DAY`, `FINE_MAX_PER_LOAN`, `FINE_BLOCK_AT`, `FINE_CURRENCY` | `1000`, `30000`, `20000`, `IDR` | Late fees (whole currency units; `FINE_BLOCK_AT=0` never blocks) |
+| `MEMBER_CARD_VALIDITY_MONTHS` | `12` | How long a new or renewed library card is valid (`0` = cards do not expire) |
 | `LOAN_REMINDER_CRON` | `0 0 8 * * *` | Daily job: expire uncollected holds, due-soon / overdue reminders (`-` disables) |
 | `APP_BASE_URL` | `http://localhost:8080` | Used for links in emails / messages |
 | `NOTIFY_EMAIL_ENABLED`, `NOTIFY_EMAIL_FROM` + `SPRING_MAIL_HOST`, `SPRING_MAIL_PORT`, `SPRING_MAIL_USERNAME`, `SPRING_MAIL_PASSWORD` | off | Email notifications over SMTP |

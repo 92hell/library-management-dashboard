@@ -59,6 +59,8 @@ class JobsAndRacesTest {
     @Autowired FineRepository fines;
     @Autowired CopyRepository copies;
     @Autowired TransactionTemplate tx;
+    @Autowired com.helmifr.library.member.MemberMerge memberMerge;
+    @Autowired com.helmifr.library.loan.MyLoanService myLoans;
 
     @AfterAll
     static void stop() {
@@ -165,6 +167,33 @@ class JobsAndRacesTest {
         assertThat(failures).singleElement().isInstanceOf(com.helmifr.library.common.ConflictException.class);
         assertThat(events.findAllByLoanIdOrderByIdAsc(loan.getId()))
                 .noneMatch(e -> e.getType() == LoanEventType.FINE_WAIVED);
+    }
+
+    @Test
+    @DisplayName("a request made while its member record is merged away waits, then is refused: no loan is left on the removed record")
+    void requestDuringMerge() throws Exception {
+        Book book = data.bookWithCopies("Merge Race " + System.nanoTime(), 1);
+        Member keep = data.member("Kept Record");
+        Member duplicate = data.member("Duplicate Record");
+        CountDownLatch mergeHasLock = new CountDownLatch(1);
+
+        Future<?> merge = POOL.submit(() -> tx.executeWithoutResult(s -> {
+            memberMerge.merge(keep.getId(), duplicate.getId());
+            mergeHasLock.countDown();
+            sleep(1500);
+        }));
+        mergeHasLock.await(10, TimeUnit.SECONDS);
+        Future<?> request = POOL.submit(() -> tx.executeWithoutResult(s -> myLoans.request(duplicate.getId(), book.getId())));
+        merge.get(20, TimeUnit.SECONDS);
+        Throwable refusal = null;
+        try {
+            request.get(20, TimeUnit.SECONDS);
+        } catch (java.util.concurrent.ExecutionException e) {
+            refusal = e.getCause();
+        }
+
+        assertThat(refusal).isInstanceOf(com.helmifr.library.common.NotFoundException.class);
+        assertThat(loans.findAll()).noneMatch(l -> l.getMember().getId().equals(duplicate.getId()));
     }
 
     private static void sleep(long millis) {

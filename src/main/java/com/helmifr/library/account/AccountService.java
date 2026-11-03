@@ -15,8 +15,10 @@ import com.helmifr.library.common.PhoneNumbers;
 import com.helmifr.library.common.SearchPatterns;
 import com.helmifr.library.demo.DemoProperties;
 import com.helmifr.library.member.Member;
-import com.helmifr.library.member.LibraryCardIds;
+import com.helmifr.library.member.MemberCards;
 import com.helmifr.library.member.MemberRepository;
+import java.time.Clock;
+import java.time.LocalDate;
 import java.util.Locale;
 import java.util.Objects;
 import lombok.RequiredArgsConstructor;
@@ -32,9 +34,10 @@ public class AccountService {
 
     private final UserAccountRepository accounts;
     private final MemberRepository members;
-    private final LibraryCardIds libraryCardIds;
+    private final MemberCards memberCards;
     private final PasswordEncoder passwordEncoder;
     private final DemoProperties demo;
+    private final Clock clock;
 
     // ---- Registration --------------------------------------------------------------------------
 
@@ -70,7 +73,7 @@ public class AccountService {
             member.setDateOfBirth(request.dateOfBirth());
             member.setEmail(normalizeEmail(request.email()));
             member.setPhone(PhoneNumbers.normalize(request.phone()));
-            member.setLibraryCardId(libraryCardIds.next());
+            memberCards.issue(member);
             member = members.save(member);
         }
 
@@ -91,7 +94,7 @@ public class AccountService {
     // ---- Own profile ---------------------------------------------------------------------------
 
     public ProfileResponse profile(Long accountId) {
-        return ProfileResponse.of(require(accountId));
+        return ProfileResponse.of(require(accountId), LocalDate.now(clock));
     }
 
     public SessionUser sessionUser(Long accountId) {
@@ -114,7 +117,7 @@ public class AccountService {
             }
         }
         Audit.event("PROFILE_UPDATED", "username={}", account.getUsername());
-        return ProfileResponse.of(account);
+        return ProfileResponse.of(account, LocalDate.now(clock));
     }
 
     /** @return the updated account, so the caller can refresh the current session */

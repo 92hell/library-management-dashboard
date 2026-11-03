@@ -15,8 +15,9 @@ import org.springframework.web.filter.OncePerRequestFilter;
 
 /**
  * Re-checks the signed-in account on every request. A session ends (401) when its account was
- * disabled or deleted, or its password changed since the session started - so revoking access
- * takes effect immediately instead of when the session expires.
+ * disabled or deleted, its password changed since the session started, or it now belongs to another
+ * member record (duplicates merged) - so revoking access takes effect immediately instead of when
+ * the session expires, and a member never acts on a record that was merged away.
  */
 final class AccountSessionFilter extends OncePerRequestFilter {
 
@@ -45,6 +46,11 @@ final class AccountSessionFilter extends OncePerRequestFilter {
         return account.isPresent()
                 && account.get().isEnabled()
                 && account.get().getRole() == p.getRole()
+                && java.util.Objects.equals(memberIdOf(account.get()), p.getMemberId())
                 && AccountPrincipal.stampOf(account.get()).equals(p.getCredentialStamp());
+    }
+
+    private static Long memberIdOf(UserAccount account) {
+        return account.getMember() == null ? null : account.getMember().getId();
     }
 }

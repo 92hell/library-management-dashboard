@@ -3,6 +3,9 @@ package com.helmifr.library.member;
 import com.helmifr.library.common.PageResponse;
 import com.helmifr.library.common.Ref;
 import com.helmifr.library.loan.LoanResponse;
+import com.helmifr.library.member.MemberCardDtos.MergeRequest;
+import com.helmifr.library.member.MemberCardDtos.ReplaceCardRequest;
+import com.helmifr.library.member.MemberCardDtos.RetiredCardView;
 import com.helmifr.library.loan.LoanService;
 import jakarta.validation.Valid;
 import java.net.URI;
@@ -20,6 +23,8 @@ public class MemberController {
 
     private final MemberService memberService;
     private final LoanService loanService;
+    private final MemberCards cards;
+    private final MemberMerge merge;
 
     @GetMapping
     public PageResponse<MemberResponse> list(@RequestParam(required = false) String q,
@@ -52,6 +57,32 @@ public class MemberController {
     @PutMapping("/{id}")
     public MemberResponse update(@PathVariable Long id, @Valid @RequestBody MemberRequest request) {
         return memberService.update(id, request);
+    }
+
+    /** Card IDs the member no longer uses (replaced, or brought in by a merge), newest first. */
+    @GetMapping("/{id}/cards")
+    public List<RetiredCardView> cards(@PathVariable Long id) {
+        memberService.require(id);
+        return cards.history(id);
+    }
+
+    @PostMapping("/{id}/card/renew")
+    public MemberResponse renewCard(@PathVariable Long id) {
+        cards.renew(id);
+        return memberService.get(id);
+    }
+
+    @PostMapping("/{id}/card/replace")
+    public MemberResponse replaceCard(@PathVariable Long id, @Valid @RequestBody ReplaceCardRequest request) {
+        cards.replace(id, request.reason());
+        return memberService.get(id);
+    }
+
+    /** Merges another member record (a duplicate of this one) into this one. */
+    @PostMapping("/{id}/merge")
+    public MemberResponse merge(@PathVariable Long id, @Valid @RequestBody MergeRequest request) {
+        merge.merge(id, request.duplicateId());
+        return memberService.get(id);
     }
 
     @DeleteMapping("/{id}")

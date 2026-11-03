@@ -185,4 +185,8 @@ export default {
     'Ini adalah demo publik: jangan masukkan data pribadi asli. Semua data diatur ulang setiap malam.',
   'This member has not borrowed any books yet.': 'Anggota ini belum pernah meminjam buku.',
   'Borrowed {date}': 'Dipinjam pada {date}',
+  'Your library card expired on {date}. Renew it at the desk to borrow again.':
+    'Kartu perpustakaan Anda habis berlaku pada {date}. Perpanjang di meja layanan agar bisa meminjam lagi.',
+  'Your library card expires on {date}. Renew it at the desk to keep borrowing.':
+    'Kartu perpustakaan Anda habis berlaku pada {date}. Perpanjang di meja layanan agar tetap bisa meminjam.',
 };

@@ -5,15 +5,10 @@ import { ErrorAlert, Loading } from '../components/Feedback';
 import QrCode from '../components/QrCode';
 import ReceiptStamp from '../components/ReceiptStamp';
 import { EVENT_LABELS, FINE_LABELS, STATUS_LABELS } from '../components/receiptLabels';
-import { formatDate, formatMoney, localIsoDate } from '../format';
-import { locale, useT } from '../i18n';
+import { formatDate, formatInstant, formatMoney, localIsoDate } from '../format';
+import { useT } from '../i18n';
 import { useApi } from '../hooks';
 import ResponsiveTable from '../components/ResponsiveTable';
-
-/** "3 Nov 2026, 15.00" in the reader's time zone. */
-export function formatInstant(iso) {
-  return iso ? new Date(iso).toLocaleString(locale(), { dateStyle: 'medium', timeStyle: 'short' }) : '—';
-}
 
 /** Shown on receipts the public demo issued: they look real, so say plainly that they are not. */
 export function DemoWarning() {

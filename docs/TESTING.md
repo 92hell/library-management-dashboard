@@ -7,7 +7,7 @@ Run everything: `mvn clean verify` (backend; add `-Pmariadb` to run it on MariaD
 `cd frontend && npm test` (frontend), and after `mvn -Pfullstack package` also
 `cd e2e && npm test` (end-to-end, in a real browser).
 
-Totals: 225 backend test methods (parameterised ones run once per case), 150 frontend tests, 14 end-to-end journeys.
+Totals: 250 backend test methods (parameterised ones run once per case), 161 frontend tests, 15 end-to-end journeys.
 
 ## Backend (JUnit, `src/test/java`)
 
@@ -177,6 +177,7 @@ live in `support/`.
 - registration is off, so no real personal data ends up on a public demo
 - the nightly reset restores demo accounts and sample data, keeping the owner's account
 - the reset also clears loan histories and receipts that visitors created
+- the reset also clears replaced and merged cards, and the demo has an expired card to renew
 - receipts issued by the public demo say so: marked as demo and watermarked in the PDF
 
 ### Fine payments (in parts) and payment receipts
@@ -275,6 +276,37 @@ live in `support/`.
 - deleting a member also disables their online account
 - the member list shows which members have an online account
 
+### Library cards: expiry, renewal and replacement
+`src/test/java/com/helmifr/library/member/MemberCardsTest.java`
+
+- a new card is valid for 12 months
+- a card that expires today still works today
+- with an expired card a member cannot request, borrow at the desk, collect a hold or renew a loan
+- a past loan can still be recorded for a member whose card has since expired
+- renewing an expired card gives 12 months from today
+- renewing early adds 12 months to the current expiry, so no days are lost
+- holds skip a member whose card has expired, and serve them once it is renewed
+- members see their card's expiry on their profile
+- a replaced card gets a new ID; the old one is kept in the history and still finds the member
+- a replaced card ID is never issued to anyone again
+- an old card ID can no longer be used to register
+- replacing a card needs a reason
+- a receipt issued before the card was replaced still verifies
+- only librarians renew or replace cards
+- the card validity can be set to 0 months: cards then never expire
+
+### Merging duplicate members
+`src/test/java/com/helmifr/library/member/MemberMergeTest.java`
+
+- loans, fines, receipts and the online account move to the member kept; the duplicate is removed
+- the later of the two expiry dates is kept
+- the card history of the duplicate moves too
+- a member cannot be merged with itself, nor two members that both have online accounts
+- two members with an open request or loan for the same book are not merged
+- a waiting request keeps its place in the queue after the merge
+- a deleted member cannot be merged, and only librarians merge
+- the online account of the member kept stays when the duplicate has none
+
 ### Migration V4: existing books get a copy, existing loans point at it
 `src/test/java/com/helmifr/library/migration/CopiesMigrationTest.java`
 
@@ -343,6 +375,7 @@ live in `support/`.
 - the nightly run records that a due-soon reminder was sent, so it is sent once
 - two librarians approving two requests for the last copy at once: one is set aside, one queued
 - paying and waiving the same fee at once: only one wins
+- a request made while its member record is merged away waits, then is refused: no loan is left on the removed record
 
 ### Review findings (regressions)
 `src/test/java/com/helmifr/library/review/ReviewFindingsTest.java`
@@ -691,6 +724,24 @@ live in `support/`.
 - shows an error for bad credentials and stays on the form
 - returns to the page that needed a sign-in, query string included
 
+### `frontend/src/pages/MemberCardsPages.test.jsx`
+
+**Library card on the member page (librarian)**
+
+- shows an expired card and renews it
+- replaces a lost card with the reason given, and names both card IDs
+- asks for a reason before replacing a card
+- lists earlier card IDs with why they stopped being used
+- merges a duplicate record after confirming, then reloads the borrowing history
+- does nothing when the merge is not confirmed, and shows a refusal from the server
+- marks expired cards in the member list
+- reads in Bahasa Indonesia
+**Library card on the profile (member)**
+
+- tells the member their card has expired
+- warns a month ahead, and not before
+- shows only the expiry date when it is far away
+
 ### `frontend/src/pages/ReceiptPages.test.jsx`
 
 **Loan receipts**
@@ -759,6 +810,7 @@ creates its own uniquely named data through the API, then works through the UI.
 
 - a late return by barcode charges a fee, which the member pays in two parts
 - reports show the period and download a CSV of loans
+- a lost card is replaced and a duplicate record is merged on the member page
 
 ### `e2e/tests/mobile.spec.js`
 

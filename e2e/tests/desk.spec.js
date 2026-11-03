@@ -73,3 +73,40 @@ test('reports show the period and download a CSV of loans', async ({ page, baseU
 
   await librarianApi.dispose();
 });
+
+test('a lost card is replaced and a duplicate record is merged on the member page', async ({ page, baseURL }) => {
+  const librarianApi = await apiAs(baseURL, LIBRARIAN.username, LIBRARIAN.password);
+  const keep = await librarianApi.post('/api/members', {
+    name: `Wati ${unique()}`, dateOfBirth: '1992-02-02', email: `wati-${unique()}@example.com`, phone: '081200000003',
+  });
+  const duplicate = await librarianApi.post('/api/members', {
+    name: `Wati W ${unique()}`, dateOfBirth: '1992-02-02', email: `wati-w-${unique()}@example.com`, phone: '081200000004',
+  });
+  const title = `Gadis Kretek ${unique()}`;
+  const book = await createBook(librarianApi, title);
+  await librarianApi.post('/api/borrowed-books', { bookId: book.id, memberId: duplicate.id });
+
+  page.on('dialog', (dialog) => dialog.accept(dialog.type() === 'prompt' ? 'Lost' : undefined));
+  await signIn(page, LIBRARIAN.username, LIBRARIAN.password);
+  await page.goto(`/members/${keep.id}`);
+  const card = page.getByRole('region', { name: 'Library card' });
+  await expect(card).toContainText(keep.libraryCardId);
+  await expect(card).toContainText('Valid until');
+
+  await card.getByRole('button', { name: 'Replace card' }).click();
+  await expect(card.getByRole('status')).toContainText(`The old card ${keep.libraryCardId} no longer works.`);
+  await expect(card.getByRole('list', { name: 'Earlier cards' })).toContainText(`${keep.libraryCardId} replaced: Lost`);
+
+  await card.getByLabel('Duplicate record').selectOption({ label: `${duplicate.name} (${duplicate.libraryCardId})` });
+  await card.getByRole('button', { name: 'Merge into this member' }).click();
+  await expect(card.getByRole('status')).toContainText('was merged into this member.');
+  await expect(card.getByRole('list', { name: 'Earlier cards' })).toContainText(`${duplicate.libraryCardId} merged from ${duplicate.name}`);
+  await expect(page.getByText(title)).toBeVisible();
+
+  // The old card IDs still find the member.
+  await page.goto('/members');
+  await page.getByLabel('Search members').fill(duplicate.libraryCardId);
+  await expect(page.locator('tr', { hasText: keep.name })).toBeVisible();
+
+  await librarianApi.dispose();
+});
