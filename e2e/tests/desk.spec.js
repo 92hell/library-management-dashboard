@@ -1,7 +1,7 @@
 import { expect, test } from '@playwright/test';
 import { apiAs, createBook, isoDaysFromToday, LIBRARIAN, signIn, unique } from './support.js';
 
-test('a late return by barcode charges a fee, which the librarian records as paid', async ({ page, baseURL }) => {
+test('a late return by barcode charges a fee, which the member pays in two parts', async ({ page, baseURL }) => {
   const librarianApi = await apiAs(baseURL, LIBRARIAN.username, LIBRARIAN.password);
   const title = `Cantik Itu Luka ${unique()}`;
   const book = await createBook(librarianApi, title);
@@ -13,7 +13,9 @@ test('a late return by barcode charges a fee, which the librarian records as pai
   });
   const [copy] = await librarianApi.get(`/api/books/${book.id}/copies`);
 
-  page.on('dialog', (dialog) => dialog.accept());
+  // The payment prompt is answered with 2,000 first, then with its default: everything still due.
+  const answers = ['2000'];
+  page.on('dialog', (dialog) => dialog.accept(answers.shift() ?? dialog.defaultValue()));
   await signIn(page, LIBRARIAN.username, LIBRARIAN.password);
   await page.getByRole('navigation').getByRole('link', { name: 'Loans' }).click();
   await page.getByLabel('Return by barcode').fill(copy.barcode);
@@ -25,9 +27,25 @@ test('a late return by barcode charges a fee, which the librarian records as pai
   await expect(fine).toContainText('6 days late');
   await expect(fine).toContainText('IDR 6,000');
   await fine.getByRole('button', { name: 'Record payment' }).click();
+  await expect(page.getByRole('status').filter({ hasText: 'Payment of IDR 2,000 recorded' }))
+    .toContainText('IDR 4,000 still due.');
+  await expect(fine).toContainText('IDR 2,000 paid · IDR 4,000 still due');
+
+  await fine.getByRole('button', { name: 'Record payment' }).click();
+  await expect(page.getByRole('status').filter({ hasText: 'Payment of IDR 4,000 recorded' }))
+    .toContainText('The late fee is settled.');
   await expect(fine).toHaveCount(0);
   await page.getByLabel('Status').selectOption({ label: 'Paid' });
   await expect(page.locator('tr', { hasText: title })).toContainText(`Paid by ${LIBRARIAN.username}`);
+
+  // Both payments are on the signed receipt.
+  await page.getByRole('button', { name: 'Print receipt' }).click();
+  await expect(page.getByRole('heading', { name: 'Loan receipt' })).toBeVisible();
+  const payments = page.locator('.receipt-details div').filter({ has: page.locator('dt', { hasText: /^Paid$/ }) });
+  await expect(payments).toHaveCount(2);
+  await expect(payments.nth(0)).toContainText(`IDR 2,000`);
+  await expect(payments.nth(1)).toContainText(`IDR 4,000`);
+  await expect(payments.nth(1)).toContainText('Head Librarian'); // the name the bootstrap gives the first librarian
 
   await librarianApi.dispose();
 });

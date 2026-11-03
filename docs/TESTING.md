@@ -7,7 +7,7 @@ Run everything: `mvn clean verify` (backend; add `-Pmariadb` to run it on MariaD
 `cd frontend && npm test` (frontend), and after `mvn -Pfullstack package` also
 `cd e2e && npm test` (end-to-end, in a real browser).
 
-Totals: 218 backend test methods (parameterised ones run once per case), 146 frontend tests, 14 end-to-end journeys.
+Totals: 225 backend test methods (parameterised ones run once per case), 150 frontend tests, 14 end-to-end journeys.
 
 ## Backend (JUnit, `src/test/java`)
 
@@ -178,6 +178,17 @@ live in `support/`.
 - the nightly reset restores demo accounts and sample data, keeping the owner's account
 - the reset also clears loan histories and receipts that visitors created
 - receipts issued by the public demo say so: marked as demo and watermarked in the PDF
+
+### Fine payments (in parts) and payment receipts
+`src/test/java/com/helmifr/library/fine/FinePaymentsTest.java`
+
+- paying part of a fee leaves the rest due; paying the rest settles it
+- without an amount the whole remaining fee is paid
+- a payment must be more than zero and no more than what is still due
+- only what is still due counts towards the borrowing limit
+- waiving after a part payment forgives the rest and keeps the payment on record
+- each payment is in the loan's history, and the signed receipt lists the payments and what is still due
+- a correction cannot change a fee that is already partly paid
 
 ### Overdue fines
 `src/test/java/com/helmifr/library/fine/FinesTest.java`
@@ -612,6 +623,17 @@ live in `support/`.
 - says who waived a fine in Indonesian
 - shows the reports in Indonesian
 
+### `frontend/src/pages/FinePaymentsPages.test.jsx`
+
+**Paying a fee in parts (librarian)**
+
+- records part of the fee, says what is still due and offers a receipt
+- refuses an amount that is not a whole number above zero, without calling the server
+- shows what is paid and what is still due on a partly paid fee
+**A partly paid fee (member)**
+
+- shows what is still due on the loan and in the fee history
+
 ### `frontend/src/pages/FinesPages.test.jsx`
 
 **Late fees (customer)**
@@ -735,7 +757,7 @@ creates its own uniquely named data through the API, then works through the UI.
 
 ### `e2e/tests/desk.spec.js`
 
-- a late return by barcode charges a fee, which the librarian records as paid
+- a late return by barcode charges a fee, which the member pays in two parts
 - reports show the period and download a CSV of loans
 
 ### `e2e/tests/mobile.spec.js`

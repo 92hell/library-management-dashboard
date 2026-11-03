@@ -62,6 +62,13 @@ export default function VerifyReceipt() {
                 <dt>{t('Late fee')}</dt>
                 <dd>
                   {formatMoney(v.fine.amount, v.fine.currency)} · {t(FINE_LABELS[v.fine.status] ?? v.fine.status)}
+                  {v.fine.paid > 0 && v.fine.status === 'UNPAID' && (
+                    <>
+                      {' · '}
+                      {t('{paid} paid', { paid: formatMoney(v.fine.paid, v.fine.currency) })} ·{' '}
+                      {t('{amount} still due', { amount: formatMoney(v.fine.outstanding, v.fine.currency) })}
+                    </>
+                  )}
                 </dd>
               </div>
             )}

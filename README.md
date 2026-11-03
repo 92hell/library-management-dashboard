@@ -34,7 +34,8 @@ React 18 · Vite · React Router 6 · Bootstrap 5 / reactstrap.
 - Reports for any date range (up to a year): books lent and returned, late-return rate, active
   and new members, fines charged and collected, most borrowed titles, most active members;
   CSV downloads (spreadsheet-safe: formulas in data are neutralised; every export is audited)
-- Fines desk: late fees charged on return; record a payment or waive a fee with a reason (audited)
+- Fines desk: late fees charged on return; record a payment (all of it or part of it, as often as
+  needed) or waive what is left with a reason (audited); print the signed receipt after a payment
 - Desk checkout for walk-in members who have no online account; record past loans
 - Physical copies with barcodes: a title can have several copies ("2 of 3 on shelf"); lend a
   scanned copy, return by barcode, look up who has a copy, add or withdraw copies
@@ -57,7 +58,8 @@ React 18 · Vite · React Router 6 · Bootstrap 5 / reactstrap.
 
 **Loan receipts (printable evidence)**
 - Every status change of a loan is recorded (who, when, what): requested, approved, lent,
-  collected, renewed, returned, late fee charged / paid / waived, corrections
+  collected, renewed, returned, late fee charged / paid / waived, corrections; every payment is
+  listed on the receipt with what is still due
 - A receipt is a numbered snapshot (R-2026-000123) of the loan and that history, printable from
   the browser or downloadable as a bilingual PDF (English / Bahasa Indonesia) with the library
   stamp and a QR code. Librarians issue them for any loan, members for their own.

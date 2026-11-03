@@ -80,5 +80,8 @@
   "{0} has unpaid fines of {1}; record the payment before lending more books.": "{0} memiliki denda yang belum dibayar sebesar {1}; catat pembayarannya sebelum meminjamkan buku lagi.",
   "{0} requested \"{1}\".": "{0} mengajukan peminjaman \"{1}\".",
   "These details cannot be used to register. If you already have a library card, enter its ID with the email or phone number the library has on file.": "Data ini tidak dapat digunakan untuk mendaftar. Jika Anda sudah memiliki kartu perpustakaan, masukkan nomornya beserta email atau nomor telepon yang terdaftar di perpustakaan.",
-  "Too many new accounts from this network. Please try again later.": "Terlalu banyak akun baru dari jaringan ini. Silakan coba lagi nanti."
+  "Too many new accounts from this network. Please try again later.": "Terlalu banyak akun baru dari jaringan ini. Silakan coba lagi nanti.",
+  "must be between 1 and {0}": "harus antara 1 dan {0}",
+  "The late fee for this loan is already partly paid; a correction cannot change it.": "Denda keterlambatan untuk peminjaman ini sudah dibayar sebagian; koreksi tidak dapat mengubahnya.",
+  "More than {0} loans in this range; please choose a shorter range": "Lebih dari {0} peminjaman dalam rentang ini; silakan pilih rentang yang lebih pendek"
 }

@@ -15,5 +15,9 @@ public record ReceiptContent(String number, String library, String issuedAt, Str
 
     public record EventPart(String type, String status, String occurredAt, String actor, String detail) {}
 
-    public record FinePart(long amount, String currency, String status, int daysLate) {}
+    /** @param paid paid so far; outstanding still due; payments each payment (amount, when, by whom) */
+    public record FinePart(long amount, String currency, String status, int daysLate, long paid, long outstanding,
+                           List<PaymentPart> payments) {}
+
+    public record PaymentPart(long amount, String paidAt, String recordedBy) {}
 }

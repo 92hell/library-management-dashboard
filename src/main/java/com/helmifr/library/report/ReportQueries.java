@@ -66,9 +66,9 @@ class ReportQueries {
     }
 
     long finesCollected(Instant from, Instant toExclusive) {
-        return em.createQuery("SELECT COALESCE(SUM(f.amount), 0) FROM Fine f"
-                        + " WHERE f.loan.deleted = false AND f.status = com.helmifr.library.fine.FineStatus.PAID"
-                        + " AND f.settledAt >= :from AND f.settledAt < :to", Long.class)
+        // Money actually taken in the period: every payment, including part payments.
+        return em.createQuery("SELECT COALESCE(SUM(p.amount), 0) FROM FinePayment p"
+                        + " WHERE p.fine.loan.deleted = false AND p.paidAt >= :from AND p.paidAt < :to", Long.class)
                 .setParameter("from", from).setParameter("to", toExclusive)
                 .getSingleResult();
     }

@@ -148,7 +148,7 @@ class JobsAndRacesTest {
         List<Throwable> failures = new ArrayList<>();
 
         Future<?> pay = POOL.submit(() -> tx.executeWithoutResult(s -> {
-            fineService.pay(fine.getId());
+            fineService.pay(fine.getId(), null);
             firstHasLock.countDown();
             sleep(1500);
         }));

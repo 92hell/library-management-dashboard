@@ -4,6 +4,9 @@ import { describe, expect, it, vi } from 'vitest';
 import { customer, jsonResponse, librarian, loan, page, problem, renderApp, sentBody, signedInAs } from '../test/utils';
 
 const fine = {
+  paidAmount: 0,
+  outstanding: 3000,
+  payments: [],
   id: 5,
   loanId: 30,
   book: { id: 3, title: 'Anak Semua Bangsa' },
@@ -75,10 +78,10 @@ describe('Late fees (customer)', () => {
 
 describe('Fines desk (librarian)', () => {
   it('lists unpaid fines first and records a payment', async () => {
-    vi.spyOn(window, 'confirm').mockReturnValue(true);
+    const prompt = vi.spyOn(window, 'prompt').mockReturnValue('3000');
     const fetchMock = signedInAs(librarian, {
       'GET /api/fines': page([fine]),
-      'POST /api/fines/5/pay': () => jsonResponse({ ...fine, status: 'PAID' }),
+      'POST /api/fines/5/pay': () => jsonResponse({ ...fine, status: 'PAID', paidAmount: 3000, outstanding: 0 }),
     });
 
     renderApp('/fines');
@@ -88,8 +91,8 @@ describe('Fines desk (librarian)', () => {
     expect(screen.getByLabelText('Status')).toHaveValue('UNPAID');
     expect(fetchMock.mock.calls.some(([url]) => String(url).includes('status=UNPAID'))).toBe(true);
     await userEvent.click(within(row).getByRole('button', { name: 'Record payment' }));
-    expect(window.confirm).toHaveBeenCalledWith('Record that Siti paid IDR 3,000 for "Anak Semua Bangsa"?');
-    expect(sentBody(fetchMock, 'POST', '/api/fines/5/pay')).toBeNull();
+    expect(prompt).toHaveBeenCalledWith('How much did Siti pay for "Anak Semua Bangsa"? Still due: IDR 3,000', '3000');
+    expect(sentBody(fetchMock, 'POST', '/api/fines/5/pay')).toEqual({ amount: 3000 });
     await waitFor(() => expect(document.activeElement).toBe(screen.getByRole('heading', { level: 1, name: 'Fines' })));
   });
 

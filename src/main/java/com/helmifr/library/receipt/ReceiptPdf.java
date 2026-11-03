@@ -94,8 +94,18 @@ final class ReceiptPdf {
         row(details, "Returned / Kembali", loan.returnDate(), label, value);
         row(details, "Renewals / Perpanjangan", String.valueOf(loan.renewals()), label, value);
         if (c.fine() != null) {
-            row(details, "Late fee / Denda", "%s %,d · %d days late · %s".formatted(c.fine().currency(), c.fine().amount(),
-                    c.fine().daysLate(), FINE.getOrDefault(c.fine().status(), c.fine().status())), label, value);
+            var fine = c.fine();
+            row(details, "Late fee / Denda", "%s %,d · %d days late · %s".formatted(fine.currency(), fine.amount(),
+                    fine.daysLate(), FINE.getOrDefault(fine.status(), fine.status())), label, value);
+            if (fine.payments() != null) {
+                for (var p : fine.payments()) {
+                    row(details, "Paid / Dibayar", "%s %,d · %s · %s".formatted(fine.currency(), p.amount(),
+                            p.paidAt().replace('T', ' ').replace("Z", " UTC"), p.recordedBy()), label, value);
+                }
+                if (fine.outstanding() > 0) {
+                    row(details, "Still due / Sisa", "%s %,d".formatted(fine.currency(), fine.outstanding()), label, value);
+                }
+            }
         }
         doc.add(details);
 

@@ -19,11 +19,13 @@ public interface FineRepository extends JpaRepository<Fine, Long> {
     @EntityGraph(attributePaths = {"loan", "loan.book", "member"})
     List<Fine> findAllByMemberIdAndLoanDeletedFalseOrderByIdDesc(Long memberId);
 
-    @Query("SELECT COALESCE(SUM(f.amount), 0) FROM Fine f WHERE f.member.id = :memberId AND f.loan.deleted = false"
-            + " AND f.status = " + UNPAID)
+    /** What the member still owes (unpaid fines, less any part payments). */
+    @Query("SELECT COALESCE(SUM(f.amount - f.paidAmount), 0) FROM Fine f WHERE f.member.id = :memberId"
+            + " AND f.loan.deleted = false AND f.status = " + UNPAID)
     long sumUnpaidByMember(@Param("memberId") Long memberId);
 
-    @Query("SELECT COALESCE(SUM(f.amount), 0) FROM Fine f WHERE f.loan.deleted = false AND f.status = " + UNPAID)
+    @Query("SELECT COALESCE(SUM(f.amount - f.paidAmount), 0) FROM Fine f WHERE f.loan.deleted = false AND f.status = "
+            + UNPAID)
     long sumUnpaid();
 
     /** Locks the fine row, so paying and waiving the same fine cannot both succeed. */

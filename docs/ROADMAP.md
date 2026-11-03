@@ -19,7 +19,7 @@ Items marked *(hook ready)* already have an extension point in the code.
 
 - Member language preference, so emails/SMS can be sent in Bahasa Indonesia too
 - Certified e-signature for receipts via a PSrE (BSrE / Privy) as a `ReceiptSigner`; key rotation UI
-- Fines: partial payments, printed receipts, online payment (e.g. Midtrans / Xendit)
+- Fines: online payment (e.g. Midtrans / Xendit)
 - Member card expiry and renewal; card replacement keeps history
 - Merge duplicate member records (e.g. someone registered online before linking their card)
 - Fallback ISBN lookup (Google Books) when Open Library has no record

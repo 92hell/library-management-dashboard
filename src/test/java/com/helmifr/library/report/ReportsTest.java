@@ -98,17 +98,18 @@ class ReportsTest {
 
     @Autowired com.helmifr.library.fine.FineRepository fineRepository;
 
-    private void fine(com.helmifr.library.loan.Loan loan, long amount, com.helmifr.library.fine.FineStatus status) {
+    private void fine(com.helmifr.library.loan.Loan loan, long amount, com.helmifr.library.fine.FineStatus status)
+            throws Exception {
         var f = new com.helmifr.library.fine.Fine();
         f.setLoan(loan);
         f.setMember(loan.getMember());
         f.setAmount(amount);
         f.setDaysLate(4);
-        f.setStatus(status);
-        if (status == com.helmifr.library.fine.FineStatus.PAID) {
-            f.setSettledAt(java.time.Instant.now());
-        }
         fineRepository.save(f);
+        if (status == com.helmifr.library.fine.FineStatus.PAID) {
+            // Collected money comes from recorded payments.
+            api.as(librarian).post("/api/fines/" + f.getId() + "/pay").andExpect(status().isOk());
+        }
     }
 
     @Test

@@ -91,6 +91,20 @@ export default function ReceiptPage() {
                 </dd>
               </div>
             )}
+            {fine?.payments?.map((p, i) => (
+              <div key={`paid-${i}`}>
+                <dt>{t('Paid')}</dt>
+                <dd>
+                  {formatMoney(p.amount, fine.currency)} · {formatInstant(p.paidAt)} · {p.recordedBy}
+                </dd>
+              </div>
+            ))}
+            {fine?.payments?.length > 0 && fine.outstanding > 0 && (
+              <div>
+                <dt>{t('Still due')}</dt>
+                <dd>{formatMoney(fine.outstanding, fine.currency)}</dd>
+              </div>
+            )}
           </dl>
           <ReceiptStamp library={library} date={formatDate(localIsoDate(r.issuedAt))} />
         </div>

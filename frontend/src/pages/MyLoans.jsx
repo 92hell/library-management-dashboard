@@ -146,6 +146,11 @@ function FeeHistory({ fines }) {
               <td className="text-nowrap">{formatMoney(fine.amount, fine.currency)}</td>
               <td>
                 {FEE_STATUS[fine.status] && t(FEE_STATUS[fine.status])}
+                {fine.status === 'UNPAID' && fine.paidAmount > 0 && (
+                  <span className="d-block small text-muted">
+                    {t('{amount} still due', { amount: formatMoney(fine.outstanding, fine.currency) })}
+                  </span>
+                )}
                 {fine.status === 'WAIVED' && fine.note && <span className="d-block small text-muted">{fine.note}</span>}
               </td>
             </tr>
