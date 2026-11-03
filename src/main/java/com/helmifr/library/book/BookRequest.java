@@ -16,4 +16,7 @@ public record BookRequest(
         @NotNull Long authorId,
         @Size(max = 10) List<@NotBlank String> categories,
         /** Copies to create with a new book (default 1); ignored on update - manage copies instead. */
-        @Min(0) @Max(50) Integer copies) {}
+        @Min(0) @Max(50) Integer copies,
+        /** ISBN-10 or ISBN-13, hyphens allowed; stored as ISBN-13. */
+        @Size(max = 20) String isbn,
+        @Size(max = 2000) String description) {}

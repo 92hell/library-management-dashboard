@@ -1,5 +1,6 @@
-import { Navigate, useNavigate, useParams } from 'react-router-dom';
-import { Form, FormFeedback, FormGroup, Input, Label } from 'reactstrap';
+import { useState } from 'react';
+import { Link, Navigate, useNavigate, useParams } from 'react-router-dom';
+import { Button, Form, FormFeedback, FormGroup, FormText, Input, InputGroup, Label } from 'reactstrap';
 import { api } from '../api';
 import { useAuth } from '../auth';
 import { ErrorAlert, Loading } from '../components/Feedback';
@@ -9,7 +10,16 @@ import FormActions from '../components/FormActions';
 import { emptyToNull } from '../format';
 import { useAction, useApi, useFormFields } from '../hooks';
 
-const EMPTY_BOOK = { title: '', publishedDate: '', publisherName: '', authorId: '', categories: [], copies: '1' };
+const EMPTY_BOOK = {
+  title: '',
+  publishedDate: '',
+  publisherName: '',
+  authorId: '',
+  categories: [],
+  copies: '1',
+  isbn: '',
+  description: '',
+};
 
 function toFormValues(book) {
   return {
@@ -18,6 +28,8 @@ function toFormValues(book) {
     publisherName: book.publisherName ?? '',
     authorId: String(book.author?.id ?? ''),
     categories: book.categories,
+    isbn: book.isbn ?? '',
+    description: book.description ?? '',
   };
 }
 
@@ -57,7 +69,28 @@ function BookForm({ book, readOnly }) {
   const authors = useApi('/api/authors/options');
   const categories = useApi('/api/books/categories');
   const save = useAction();
+  const lookup = useAction();
+  const [missingAuthor, setMissingAuthor] = useState(null);
   const { fieldErrors } = save;
+
+  /** Fills the form from Open Library; what it does not know keeps the value already typed. */
+  async function lookUp() {
+    let found = null;
+    setMissingAuthor(null);
+    if (!(await lookup.run(async () => {
+      found = await api.get('/api/books/lookup', { isbn: values.isbn.trim() });
+    }))) return;
+    setValues((current) => ({
+      ...current,
+      isbn: found.isbn,
+      title: found.title ?? current.title,
+      publisherName: found.publisherName ?? current.publisherName,
+      publishedDate: found.publishedDate ?? current.publishedDate,
+      authorId: found.authorId ? String(found.authorId) : current.authorId,
+      categories: [...new Set([...current.categories, ...found.categories])],
+    }));
+    if (!found.authorId && found.authorName) setMissingAuthor(found.authorName);
+  }
 
   function toggleCategory(category) {
     setValues((current) => ({
@@ -76,6 +109,8 @@ function BookForm({ book, readOnly }) {
       publisherName: emptyToNull(values.publisherName.trim()),
       authorId: Number(values.authorId),
       categories: values.categories,
+      isbn: emptyToNull(values.isbn.trim()),
+      description: emptyToNull(values.description.trim()),
       ...(book ? {} : { copies: Number(values.copies) }),
     };
     const saved = await save.run(
@@ -93,6 +128,26 @@ function BookForm({ book, readOnly }) {
       <h1 className="h3 mb-3">{title}</h1>
       <ErrorAlert error={save.error ?? optionsError} onDismiss={save.error ? save.clearError : undefined} />
       <fieldset disabled={readOnly}>
+        <FormGroup>
+          <Label for="isbn">ISBN</Label>
+          <InputGroup>
+            <Input
+              id="isbn"
+              name="isbn"
+              value={values.isbn}
+              onChange={handleChange}
+              invalid={Boolean(fieldErrors.isbn)}
+              autoComplete="off"
+              inputMode="numeric"
+            />
+            <Button type="button" color="secondary" outline onClick={lookUp} disabled={lookup.pending || !values.isbn.trim()}>
+              Look up
+            </Button>
+          </InputGroup>
+          {fieldErrors.isbn && <FormFeedback className="d-block">{fieldErrors.isbn}</FormFeedback>}
+          {!fieldErrors.isbn && <FormText>Optional. Look it up to fill in the details and show the cover from Open Library.</FormText>}
+        </FormGroup>
+        <ErrorAlert error={lookup.error} onDismiss={lookup.clearError} />
         <Field label="Title" name="title" value={values.title} onChange={handleChange} error={fieldErrors.title} />
         <Field
           label="Publisher"
@@ -138,6 +193,12 @@ function BookForm({ book, readOnly }) {
             </option>
           ))}
         </Field>
+        {missingAuthor && (
+          <p className="small text-muted mt-n2">
+            Open Library lists the author as “{missingAuthor}”, who is not in the catalogue yet.{' '}
+            <Link to="/authors/new">Add the author</Link> first, then choose them here.
+          </p>
+        )}
         <FormGroup tag="fieldset">
           <legend className="form-label fs-6">Categories</legend>
           {categories.loading && <Loading label="Loading categories…" />}
@@ -157,6 +218,17 @@ function BookForm({ book, readOnly }) {
           ))}
           {fieldErrors.categories && <FormFeedback className="d-block">{fieldErrors.categories}</FormFeedback>}
         </FormGroup>
+        <Field
+          label="Description"
+          name="description"
+          type="textarea"
+          rows="4"
+          maxLength="2000"
+          value={values.description}
+          onChange={handleChange}
+          error={fieldErrors.description}
+          hint="Shown on the book's page in the catalogue."
+        />
       </fieldset>
       <FormActions readOnly={readOnly} saving={save.pending} backTo="/books" />
     </Form>

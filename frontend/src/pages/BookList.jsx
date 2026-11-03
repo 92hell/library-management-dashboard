@@ -1,7 +1,9 @@
 import { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { Badge } from 'reactstrap';
 import { api } from '../api';
 import Availability from '../components/Availability';
+import BookCover from '../components/BookCover';
 import { ErrorAlert } from '../components/Feedback';
 import PagedTable from '../components/PagedTable';
 import PageHeader from '../components/PageHeader';
@@ -40,7 +42,14 @@ export default function BookList() {
         emptyMessage="No books found."
         renderRow={(book) => (
           <tr key={book.id}>
-            <td className="fw-semibold">{book.title}</td>
+            <td>
+              <div className="d-flex align-items-center gap-3">
+                <BookCover title={book.title} src={book.coverUrl} />
+                <Link to={`/catalogue/${book.id}`} className="fw-semibold">
+                  {book.title}
+                </Link>
+              </div>
+            </td>
             <td>{book.author?.name ?? '—'}</td>
             <td className="text-nowrap">{formatDate(book.publishedDate)}</td>
             <td>{book.publisherName || '—'}</td>

@@ -32,6 +32,12 @@ public class ApiExceptionHandler {
         return problem(HttpStatus.NOT_FOUND, "Not found");
     }
 
+    @ExceptionHandler(ServiceUnavailableException.class)
+    ProblemDetail unavailable(ServiceUnavailableException e) {
+        log.warn("{}: {}", e.getMessage(), e.getCause() == null ? "-" : e.getCause().toString());
+        return problem(HttpStatus.SERVICE_UNAVAILABLE, e.getMessage());
+    }
+
     @ExceptionHandler(ConflictException.class)
     ProblemDetail conflict(ConflictException e) {
         return problem(HttpStatus.CONFLICT, e.getMessage());

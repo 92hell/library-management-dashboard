@@ -24,6 +24,10 @@ public interface CopyRepository extends JpaRepository<Copy, Long> {
     List<Copy> findAllByBookIdAndDeletedFalseOrderByIdAsc(Long bookId);
 
     /** [bookId, number of copies in the collection] for each of the given books. */
+    @Query("SELECT DISTINCT c.shelfLocation FROM Copy c WHERE c.book.id = :bookId AND c.deleted = false"
+            + " AND c.shelfLocation IS NOT NULL ORDER BY c.shelfLocation")
+    List<String> findShelfLocations(@Param("bookId") Long bookId);
+
     @Query("SELECT c.book.id, COUNT(c) FROM Copy c WHERE c.book.id IN :bookIds AND c.deleted = false GROUP BY c.book.id")
     List<Object[]> countByBook(@Param("bookIds") Collection<Long> bookIds);
 

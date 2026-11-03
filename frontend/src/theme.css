@@ -143,6 +143,10 @@ main form.border, main .border.rounded { background-color: var(--lib-card); bord
 }
 .book-cover-sm { width: 2.1rem; height: 2.9rem; font-size: 0.8rem; }
 .book-cover-md { width: 3rem; height: 4.2rem; font-size: 1.05rem; }
+.book-cover-lg { width: 10rem; height: 15rem; font-size: 2.6rem; }
+.book-cover-img { object-fit: cover; background: var(--lib-card); }
+.book-details dt { font-weight: 600; color: var(--bs-secondary-color); font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.04em; }
+.book-details dd { margin-bottom: 0.6rem; }
 
 /* ---- Library card (profile) ---------------------------------------------------------------- */
 .library-card {

@@ -26,17 +26,19 @@ public class BookService {
     private final LoanRepository loans;
     private final AuthorService authorService;
     private final CopyService copyService;
+    private final CopyRepository copies;
+    private final CatalogueProperties catalogue;
 
     public PageResponse<BookResponse> search(String q, Pageable pageable) {
         Page<Book> page = books.search(SearchPatterns.contains(q), pageable);
         Map<Long, Availability> availability = availabilityOf(page.getContent());
-        return PageResponse.of(page.map(b -> BookResponse.from(b, availability.get(b.getId()))));
+        return PageResponse.of(page.map(b -> BookResponse.from(b, availability.get(b.getId()), catalogue.coverUrl(b.getIsbn()))));
     }
 
     public List<BookResponse> findByAuthor(Long authorId) {
         List<Book> list = books.findAllByAuthorIdAndDeletedFalseOrderByTitleAsc(authorId);
         Map<Long, Availability> availability = availabilityOf(list);
-        return list.stream().map(b -> BookResponse.from(b, availability.get(b.getId()))).toList();
+        return list.stream().map(b -> BookResponse.from(b, availability.get(b.getId()), catalogue.coverUrl(b.getIsbn()))).toList();
     }
 
     public List<BookOption> options() {
@@ -57,7 +59,8 @@ public class BookService {
 
     public BookResponse get(Long id) {
         Book book = require(id);
-        return BookResponse.from(book, copyService.availability(id));
+        return BookResponse.from(book, copyService.availability(id), catalogue.coverUrl(book.getIsbn()),
+                copies.findShelfLocations(id), loans.countWaitingFor(id));
     }
 
     @Transactional
@@ -66,14 +69,14 @@ public class BookService {
         apply(book, request);
         book = books.save(book);
         copyService.addGenerated(book, request.copies() == null ? 1 : request.copies());
-        return BookResponse.from(book, copyService.availability(book.getId()));
+        return view(book);
     }
 
     @Transactional
     public BookResponse update(Long id, BookRequest request) {
         Book book = require(id);
         apply(book, request);
-        return BookResponse.from(book, copyService.availability(id));
+        return view(book);
     }
 
     @Transactional
@@ -84,6 +87,10 @@ public class BookService {
         }
         book.setDeleted(true);
         copyService.withdrawAllOf(id);
+    }
+
+    private BookResponse view(Book book) {
+        return BookResponse.from(book, copyService.availability(book.getId()), catalogue.coverUrl(book.getIsbn()));
     }
 
     private Book require(Long id) {
@@ -103,6 +110,23 @@ public class BookService {
         book.setPublisherName(blankToNull(request.publisherName()));
         book.setAuthor(authorService.require(request.authorId()));
         book.setCategoryList(categories);
+        book.setIsbn(isbnOf(book, request.isbn()));
+        book.setDescription(blankToNull(request.description()));
+    }
+
+    /** The ISBN-13 for the form's ISBN; blank clears it; another active book with it is refused. */
+    private String isbnOf(Book book, String input) {
+        if (input == null || input.isBlank()) {
+            return null;
+        }
+        String isbn = Isbn.toIsbn13(input).orElseThrow(
+                () -> new FieldValidationException("isbn", "is not a valid ISBN-10 or ISBN-13"));
+        boolean taken = book.getId() == null ? books.existsByIsbnAndDeletedFalse(isbn)
+                : books.existsByIsbnAndDeletedFalseAndIdNot(isbn, book.getId());
+        if (taken) {
+            throw new FieldValidationException("isbn", "Another book already has this ISBN");
+        }
+        return isbn;
     }
 
     private Map<Long, Availability> availabilityOf(List<Book> list) {

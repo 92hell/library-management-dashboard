@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { Button } from 'reactstrap';
 import { api } from '../api';
 import Availability from '../components/Availability';
@@ -49,8 +50,10 @@ export default function Catalogue() {
           <tr key={book.id}>
             <td>
               <div className="d-flex align-items-center gap-3">
-                <BookCover title={book.title} />
-                <span className="fw-semibold">{book.title}</span>
+                <BookCover title={book.title} src={book.coverUrl} />
+                <Link to={`/catalogue/${book.id}`} className="fw-semibold">
+                  {book.title}
+                </Link>
               </div>
             </td>
             <td>{book.author.name}</td>

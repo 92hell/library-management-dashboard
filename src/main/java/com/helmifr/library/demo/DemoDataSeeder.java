@@ -117,13 +117,20 @@ public class DemoDataSeeder {
         Author tohari = author("Ahmad Tohari");
 
         // Popular titles have several copies, as in a real library.
-        Book bumi = book("Bumi Manusia", pram, 1980, "Historical Fiction,Classics", 2, "FIC PRA");
-        Book anak = book("Anak Semua Bangsa", pram, 1980, "Historical Fiction,Classics", 1, "FIC PRA");
-        Book laskar = book("Laskar Pelangi", hirata, 2005, "Fiction,Young Adult", 3, "FIC HIR");
-        book("Sang Pemimpi", hirata, 2006, "Fiction,Young Adult", 2, "FIC HIR");
-        Book cantik = book("Cantik Itu Luka", eka, 2002, "Fiction,Historical Fiction", 1, "FIC KUR");
-        Book supernova = book("Supernova", dee, 2001, "Science Fiction,Fiction", 2, "SF LES");
-        book("Ronggeng Dukuh Paruk", tohari, 1982, "Fiction,Classics", 1, "FIC TOH");
+        Book bumi = book("Bumi Manusia", pram, 1980, "Historical Fiction,Classics", 2, "FIC PRA",
+                "Minke, a Javanese student at a Dutch school, falls in love with Annelies in colonial-era Surabaya.");
+        Book anak = book("Anak Semua Bangsa", pram, 1980, "Historical Fiction,Classics", 1, "FIC PRA",
+                "The second book of the Buru Quartet: Minke learns what colonial rule means for his own people.");
+        Book laskar = book("Laskar Pelangi", hirata, 2005, "Fiction,Young Adult", 3, "FIC HIR",
+                "Ten children and two devoted teachers keep a tiny village school on Belitung open against the odds.");
+        book("Sang Pemimpi", hirata, 2006, "Fiction,Young Adult", 2, "FIC HIR",
+                "Two cousins in a Belitung boarding school dream of studying in Paris.");
+        Book cantik = book("Cantik Itu Luka", eka, 2002, "Fiction,Historical Fiction", 1, "FIC KUR",
+                "A family saga across colonial rule, occupation and independence, told with dark humour.");
+        Book supernova = book("Supernova", dee, 2001, "Science Fiction,Fiction", 2, "SF LES",
+                "Two writers build a story that starts to blur into the lives of the people they write about.");
+        book("Ronggeng Dukuh Paruk", tohari, 1982, "Fiction,Classics", 1, "FIC TOH",
+                "Srintil becomes the dancer of a poor Central Javanese village, and its fate becomes hers.");
 
         LocalDate today = LocalDate.now(clock);
         Member walkIn = member("Budi Santoso", "budi@example.com", LocalDate.of(1988, 8, 2));
@@ -152,8 +159,10 @@ public class DemoDataSeeder {
         return authors.save(a);
     }
 
-    private Book book(String title, Author author, int year, String categories, int copyCount, String shelf) {
+    private Book book(String title, Author author, int year, String categories, int copyCount, String shelf,
+                      String description) {
         Book b = new Book();
+        b.setDescription(description);
         b.setTitle(title);
         b.setAuthor(author);
         b.setPublishedDate(LocalDate.of(year, 1, 1));

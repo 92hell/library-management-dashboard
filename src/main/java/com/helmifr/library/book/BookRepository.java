@@ -40,7 +40,8 @@ public interface BookRepository extends JpaRepository<Book, Long> {
                    OR LOWER(b.title) LIKE :pattern ESCAPE '!'
                    OR LOWER(b.publisherName) LIKE :pattern ESCAPE '!'
                    OR LOWER(b.categories) LIKE :pattern ESCAPE '!'
-                   OR LOWER(a.name) LIKE :pattern ESCAPE '!')
+                   OR LOWER(a.name) LIKE :pattern ESCAPE '!'
+                   OR b.isbn LIKE :pattern ESCAPE '!')
             ORDER BY b.createdAt DESC, b.id DESC""",
             countQuery = """
             SELECT COUNT(b) FROM Book b JOIN b.author a
@@ -49,6 +50,11 @@ public interface BookRepository extends JpaRepository<Book, Long> {
                    OR LOWER(b.title) LIKE :pattern ESCAPE '!'
                    OR LOWER(b.publisherName) LIKE :pattern ESCAPE '!'
                    OR LOWER(b.categories) LIKE :pattern ESCAPE '!'
-                   OR LOWER(a.name) LIKE :pattern ESCAPE '!')""")
+                   OR LOWER(a.name) LIKE :pattern ESCAPE '!'
+                   OR b.isbn LIKE :pattern ESCAPE '!')""")
     Page<Book> search(@Param("pattern") String pattern, Pageable pageable);
+
+    boolean existsByIsbnAndDeletedFalseAndIdNot(String isbn, Long id);
+
+    boolean existsByIsbnAndDeletedFalse(String isbn);
 }

@@ -36,6 +36,13 @@ public class Book {
     @Column(name = "categories", length = 1000)
     private String categories;
 
+    /** ISBN-13, digits only. */
+    @Column(name = "isbn", length = 13)
+    private String isbn;
+
+    @Column(name = "description", length = 2000)
+    private String description;
+
     @Column(name = "is_deleted", nullable = false)
     private boolean deleted = false;
 

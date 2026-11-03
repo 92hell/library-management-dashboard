@@ -127,6 +127,10 @@ public interface LoanRepository extends JpaRepository<Loan, Long> {
             + PENDING + ", " + WAITLISTED + ")")
     boolean anyoneWaitingFor(@Param("bookId") Long bookId);
 
+    @Query("SELECT COUNT(l) FROM Loan l WHERE l.book.id = :bookId AND l.deleted = false AND l.status IN ("
+            + PENDING + ", " + WAITLISTED + ")")
+    long countWaitingFor(@Param("bookId") Long bookId);
+
     /** The queue for a title, first in line first. */
     @EntityGraph(attributePaths = {"book", "member"})
     @Query("SELECT l FROM Loan l WHERE l.book.id = :bookId AND l.deleted = false AND l.status = " + WAITLISTED

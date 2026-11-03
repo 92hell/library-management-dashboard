@@ -5,6 +5,7 @@ import RequireAuth from './components/RequireAuth';
 import RequireRole from './components/RequireRole';
 import AuthorEdit from './pages/AuthorEdit';
 import AuthorList from './pages/AuthorList';
+import BookDetail from './pages/BookDetail';
 import BookEdit from './pages/BookEdit';
 import BookList from './pages/BookList';
 import BorrowedBookEdit from './pages/BorrowedBookEdit';
@@ -47,6 +48,7 @@ export function AppRoutes() {
         <Route index element={<Home />} />
         <Route path="profile" element={<Profile />} />
         <Route path="notifications" element={<Notifications />} />
+        <Route path="catalogue/:id" element={<BookDetail />} />
 
         <Route element={<Customer />}>
           <Route path="catalogue" element={<Catalogue />} />

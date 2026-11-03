@@ -14,7 +14,8 @@ React 18 · Vite · React Router 6 · Bootstrap 5 / reactstrap.
 
 **Customers (members with an online account)**
 - Register online, or link an existing library card from the desk (card ID + the email or phone on file)
-- Browse and search the catalogue with live availability; request books
+- Browse and search the catalogue (title, author, publisher, category or ISBN) with live
+  availability; each book has its own page with cover, description, shelf and queue; request books
 - *My loans*: pending requests, place in the queue, holds ready for pickup, books on loan with due
   dates, overdue warnings, history; cancel a request or hold; renew a loan
 - Late fees: what an overdue book costs so far, the balance owed and the fee history
@@ -33,6 +34,8 @@ React 18 · Vite · React Router 6 · Bootstrap 5 / reactstrap.
 - Desk checkout for walk-in members who have no online account; record past loans
 - Physical copies with barcodes: a title can have several copies ("2 of 3 on shelf"); lend a
   scanned copy, return by barcode, look up who has a copy, add or withdraw copies
+- Add a book by ISBN: look it up at Open Library to fill in title, author, publisher, year and
+  categories; covers come from Open Library (a drawn spine when there is none)
 - Manage books, authors, members (each with a library card ID) and librarian accounts
 - Notified of every new borrow request
 
@@ -112,6 +115,7 @@ environment variables:
 | `DEMO_MODE`, `DEMO_PASSWORD`, `DEMO_RESET_CRON` | `false`, `demo-password`, `0 0 3 * * *` | Public demo - see [Demo mode](#demo-mode) |
 | `LOAN_PERIOD_DAYS`, `LOAN_MAX_OPEN_PER_MEMBER`, `LOAN_DUE_SOON_DAYS` | `14`, `3`, `2` | Lending rules |
 | `LOAN_PICKUP_DAYS`, `LOAN_MAX_RENEWALS` | `3`, `1` | How long a hold waits at the desk; renewals per loan |
+| `BOOK_COVERS`, `ISBN_LOOKUP_URL`, `ISBN_LOOKUP_TIMEOUT` | `true`, `https://openlibrary.org`, `5s` | Open Library covers and ISBN lookup (blank URL turns the lookup off) |
 | `FINE_PER_DAY`, `FINE_MAX_PER_LOAN`, `FINE_BLOCK_AT`, `FINE_CURRENCY` | `1000`, `30000`, `20000`, `IDR` | Late fees (whole currency units; `FINE_BLOCK_AT=0` never blocks) |
 | `LOAN_REMINDER_CRON` | `0 0 8 * * *` | Daily job: expire uncollected holds, due-soon / overdue reminders (`-` disables) |
 | `APP_BASE_URL` | `http://localhost:8080` | Used for links in emails / messages |

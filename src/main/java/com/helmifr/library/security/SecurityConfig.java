@@ -55,7 +55,8 @@ public class SecurityConfig {
             "default-src 'self'",
             "script-src 'self'",
             "style-src 'self' 'unsafe-inline'",
-            "img-src 'self' data:",
+            // Book covers: Open Library redirects cover requests to archive.org hosts.
+            "img-src 'self' data: https://covers.openlibrary.org https://archive.org https://*.archive.org",
             "font-src 'self' data:",
             "connect-src 'self'",
             "object-src 'none'",
@@ -87,7 +88,8 @@ public class SecurityConfig {
                         .requestMatchers("/api/notifications/**", "/api/notifications").authenticated()
                         .requestMatchers("/api/my/**", "/api/my").hasRole(Role.CUSTOMER.name())
                         // Copies (with borrower names) are staff-only, even though the catalogue is not.
-                        .requestMatchers("/api/books/*/copies", "/api/copies/**").hasRole(Role.LIBRARIAN.name())
+                        .requestMatchers("/api/books/*/copies", "/api/copies/**", "/api/books/lookup")
+                        .hasRole(Role.LIBRARIAN.name())
                         .requestMatchers(HttpMethod.GET, "/api/books/**", "/api/books", "/api/authors/**", "/api/authors")
                         .authenticated()
                         .requestMatchers("/api/**").hasRole(Role.LIBRARIAN.name())

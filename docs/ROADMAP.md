@@ -20,8 +20,8 @@ Items marked *(hook ready)* already have an extension point in the code.
 - Fines: partial payments, printed receipts, online payment (e.g. Midtrans / Xendit)
 - Member card expiry and renewal; card replacement keeps history
 - Merge duplicate member records (e.g. someone registered online before linking their card)
-- Book covers, descriptions and ISBN lookup (Open Library / Google Books API)
-- Catalogue filters (category, author, availability) and sorting; book detail pages
+- Fallback ISBN lookup (Google Books) when Open Library has no record
+- Catalogue filters (category, author, availability) and sorting
 - Librarian reports: most borrowed, overdue rate, active members; CSV export
 - Branches / locations and inter-branch transfers
 

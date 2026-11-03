@@ -70,6 +70,12 @@ library:
     max-renewals: ${LOAN_MAX_RENEWALS:1}
     # Daily reminder run (second minute hour day month weekday); "-" disables it.
     reminder-cron: ${LOAN_REMINDER_CRON:0 0 8 * * *}
+  catalogue:
+    # Cover images from Open Library for books with an ISBN (loaded by the browser).
+    covers: ${BOOK_COVERS:true}
+    # ISBN lookup to fill in the book form; blank disables it.
+    lookup-url: ${ISBN_LOOKUP_URL:https://openlibrary.org}
+    lookup-timeout: ${ISBN_LOOKUP_TIMEOUT:5s}
   fines:
     # Late fee per day a book is returned late, the most one loan can cost, and the unpaid total
     # at which a member cannot borrow until they pay (0 = never). Whole units of the currency.

@@ -16,6 +16,7 @@ import org.springframework.web.bind.annotation.*;
 public class BookController {
 
     private final BookService bookService;
+    private final IsbnLookup isbnLookup;
 
     @GetMapping
     public PageResponse<BookResponse> list(@RequestParam(required = false) String q,
@@ -31,6 +32,12 @@ public class BookController {
     @GetMapping("/options")
     public List<BookOption> options() {
         return bookService.options();
+    }
+
+    /** Librarians: fill the book form from Open Library by ISBN. */
+    @GetMapping("/lookup")
+    public IsbnLookup.Result lookup(@RequestParam String isbn) {
+        return isbnLookup.lookup(isbn);
     }
 
     @GetMapping("/{id}")
