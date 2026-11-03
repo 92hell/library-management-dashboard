@@ -5,13 +5,13 @@ import { customer, jsonResponse, loan, page, renderApp, sentBody, signedInAs } f
 
 const book = (overrides) => ({
   id: 3, title: 'Bumi Manusia', publishedDate: '1980-01-01', publisherName: null,
-  author: { id: 1, name: 'Pramoedya' }, categories: ['Classics'], onLoan: false, ...overrides,
+  author: { id: 1, name: 'Pramoedya' }, categories: ['Classics'], totalCopies: 1, availableCopies: 1, onLoan: false, ...overrides,
 });
 
 describe('Catalogue (customer)', () => {
   it('requests a book and confirms it', async () => {
     const fetchMock = signedInAs(customer, {
-      'GET /api/books': page([book(), book({ id: 4, title: 'Saman', onLoan: true })]),
+      'GET /api/books': page([book(), book({ id: 4, title: 'Saman', availableCopies: 0, onLoan: true })]),
       'POST /api/my/loans': () => jsonResponse(loan({ status: 'PENDING', borrowDate: null, dueDate: null }), 201),
     });
 

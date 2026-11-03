@@ -11,6 +11,7 @@ import { useAction, useApi, useFormFields } from '../hooks';
 function toFormValues(loan) {
   return {
     bookId: String(loan.book.id),
+    copyBarcode: '',
     memberId: String(loan.member.id),
     borrowDate: loan.borrowDate ?? '',
     dueDate: loan.dueDate ?? '',
@@ -20,7 +21,7 @@ function toFormValues(loan) {
 
 function validate(values) {
   const errors = {};
-  if (!values.bookId) errors.bookId = 'Please select a book.';
+  if (!values.bookId && !values.copyBarcode.trim()) errors.bookId = 'Scan a barcode or select a book.';
   if (!values.memberId) errors.memberId = 'Please select a member.';
   if (!values.borrowDate) errors.borrowDate = 'Borrow date is required.';
   if (values.returnDate && values.borrowDate && values.returnDate < values.borrowDate) {
@@ -56,7 +57,7 @@ export default function BorrowedBookEdit() {
 function LoanForm({ loan, readOnly }) {
   const navigate = useNavigate();
   const [values, , handleChange] = useFormFields(
-    loan ? toFormValues(loan) : { bookId: '', memberId: '', borrowDate: todayIso(), dueDate: '', returnDate: '' },
+    loan ? toFormValues(loan) : { bookId: '', copyBarcode: '', memberId: '', borrowDate: todayIso(), dueDate: '', returnDate: '' },
   );
   const books = useApi('/api/books/options');
   const members = useApi('/api/members/options');
@@ -69,7 +70,8 @@ function LoanForm({ loan, readOnly }) {
   async function handleSubmit(event) {
     event.preventDefault();
     const body = {
-      bookId: Number(values.bookId),
+      bookId: values.bookId ? Number(values.bookId) : null,
+      copyBarcode: values.copyBarcode.trim() || null,
       memberId: Number(values.memberId),
       borrowDate: values.borrowDate,
       dueDate: emptyToNull(values.dueDate),
@@ -91,6 +93,16 @@ function LoanForm({ loan, readOnly }) {
       <ErrorAlert error={save.error ?? optionsError} onDismiss={save.error ? save.clearError : undefined} />
       <fieldset disabled={readOnly}>
         <Field
+          label="Scan a barcode (or choose the book below)"
+          name="copyBarcode"
+          placeholder={loan?.copy ? `Currently ${loan.copy.barcode}` : 'e.g. BC-7KQ2XM9P'}
+          value={values.copyBarcode}
+          onChange={handleChange}
+          error={fieldErrors.copyBarcode}
+          autoComplete="off"
+          hint="With a barcode, that exact copy is lent; with only a book, any copy on the shelf."
+        />
+        <Field
           label="Book"
           name="bookId"
           type="select"
@@ -104,9 +116,10 @@ function LoanForm({ loan, readOnly }) {
             // The book on this record is "on loan" because of this very loan, so it stays selectable.
             const unavailable = book.onLoan && book.id !== loan?.book.id;
             const label = book.authorName ? `${book.title} by ${book.authorName}` : book.title;
+            const copies = book.totalCopies != null ? ` (${book.availableCopies} of ${book.totalCopies} on shelf)` : '';
             return (
               <option key={book.id} value={book.id} disabled={unavailable}>
-                {unavailable ? `${label} (on loan)` : label}
+                {unavailable ? `${label} (all copies on loan)` : `${label}${copies}`}
               </option>
             );
           })}

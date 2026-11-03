@@ -8,6 +8,9 @@ import com.helmifr.library.author.Author;
 import com.helmifr.library.author.AuthorRepository;
 import com.helmifr.library.book.Book;
 import com.helmifr.library.book.BookRepository;
+import com.helmifr.library.book.Copy;
+import com.helmifr.library.book.CopyBarcodes;
+import com.helmifr.library.book.CopyRepository;
 import com.helmifr.library.loan.Loan;
 import com.helmifr.library.loan.LoanRepository;
 import com.helmifr.library.loan.LoanStatus;
@@ -52,6 +55,8 @@ public class DemoDataSeeder {
     private final PasswordEncoder passwordEncoder;
     private final Clock clock;
     private final NotificationRepository notifications;
+    private final CopyRepository copies;
+    private final CopyBarcodes barcodes;
     private final SecurityProperties securityProperties;
     private final EntityManager entityManager;
 
@@ -62,6 +67,7 @@ public class DemoDataSeeder {
         loans.deleteAllInBatch();
         accounts.deleteAllExcept(securityProperties.librarian().username());
         members.deleteAllInBatch();
+        copies.deleteAllInBatch();
         books.deleteAllInBatch();
         authors.deleteAllInBatch();
         entityManager.flush();
@@ -106,13 +112,14 @@ public class DemoDataSeeder {
         Author dee = author("Dee Lestari");
         Author tohari = author("Ahmad Tohari");
 
-        Book bumi = book("Bumi Manusia", pram, 1980, "Historical Fiction,Classics");
-        book("Anak Semua Bangsa", pram, 1980, "Historical Fiction,Classics");
-        Book laskar = book("Laskar Pelangi", hirata, 2005, "Fiction,Young Adult");
-        book("Sang Pemimpi", hirata, 2006, "Fiction,Young Adult");
-        Book cantik = book("Cantik Itu Luka", eka, 2002, "Fiction,Historical Fiction");
-        book("Supernova", dee, 2001, "Science Fiction,Fiction");
-        book("Ronggeng Dukuh Paruk", tohari, 1982, "Fiction,Classics");
+        // Popular titles have several copies, as in a real library.
+        Book bumi = book("Bumi Manusia", pram, 1980, "Historical Fiction,Classics", 2, "FIC PRA");
+        book("Anak Semua Bangsa", pram, 1980, "Historical Fiction,Classics", 1, "FIC PRA");
+        Book laskar = book("Laskar Pelangi", hirata, 2005, "Fiction,Young Adult", 3, "FIC HIR");
+        book("Sang Pemimpi", hirata, 2006, "Fiction,Young Adult", 2, "FIC HIR");
+        Book cantik = book("Cantik Itu Luka", eka, 2002, "Fiction,Historical Fiction", 1, "FIC KUR");
+        book("Supernova", dee, 2001, "Science Fiction,Fiction", 2, "SF LES");
+        book("Ronggeng Dukuh Paruk", tohari, 1982, "Fiction,Classics", 1, "FIC TOH");
 
         LocalDate today = LocalDate.now(clock);
         Member walkIn = member("Budi Santoso", "budi@example.com", LocalDate.of(1988, 8, 2));
@@ -128,13 +135,21 @@ public class DemoDataSeeder {
         return authors.save(a);
     }
 
-    private Book book(String title, Author author, int year, String categories) {
+    private Book book(String title, Author author, int year, String categories, int copyCount, String shelf) {
         Book b = new Book();
         b.setTitle(title);
         b.setAuthor(author);
         b.setPublishedDate(LocalDate.of(year, 1, 1));
         b.setCategories(categories);
-        return books.save(b);
+        b = books.save(b);
+        for (int i = 0; i < copyCount; i++) {
+            Copy c = new Copy();
+            c.setBook(b);
+            c.setBarcode(barcodes.next());
+            c.setShelfLocation(shelf);
+            copies.save(c);
+        }
+        return b;
     }
 
     private Member member(String name, String email, LocalDate dateOfBirth) {
@@ -154,6 +169,10 @@ public class DemoDataSeeder {
         l.setStatus(status);
         l.setBorrowDate(borrowDate);
         l.setDueDate(dueDate);
+        if (status == LoanStatus.ACTIVE) {
+            // Seeded loans use different titles, so the first copy is free.
+            l.setCopy(copies.findAllByBookIdAndDeletedFalseOrderByIdAsc(book.getId()).get(0));
+        }
         return loans.save(l);
     }
 }

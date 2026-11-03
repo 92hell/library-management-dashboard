@@ -1,6 +1,7 @@
 package com.helmifr.library.loan;
 
 import com.helmifr.library.book.Book;
+import com.helmifr.library.book.Copy;
 import com.helmifr.library.member.Member;
 import jakarta.persistence.*;
 import java.time.Instant;
@@ -22,6 +23,11 @@ public class Loan {
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "book_id", nullable = false)
     private Book book;
+
+    /** The physical copy lent; null while the request has not been handed over. */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "copy_id")
+    private Copy copy;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "member_id", nullable = false)

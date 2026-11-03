@@ -31,6 +31,24 @@ export default function BorrowedBookList() {
   const q = useDebouncedValue(search.trim());
   const loans = usePagedList('/api/borrowed-books', { q, borrowDate, status });
   const action = useAction();
+  const [returnBarcode, setReturnBarcode] = useState('');
+  const [returned, setReturned] = useState(null);
+
+  /** Desk return: scan the copy and its loan is closed. */
+  async function returnScanned(event) {
+    event.preventDefault();
+    const barcode = returnBarcode.trim();
+    if (!barcode) return;
+    setReturned(null);
+    let result = null;
+    if (await action.run(async () => {
+      result = await api.post('/api/borrowed-books/return-by-barcode', { barcode });
+    })) {
+      setReturned(result);
+      setReturnBarcode('');
+      loans.reload();
+    }
+  }
 
   function setStatus(value) {
     setSearchParams(value === 'all' ? {} : { status: value }, { replace: true });
@@ -66,6 +84,30 @@ export default function BorrowedBookList() {
   return (
     <>
       <PageHeader title="Loans" addLabel="Lend a book" addTo="/borrowed-books/new" />
+      <form className="d-flex gap-2 mb-3" onSubmit={returnScanned}>
+        <Label for="return-barcode" className="visually-hidden">
+          Return by barcode
+        </Label>
+        <Input
+          id="return-barcode"
+          placeholder="Return by barcode: scan or type, then Enter"
+          value={returnBarcode}
+          onChange={(e) => setReturnBarcode(e.target.value)}
+          autoComplete="off"
+        />
+        <Button color="success" type="submit" disabled={action.pending || !returnBarcode.trim()}>
+          Return
+        </Button>
+      </form>
+      {returned && (
+        <div className="alert alert-success d-flex justify-content-between align-items-start" role="status">
+          <span>
+            Returned &quot;{returned.book.title}&quot; from {returned.member.name}
+            {returned.copy ? ` (${returned.copy.barcode})` : ''}.
+          </span>
+          <button type="button" className="btn-close" aria-label="Dismiss" onClick={() => setReturned(null)} />
+        </div>
+      )}
       <Row className="g-2 mb-3">
         <Col md={6}>
           <SearchBox
@@ -107,7 +149,10 @@ export default function BorrowedBookList() {
                 <BookCover title={loan.book.title} />
                 <div>
                   <span className="fw-semibold">{loan.book.title}</span>
-                  <span className="d-block small text-muted">{loan.book.authorName}</span>
+                  <span className="d-block small text-muted">
+                    {loan.book.authorName}
+                    {loan.copy && <span className="font-monospace ms-2">{loan.copy.barcode}</span>}
+                  </span>
                 </div>
               </div>
             </td>

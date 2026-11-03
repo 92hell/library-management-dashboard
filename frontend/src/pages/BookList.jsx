@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Badge } from 'reactstrap';
 import { api } from '../api';
+import Availability from '../components/Availability';
 import { ErrorAlert } from '../components/Feedback';
 import PagedTable from '../components/PagedTable';
 import PageHeader from '../components/PageHeader';
@@ -35,7 +36,7 @@ export default function BookList() {
       <ErrorAlert error={removal.error} onDismiss={removal.clearError} />
       <PagedTable
         list={books}
-        headers={['Title', 'Author', 'Published', 'Publisher', 'Categories', 'Status', 'Actions']}
+        headers={['Title', 'Author', 'Published', 'Publisher', 'Categories', 'Copies', 'Actions']}
         emptyMessage="No books found."
         renderRow={(book) => (
           <tr key={book.id}>
@@ -51,13 +52,7 @@ export default function BookList() {
               ))}
             </td>
             <td>
-              {book.onLoan ? (
-                <Badge color="warning" className="text-dark">
-                  On loan
-                </Badge>
-              ) : (
-                <Badge color="success">Available</Badge>
-              )}
+              <Availability book={book} />
             </td>
             <td>
               <RowActions to={`/books/${book.id}`} onDelete={() => remove(book)} disabled={removal.pending} />

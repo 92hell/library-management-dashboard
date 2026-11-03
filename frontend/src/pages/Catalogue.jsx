@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Button } from 'reactstrap';
 import { api } from '../api';
+import Availability from '../components/Availability';
 import BookCover from '../components/BookCover';
 import { ErrorAlert } from '../components/Feedback';
 import PagedTable from '../components/PagedTable';
@@ -55,11 +56,7 @@ export default function Catalogue() {
             <td>{book.author.name}</td>
             <td className="small text-muted">{book.categories.join(', ') || '—'}</td>
             <td>
-              {book.onLoan ? (
-                <span className="stamp stamp-overdue">On loan</span>
-              ) : (
-                <span className="stamp stamp-active">On shelf</span>
-              )}
+              <Availability book={book} />
             </td>
             <td className="text-end">
               <Button size="sm" color="primary" outline onClick={() => requestBook(book)} disabled={request.pending}>

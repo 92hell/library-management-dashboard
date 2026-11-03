@@ -86,6 +86,8 @@ public class SecurityConfig {
                         .access(AuthorizationManagers.allOf(AuthorityAuthorizationManager.hasRole(Role.LIBRARIAN.name()), notDemoAccount))
                         .requestMatchers("/api/notifications/**", "/api/notifications").authenticated()
                         .requestMatchers("/api/my/**", "/api/my").hasRole(Role.CUSTOMER.name())
+                        // Copies (with borrower names) are staff-only, even though the catalogue is not.
+                        .requestMatchers("/api/books/*/copies", "/api/copies/**").hasRole(Role.LIBRARIAN.name())
                         .requestMatchers(HttpMethod.GET, "/api/books/**", "/api/books", "/api/authors/**", "/api/authors")
                         .authenticated()
                         .requestMatchers("/api/**").hasRole(Role.LIBRARIAN.name())

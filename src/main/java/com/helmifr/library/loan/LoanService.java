@@ -2,6 +2,9 @@ package com.helmifr.library.loan;
 
 import com.helmifr.library.book.Book;
 import com.helmifr.library.book.BookRepository;
+import com.helmifr.library.book.Copy;
+import com.helmifr.library.book.CopyRepository;
+import com.helmifr.library.book.CopyService;
 import com.helmifr.library.common.Audit;
 import com.helmifr.library.common.ConflictException;
 import com.helmifr.library.common.FieldValidationException;
@@ -36,6 +39,8 @@ public class LoanService {
     private final LoanRepository loans;
     private final BookRepository books;
     private final MemberService memberService;
+    private final CopyService copyService;
+    private final CopyRepository copies;
     private final NotificationService notifications;
     private final LoanPolicy policy;
     private final Clock clock;
@@ -89,9 +94,7 @@ public class LoanService {
     public LoanResponse approve(Long id, Approval approval) {
         Loan loan = requireStatus(id, LoanStatus.PENDING);
         Book book = lockBook(loan.getBook().getId());
-        if (loans.isBookOnLoan(book.getId(), loan.getId())) {
-            throw new ConflictException("\"" + book.getTitle() + "\" is currently lent to someone else.");
-        }
+        loan.setCopy(availableCopy(book, loan.getId()));
         if (!loan.getMember().isActive()) {
             throw new ConflictException("The member's card is inactive.");
         }
@@ -170,11 +173,14 @@ public class LoanService {
             throw new FieldValidationException("dueDate", "must not be before the borrow date");
         }
 
-        Book book = lockBook(request.bookId());
-        LoanStatus status = request.returnDate() == null ? LoanStatus.ACTIVE : LoanStatus.RETURNED;
-        if (status == LoanStatus.ACTIVE && loans.isBookOnLoan(book.getId(), loan.getId())) {
-            throw new ConflictException("\"" + book.getTitle() + "\" is already on loan.");
+        Copy scanned = request.copyBarcode() == null || request.copyBarcode().isBlank()
+                ? null : copyService.requireByBarcode(request.copyBarcode());
+        if (scanned != null && request.bookId() != null && !scanned.getBook().getId().equals(request.bookId())) {
+            throw new FieldValidationException("copyBarcode", "belongs to another book");
         }
+        Book book = lockBook(scanned != null ? scanned.getBook().getId() : request.bookId());
+        LoanStatus status = request.returnDate() == null ? LoanStatus.ACTIVE : LoanStatus.RETURNED;
+        Copy copy = chooseCopy(loan, book, scanned, status);
 
         Member member = memberService.require(request.memberId());
         boolean memberChanged = loan.getMember() == null || !Objects.equals(loan.getMember().getId(), member.getId());
@@ -184,6 +190,7 @@ public class LoanService {
 
         boolean datesChanged = !Objects.equals(loan.getDueDate(), dueDate);
         loan.setBook(book);
+        loan.setCopy(copy);
         loan.setMember(member);
         loan.setStatus(status);
         loan.setBorrowDate(borrowDate);
@@ -193,6 +200,46 @@ public class LoanService {
             loan.setDueSoonNotified(false);
             loan.setOverdueNotified(false);
         }
+    }
+
+    /**
+     * The scanned copy if one was given; otherwise the loan's current copy when it still fits;
+     * otherwise a free copy (any copy for a past, returned loan).
+     */
+    private Copy chooseCopy(Loan loan, Book book, Copy scanned, LoanStatus status) {
+        if (scanned != null) {
+            if (status == LoanStatus.ACTIVE && loans.isCopyOnLoan(scanned.getId(), loan.getId())) {
+                throw new ConflictException("Copy " + scanned.getBarcode() + " is already on loan.");
+            }
+            return scanned;
+        }
+        Copy current = loan.getCopy();
+        if (current != null && current.getBook().getId().equals(book.getId())
+                && (status != LoanStatus.ACTIVE || !loans.isCopyOnLoan(current.getId(), loan.getId()))) {
+            return current;
+        }
+        if (status == LoanStatus.ACTIVE) {
+            return availableCopy(book, loan.getId());
+        }
+        return copies.findAllByBookIdAndDeletedFalseOrderByIdAsc(book.getId()).stream().findFirst()
+                .orElseThrow(() -> new FieldValidationException("bookId", "This title has no copies"));
+    }
+
+    /** A copy of the book that is on the shelf; the caller holds the book's lock. */
+    private Copy availableCopy(Book book, Long excludeLoanId) {
+        return copies.findAllByBookIdAndDeletedFalseOrderByIdAsc(book.getId()).stream()
+                .filter(c -> !loans.isCopyOnLoan(c.getId(), excludeLoanId))
+                .findFirst()
+                .orElseThrow(() -> new ConflictException("No copy of \"" + book.getTitle() + "\" is available."));
+    }
+
+    /** Desk return: scan the copy, its active loan is closed. */
+    @Transactional
+    public LoanResponse returnByBarcode(String barcode) {
+        Copy copy = copyService.requireByBarcode(barcode);
+        Loan loan = loans.findActiveByCopy(copy.getId())
+                .orElseThrow(() -> new ConflictException("Copy " + copy.getBarcode() + " is not on loan."));
+        return markReturned(loan.getId());
     }
 
     private LocalDate today() {

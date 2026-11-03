@@ -83,6 +83,9 @@ public class ApiExceptionHandler {
      * against the field the UI shows ("dueDate").
      */
     private static String uiFieldName(String field) {
+        if ("bookIdOrCopyBarcodeGiven".equals(field)) {
+            return "bookId";
+        }
         return field.endsWith("AfterBorrowDate") ? field.substring(0, field.length() - "AfterBorrowDate".length()) : field;
     }
 }

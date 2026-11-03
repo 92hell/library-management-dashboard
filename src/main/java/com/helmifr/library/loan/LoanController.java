@@ -56,6 +56,15 @@ public class LoanController {
         return loanService.reject(id, rejection);
     }
 
+    public record BarcodeRequest(@jakarta.validation.constraints.NotBlank
+                                 @jakarta.validation.constraints.Size(max = 40) String barcode) {}
+
+    /** Desk return by scanning the copy. */
+    @PostMapping("/return-by-barcode")
+    public LoanResponse returnByBarcode(@Valid @RequestBody BarcodeRequest request) {
+        return loanService.returnByBarcode(request.barcode());
+    }
+
     @PostMapping("/{id}/return")
     public LoanResponse markReturned(@PathVariable Long id) {
         return loanService.markReturned(id);

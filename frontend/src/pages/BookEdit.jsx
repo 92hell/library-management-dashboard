@@ -4,11 +4,12 @@ import { api } from '../api';
 import { useAuth } from '../auth';
 import { ErrorAlert, Loading } from '../components/Feedback';
 import Field from '../components/Field';
+import CopiesPanel from '../components/CopiesPanel';
 import FormActions from '../components/FormActions';
 import { emptyToNull } from '../format';
 import { useAction, useApi, useFormFields } from '../hooks';
 
-const EMPTY_BOOK = { title: '', publishedDate: '', publisherName: '', authorId: '', categories: [] };
+const EMPTY_BOOK = { title: '', publishedDate: '', publisherName: '', authorId: '', categories: [], copies: '1' };
 
 function toFormValues(book) {
   return {
@@ -26,6 +27,9 @@ function validate(values) {
   if (!values.publishedDate) errors.publishedDate = 'Published date is required.';
   if (!values.authorId) errors.authorId = 'Please select an author.';
   if (values.categories.length === 0) errors.categories = 'Please select at least one category.';
+  if (values.copies !== undefined && !(Number(values.copies) >= 0 && Number(values.copies) <= 50)) {
+    errors.copies = 'Between 0 and 50 copies.';
+  }
   return errors;
 }
 
@@ -39,7 +43,12 @@ export default function BookEdit() {
   if (book.error) return <ErrorAlert error={book.error} />;
   if (book.loading) return <Loading />;
 
-  return <BookForm key={id} book={book.data} readOnly={!isLibrarian} />;
+  return (
+    <>
+      <BookForm key={id} book={book.data} readOnly={!isLibrarian} />
+      {!isNew && isLibrarian && <CopiesPanel bookId={book.data.id} />}
+    </>
+  );
 }
 
 function BookForm({ book, readOnly }) {
@@ -67,6 +76,7 @@ function BookForm({ book, readOnly }) {
       publisherName: emptyToNull(values.publisherName.trim()),
       authorId: Number(values.authorId),
       categories: values.categories,
+      ...(book ? {} : { copies: Number(values.copies) }),
     };
     const saved = await save.run(
       () => (book ? api.put(`/api/books/${book.id}`, body) : api.post('/api/books', body)),
@@ -91,6 +101,19 @@ function BookForm({ book, readOnly }) {
           onChange={handleChange}
           error={fieldErrors.publisherName}
         />
+        {!book && (
+          <Field
+            label="Number of copies"
+            name="copies"
+            type="number"
+            min="0"
+            max="50"
+            value={values.copies}
+            onChange={handleChange}
+            error={fieldErrors.copies}
+            hint="Each copy gets its own barcode; you can add or withdraw copies later."
+          />
+        )}
         <Field
           label="Published date"
           name="publishedDate"

@@ -23,11 +23,14 @@ React 18 · Vite · React Router 6 · Bootstrap 5 / reactstrap.
 - Dashboard: pending requests, overdue loans, due today, books on loan
 - Approve or decline borrow requests; mark books returned
 - Desk checkout for walk-in members who have no online account; record past loans
+- Physical copies with barcodes: a title can have several copies ("2 of 3 on shelf"); lend a
+  scanned copy, return by barcode, look up who has a copy, add or withdraw copies
 - Manage books, authors, members (each with a library card ID) and librarian accounts
 - Notified of every new borrow request
 
 **Rules enforced by the API**
-- A book can only be lent to one member at a time (row lock against races)
+- A copy can only be lent to one member at a time; a title with several copies can be lent to
+  several members (row lock against races)
 - At most 3 open requests/loans per customer; no duplicate request for the same book
 - Due date defaults to 14 days; dates are validated (no future borrow date, no return before borrow)
 - Soft deletes; authors with books, books on loan and members with open loans cannot be deleted
