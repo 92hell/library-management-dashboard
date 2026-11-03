@@ -51,6 +51,7 @@ public class AuthController {
     private final SessionAuthenticationStrategy sessionAuthenticationStrategy;
     private final CsrfTokenRepository csrfTokenRepository;
     private final LoginAttemptLimiter limiter;
+    private final ClientAddresses clientAddresses;
     private final AccountService accountService;
     private final DemoProperties demo;
     private final SecurityContextHolderStrategy contextHolder = SecurityContextHolder.getContextHolderStrategy();
@@ -65,7 +66,7 @@ public class AuthController {
     @PostMapping("/login")
     public ResponseEntity<?> login(@Valid @RequestBody LoginRequest login,
                                    HttpServletRequest request, HttpServletResponse response) {
-        String address = request.getRemoteAddr();
+        String address = clientAddresses.of(request);
         if (limiter.isBlocked(login.username(), address)) {
             Audit.event("LOGIN_BLOCKED", "username={} ip={}", login.username(), address);
             return problem(HttpStatus.TOO_MANY_REQUESTS, "Too many failed attempts. Try again in a few minutes.");
@@ -113,7 +114,7 @@ public class AuthController {
         if (demo.enabled()) {
             return problem(HttpStatus.FORBIDDEN, "Registration is turned off in this demo.");
         }
-        String address = request.getRemoteAddr();
+        String address = clientAddresses.of(request);
         if (limiter.isBlocked("register", address)) {
             return problem(HttpStatus.TOO_MANY_REQUESTS, "Too many failed attempts. Try again in a few minutes.");
         }

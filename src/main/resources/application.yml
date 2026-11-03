@@ -51,6 +51,11 @@ spring:
 
 library:
   security:
+    # CDN/edge servers in front of the hosting proxy (Render uses Cloudflare). When a request was
+    # relayed by one of these, the visitor's address is read from the header that edge set
+    # (CF-Connecting-IP), see ClientAddresses. Comma-separated CIDRs; empty = none. Defaults to
+    # Cloudflare's published ranges (https://www.cloudflare.com/ips/).
+    # edge-proxy-ranges: ${EDGE_PROXY_RANGES}
     # First librarian, created on startup if missing. Empty password = generated and printed to the log.
     librarian:
       username: ${LIBRARIAN_USERNAME:librarian}
