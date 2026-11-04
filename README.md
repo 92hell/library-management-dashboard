@@ -4,6 +4,11 @@ A full-stack library website: members browse the catalogue and request books onl
 run the desk, approve requests and track loans, and everyone gets notified when something needs
 their attention.
 
+**Live demo:** [92hell.github.io/library-management-dashboard](https://92hell.github.io/library-management-dashboard/)
+(no sign-up: the login page has a librarian and a member demo button). It runs on a free server
+that sleeps when idle; that link wakes it up and opens the app as soon as it answers, usually
+within a minute.
+
 **Stack:** Java 17 · Spring Boot 3.5 (Web, Data JPA, Security, Validation) · Flyway · MariaDB ·
 React 18 · Vite · React Router 6 · Bootstrap 5 / reactstrap.
 
@@ -145,6 +150,14 @@ read the generated password from the log.
 
 Free services sleep after about 15 minutes without visitors and take about a minute to wake up;
 the demo data resets each time. Every push to `main` redeploys automatically.
+
+**Wake-up page.** A sleeping app cannot show anything while it starts, so the link to share is a
+small static page on GitHub Pages (`wake/`, which never sleeps): it asks the app for its icon every
+few seconds and opens the app once the icon loads (only the running app serves it, so Render's own
+"starting" page does not count). It shows how long it has waited, follows the browser language
+(English / Bahasa Indonesia) and offers a direct link after three minutes. To publish it once:
+**Settings → Pages → Source: GitHub Actions**; the `Wake-up page` workflow deploys it on every
+change to `wake/`. Set `APP_URL` in `wake/wake.js` when deploying the app elsewhere.
 
 ## Configuration
 
@@ -288,6 +301,12 @@ database (the test runner starts it):
 ```bash
 mvn -Pfullstack package -DskipTests
 cd e2e && npm ci && npx playwright install chromium && npm test
+```
+
+The wake-up page (no dependencies, Node 22):
+
+```bash
+node --test wake/*.test.mjs
 ```
 
 The backend tests boot the whole application against H2 in MariaDB mode with the real migrations

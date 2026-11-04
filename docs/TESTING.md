@@ -5,9 +5,9 @@ Each line is one test; together they are the specification of the system's behav
 
 Run everything: `mvn clean verify` (backend; add `-Pmariadb` to run it on MariaDB in Docker),
 `cd frontend && npm test` (frontend), and after `mvn -Pfullstack package` also
-`cd e2e && npm test` (end-to-end, in a real browser).
+`cd e2e && npm test` (end-to-end, in a real browser); `node --test wake/*.test.mjs` (wake-up page).
 
-Totals: 253 backend test methods (parameterised ones run once per case), 166 frontend tests, 15 end-to-end journeys.
+Totals: 253 backend test methods (parameterised ones run once per case), 166 frontend tests, 15 end-to-end journeys, 6 wake-up page tests.
 
 ## Backend (JUnit, `src/test/java`)
 
@@ -572,6 +572,7 @@ live in `support/`.
 
 - shows the library card code and reports a wrong current password
 - checks the new password length in the language chosen afterwards
+
 **Notifications page**
 
 - lists notifications and marks them all read
@@ -595,6 +596,7 @@ live in `support/`.
 - takes a librarian back to the book list they came from
 - falls back to the catalogue when the page was opened directly
 - gives librarians an edit link instead of a request button
+
 **Book form: ISBN lookup**
 
 - fills the form from Open Library and saves the ISBN and description
@@ -606,6 +608,7 @@ live in `support/`.
 ### `frontend/src/pages/CatalogueFilters.test.jsx`
 
 - ?
+
 **Catalogue filters**
 
 - sorts by title by default and narrows by category, author and what is on the shelf
@@ -623,9 +626,11 @@ live in `support/`.
 **Copies in the catalogue (customer)**
 
 - shows how many copies are on the shelf
+
 **Copies on the book page (librarian)**
 
 - lists each copy with its borrower and adds a new copy
+
 **Desk work by barcode (librarian)**
 
 - returns a copy by scanning its barcode
@@ -636,9 +641,11 @@ live in `support/`.
 **Catalogue (customer)**
 
 - requests a book and confirms it
+
 **My loans (customer)**
 
 - shows each loan with its status and lets the customer cancel a pending request
+
 **Customer home**
 
 - says so when the loans cannot be loaded, instead of showing zero
@@ -672,6 +679,7 @@ live in `support/`.
 - records part of the fee, says what is still due and offers a receipt
 - refuses an amount that is not a whole number above zero, without calling the server
 - shows what is paid and what is still due on a partly paid fee
+
 **A partly paid fee (member)**
 
 - shows what is still due on the loan and in the fee history
@@ -685,6 +693,7 @@ live in `support/`.
 - reminds the customer of unpaid fees on the home page
 - says so when the fees cannot be loaded
 - says nothing about fees when nothing is owed
+
 **Fines desk (librarian)**
 
 - lists unpaid fines first and records a payment
@@ -699,6 +708,7 @@ live in `support/`.
 
 - shows queue position and pickup date, renews a loan and cancels a hold
 - tells the customer on the home page that a book is waiting for them
+
 **Holds shelf (librarian)**
 
 - hands over a copy that was set aside
@@ -709,17 +719,20 @@ live in `support/`.
 **Librarian home**
 
 - shows the dashboard numbers with a shortcut to pending requests
+
 **Loan queue (librarian)**
 
 - opens on the filter from the URL and approves a request
 - rejects a request with the reason the librarian typed
 - marks an active loan as returned
+
 **Loan desk: after an action**
 
 - ?
 - stays on the same page after a renewal, which leaves the loan in the list
 - steps back a page when the last loan on it leaves the filter, and focuses the page heading
 - announces a desk return in a live region, and clears it when the next action starts or fails
+
 **Lending at the desk**
 
 - shows its validation messages in the language chosen after submitting
@@ -745,6 +758,7 @@ live in `support/`.
 - does nothing when the merge is not confirmed, and shows a refusal from the server
 - marks expired cards in the member list
 - reads in Bahasa Indonesia
+
 **Library card on the profile (member)**
 
 - tells the member their card has expired
@@ -757,6 +771,7 @@ live in `support/`.
 
 - a librarian opens a printable receipt from the loans list
 - a customer gets a receipt for their own loan
+
 **in the reader\'s time zone**
 
 - stamps the receipt with the local date it was issued, not the UTC one
@@ -765,6 +780,7 @@ live in `support/`.
 - encodes the receipt number when asking the API for it
 - labels corrected late fees and the summary of older history
 - shows the receipt in Bahasa Indonesia
+
 **Checking a receipt (public)**
 
 - confirms a genuine receipt without signing in, and shows the record with the name masked
@@ -791,12 +807,31 @@ live in `support/`.
 - says so when nothing fell due, instead of a 0% late rate
 - formats the tile numbers for the language
 - is in the librarian menu
+
 **Report charts**
 
 - draws books lent per week and returns per month, with a legend only where there are two series
 - has the same numbers as a table
 - reads one column at a time with the arrow keys
 - reads in Bahasa Indonesia
+
+## Wake-up page (Node test runner, `wake/`)
+
+The static page that wakes the sleeping demo: `node --test wake/*.test.mjs`.
+
+### `wake/wake.test.mjs`
+
+**Waking the demo**
+
+- opens at once when the demo is already awake
+- keeps knocking while the server starts, and reports the time so far
+- does not wait for a request the sleeping server holds
+- gives up after three minutes, so the reader can open the demo directly
+
+**Language of the wake-up page**
+
+- follows the browser: Bahasa Indonesia or English
+- has every text in both languages
 
 ## End-to-end (Playwright, `e2e/tests`)
 
