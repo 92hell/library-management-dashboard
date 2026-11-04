@@ -1,6 +1,8 @@
 package com.helmifr.library.demo;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.hamcrest.Matchers.everyItem;
+import static org.hamcrest.Matchers.is;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 
 import com.helmifr.library.account.Role;
@@ -44,6 +46,19 @@ class DemoDataTest {
 
     @Autowired com.helmifr.library.loan.LoanRepository loans;
     @Autowired com.helmifr.library.loan.LoanEventRepository loanEvents;
+
+    @Test
+    @DisplayName("the demo member's loans start with the book on loan and the request, above the returned ones")
+    void demoMemberSeesCurrentLoansFirst() throws Exception {
+        seeder.seed();
+
+        api.as(accounts.findByUsernameIgnoreCase(DemoDataSeeder.DEMO_CUSTOMER).orElseThrow()).get("/api/my/loans")
+                .andExpect(jsonPath("$[0].book.title").value("Laskar Pelangi"))
+                .andExpect(jsonPath("$[0].canRenew").value(true))
+                .andExpect(jsonPath("$[1].book.title").value("Bumi Manusia"))
+                .andExpect(jsonPath("$[1].status").value("PENDING"))
+                .andExpect(jsonPath("$[2:].status").value(everyItem(is("RETURNED"))));
+    }
 
     @Test
     @DisplayName("demo credentials are only advertised when demo mode is on (off in tests)")

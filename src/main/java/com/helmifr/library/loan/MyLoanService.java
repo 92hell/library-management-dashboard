@@ -33,8 +33,11 @@ public class MyLoanService {
     private final FineService fines;
     private final LoanEvents history;
 
+    /** What needs the member's attention first, then their history (see {@link MyLoanOrder}). */
     public List<LoanResponse> list(Long memberId) {
-        return loanService.findByMember(memberId);
+        return loanService.findByMember(memberId).stream()
+                .sorted(MyLoanOrder.attentionFirst(clock.getZone()))
+                .toList();
     }
 
     @Transactional
