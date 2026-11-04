@@ -12,6 +12,8 @@ import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.web.context.SecurityContextRepository;
 import jakarta.validation.Valid;
+import com.helmifr.library.member.MemberCardDtos.PrintableCard;
+import com.helmifr.library.member.MemberCards;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -23,11 +25,18 @@ import org.springframework.web.bind.annotation.*;
 public class ProfileController {
 
     private final AccountService accountService;
+    private final MemberCards cards;
     private final SecurityContextRepository securityContextRepository;
 
     @GetMapping
     public ProfileResponse get() {
         return accountService.profile(CurrentUser.id());
+    }
+
+    /** The signed-in member's own library card, laid out for printing. */
+    @GetMapping("/card")
+    public PrintableCard card() {
+        return cards.printable(accountService.memberId(CurrentUser.id()));
     }
 
     @PutMapping

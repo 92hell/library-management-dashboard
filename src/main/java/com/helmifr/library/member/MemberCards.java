@@ -2,7 +2,10 @@ package com.helmifr.library.member;
 
 import com.helmifr.library.common.Audit;
 import com.helmifr.library.common.NotFoundException;
+import com.google.zxing.oned.Code128Writer;
+import com.helmifr.library.member.MemberCardDtos.PrintableCard;
 import com.helmifr.library.member.MemberCardDtos.RetiredCardView;
+import com.helmifr.library.receipt.ReceiptProperties;
 import com.helmifr.library.security.CurrentUser;
 import java.time.Clock;
 import java.time.LocalDate;
@@ -24,6 +27,7 @@ public class MemberCards {
     private final MemberCardPolicy policy;
     private final ApplicationEventPublisher events;
     private final Clock clock;
+    private final ReceiptProperties receipts;
 
     /** Gives a new member record its card: a fresh ID, valid for the configured period from today. */
     public void issue(Member member) {
@@ -55,6 +59,22 @@ public class MemberCards {
         member.setLibraryCardId(libraryCardIds.next());
         Audit.event("MEMBER_CARD_REPLACED", "memberId={} old={} new={} by={}", member.getId(), old,
                 member.getLibraryCardId(), CurrentUser.username());
+    }
+
+    /** The member's card as printed: name, card ID with its barcode, expiry date and the library's name. */
+    public PrintableCard printable(Long memberId) {
+        Member member = members.findByIdAndDeletedFalse(memberId)
+                .orElseThrow(() -> new NotFoundException("Member", memberId));
+        return new PrintableCard(receipts.libraryName(), member.getName(), member.getLibraryCardId(),
+                member.getCardExpiresOn(), member.cardExpiredOn(today()), code128(member.getLibraryCardId()));
+    }
+
+    static String code128(String text) {
+        StringBuilder modules = new StringBuilder();
+        for (boolean bar : new Code128Writer().encode(text)) {
+            modules.append(bar ? '1' : '0');
+        }
+        return modules.toString();
     }
 
     public List<RetiredCardView> history(Long memberId) {

@@ -169,6 +169,26 @@ main form.border, main .border.rounded { background-color: var(--lib-card); bord
 .library-card-body { padding: 1rem 1.25rem 1.25rem; }
 .library-card-id { font-family: 'Courier New', ui-monospace, monospace; font-size: 1.8rem; font-weight: 700; letter-spacing: 0.08em; color: var(--lib-ink); }
 
+/* Printable card: real size (ISO/IEC 7810 ID-1, like a bank card), cut along the dashed line. */
+.print-card {
+  width: 85.6mm; height: 53.98mm; display: flex; flex-direction: column;
+  background: var(--lib-card); border: 1px solid var(--lib-rule); border-radius: 3mm; overflow: hidden;
+  box-shadow: 0 2px 10px rgba(60, 45, 20, 0.12);
+  -webkit-print-color-adjust: exact; print-color-adjust: exact;
+}
+.print-card-header {
+  background: var(--lib-burgundy); color: #f3e9d2; padding: 2mm 4mm;
+  font-family: 'Lora', Georgia, serif; font-size: 2.6mm; letter-spacing: 0.12em; text-transform: uppercase;
+  display: flex; justify-content: space-between; gap: 2mm;
+}
+.print-card-header span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.print-card-body { flex: 1; padding: 2.5mm 4mm 3mm; display: flex; flex-direction: column; }
+.print-card-body p { margin: 0; }
+.print-card-name { font-weight: 600; font-size: 3.8mm; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.print-card .barcode { display: block; width: 100%; height: 13mm; margin-top: auto; }
+.print-card-id { font-family: 'Courier New', ui-monospace, monospace; font-weight: 700; font-size: 3.6mm; letter-spacing: 0.08em; text-align: center; }
+.print-card-validity { font-size: 2.6mm; color: var(--lib-muted); text-align: center; }
+
 /* ---- Sign-in pages --------------------------------------------------------------------------- */
 .reading-room {
   min-height: 100vh;
@@ -234,6 +254,7 @@ main:focus { outline: none; }
   main.container { max-width: none; padding: 0; }
   .receipt { border: none; box-shadow: none; padding: 0; background: #fff; }
   .receipt-stamp { opacity: 1; }
+  .print-card { box-shadow: none; border: 0.3mm dashed #888; }
 }
 
 /* ---- Tables on phones: each row becomes a card (ResponsiveTable) ------------------------------ */

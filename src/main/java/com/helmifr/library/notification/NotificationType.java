@@ -21,7 +21,9 @@ public enum NotificationType {
     /** To the customer: a book is past its due date. */
     OVERDUE("Overdue book"),
     /** To the customer: a book came back late and a late fee was charged. */
-    FINE_ISSUED("Late fee");
+    FINE_ISSUED("Late fee"),
+    /** To the customer: their library card expires within the reminder period (a month by default). */
+    CARD_EXPIRING("Library card expiring");
 
     private final String title;
 

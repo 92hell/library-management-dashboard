@@ -97,6 +97,15 @@ public class AccountService {
         return ProfileResponse.of(require(accountId), LocalDate.now(clock));
     }
 
+    /** The member record (library card) of this account; librarians have none. */
+    public Long memberId(Long accountId) {
+        Member member = require(accountId).getMember();
+        if (member == null) {
+            throw new NotFoundException("You have no library card.");
+        }
+        return member.getId();
+    }
+
     public SessionUser sessionUser(Long accountId) {
         UserAccount account = require(accountId);
         return SessionUser.of(account, demo.isDemoAccount(account.getUsername()));

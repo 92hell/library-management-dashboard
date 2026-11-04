@@ -7,9 +7,10 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
  * Library card rules, bound from {@code library.members.*}.
  *
  * @param cardValidityMonths how long a new or renewed card is valid (0 = cards do not expire)
+ * @param cardReminderDays   how many days before the expiry date the member is reminded (0 = never)
  */
 @ConfigurationProperties(prefix = "library.members")
-public record MemberCardPolicy(int cardValidityMonths) {
+public record MemberCardPolicy(int cardValidityMonths, int cardReminderDays) {
 
     /** Last valid day of a card issued on {@code issued}, or null if cards do not expire. */
     public LocalDate expiryFrom(LocalDate issued) {

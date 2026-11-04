@@ -1,5 +1,6 @@
 package com.helmifr.library.member;
 
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 import org.springframework.data.domain.Page;
@@ -35,6 +36,15 @@ public interface MemberRepository extends JpaRepository<Member, Long> {
     List<Member> findUnlinkedByEmailOrPhoneContaining(@Param("email") String email, @Param("phoneDigits") String phoneDigits);
 
     long countByDeletedFalse();
+
+    /** Cards in use that expire between the two dates and have not been reminded of that date. */
+    @Query("""
+            SELECT m FROM Member m
+            WHERE m.deleted = false AND m.active = true
+              AND m.cardExpiresOn BETWEEN :from AND :until
+              AND (m.cardReminderSentFor IS NULL OR m.cardReminderSentFor <> m.cardExpiresOn)
+            ORDER BY m.id""")
+    List<Member> findCardsExpiringUnreminded(@Param("from") LocalDate from, @Param("until") LocalDate until);
 
     List<Member> findAllByDeletedFalseAndActiveTrueOrderByNameAsc();
 

@@ -27,7 +27,9 @@ React 18 · Vite · React Router 6 · Bootstrap 5 / reactstrap.
 - Late fees: what an overdue book costs so far, the balance owed and the fee history
 - Notifications: hold ready for pickup, joined the waiting list, hold expired, request declined
   (with reason), book due soon, book overdue, late fee charged
-- Profile: contact details, library card ID, password change
+- Profile: contact details, library card ID, password change; print their own library card
+- Reminded a month before their library card expires (in the app, and by email/SMS where set up),
+  once per expiry date; again before the new date after a renewal
 
 **Librarians (staff)**
 - Dashboard: pending requests, overdue loans, due today, books on loan
@@ -51,7 +53,8 @@ React 18 · Vite · React Router 6 · Bootstrap 5 / reactstrap.
 - Manage books, authors, members (each with a library card ID) and librarian accounts
 - Library cards: renew a card (valid 12 months), replace a lost or damaged one (new ID, the old one
   kept in the card history and still finds the member), and merge a duplicate member record into
-  the right one (loans, fines, receipts and the online account move over)
+  the right one (loans, fines, receipts and the online account move over); print a member's card at
+  its real size (85.6 × 54 mm) with the card ID as a Code 128 barcode for the desk scanner
 - Notified of every new borrow request
 
 **For everyone**
@@ -178,6 +181,7 @@ environment variables:
 | `library.reports.max-csv-rows` | `20000` | Largest CSV export; a bigger range asks for a shorter one |
 | `FINE_PER_DAY`, `FINE_MAX_PER_LOAN`, `FINE_BLOCK_AT`, `FINE_CURRENCY` | `1000`, `30000`, `20000`, `IDR` | Late fees (whole currency units; `FINE_BLOCK_AT=0` never blocks) |
 | `MEMBER_CARD_VALIDITY_MONTHS` | `12` | How long a new or renewed library card is valid (`0` = cards do not expire) |
+| `MEMBER_CARD_REMINDER_DAYS`, `MEMBER_CARD_REMINDER_CRON` | `30`, `0 5 8 * * *` | Days before a card expires that the member is reminded (`0` = no reminders), and when the daily reminder job runs |
 | `LOAN_REMINDER_CRON` | `0 0 8 * * *` | Daily job: expire uncollected holds, due-soon / overdue reminders (`-` disables) |
 | `APP_BASE_URL` | `http://localhost:8080` | Used for links in emails / messages |
 | `NOTIFY_EMAIL_ENABLED`, `NOTIFY_EMAIL_FROM` + `SPRING_MAIL_HOST`, `SPRING_MAIL_PORT`, `SPRING_MAIL_USERNAME`, `SPRING_MAIL_PASSWORD` | off | Email notifications over SMTP |

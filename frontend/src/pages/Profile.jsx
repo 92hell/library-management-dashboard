@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { Alert, Button, Col, Form, Row } from 'reactstrap';
 import { api } from '../api';
 import { useAuth } from '../auth';
@@ -55,8 +56,9 @@ function ProfileView({ profile, onSaved }) {
                   {t('Born {date}', { date: formatDate(card.dateOfBirth) })} ·{' '}
                   {t('Show this card ID at the desk to borrow in person.')}
                 </p>
-                <p className="small mb-0">
+                <p className="small mb-0 d-flex flex-wrap gap-2 justify-content-between align-items-baseline">
                   <CardValidity member={card} />
+                  <Link to="/profile/card">{t('Print my card')}</Link>
                 </p>
               </div>
             </section>

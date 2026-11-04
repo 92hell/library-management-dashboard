@@ -148,6 +148,13 @@ export default {
   'Valid until {date}': 'Berlaku sampai {date}',
   'Card expired': 'Kartu habis berlaku',
   'Renew card': 'Perpanjang kartu',
+  'Print card': 'Cetak kartu',
+  'Print library card': 'Cetak kartu perpustakaan',
+  'It prints at its real size, like a bank card. Cut along the dashed line; laminate it to make it last.':
+    'Kartu tercetak seukuran aslinya, seperti kartu bank. Gunting mengikuti garis putus-putus; laminasi agar awet.',
+  'Barcode of card {id}': 'Kode batang kartu {id}',
+  'This card expired on {date}. Renew it first, so the printed date is current.':
+    'Kartu ini habis berlaku pada {date}. Perpanjang dulu agar tanggal yang tercetak masih berlaku.',
   'Replace card': 'Ganti kartu',
   'Card renewed. Valid until {date}.': 'Kartu diperpanjang. Berlaku sampai {date}.',
   'Card renewed.': 'Kartu diperpanjang.',
