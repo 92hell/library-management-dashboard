@@ -1,19 +1,77 @@
 # Library Management System
 
+[![CI](https://github.com/92hell/library-management-dashboard/actions/workflows/ci.yml/badge.svg)](https://github.com/92hell/library-management-dashboard/actions/workflows/ci.yml)
+
 A full-stack library website: members browse the catalogue and request books online, librarians
 run the desk, approve requests and track loans, and everyone gets notified when something needs
-their attention.
+their attention. In English and Bahasa Indonesia, on desktop and phone.
 
-**Live demo:** [92hell.github.io/library-management-dashboard](https://92hell.github.io/library-management-dashboard/)
-(no sign-up: the login page has a librarian and a member demo button). It runs on a free server
-that sleeps when idle; that link wakes it up and opens the app as soon as it answers, usually
-within a minute.
+**[Try the live demo →](https://92hell.github.io/library-management-dashboard/)** No sign-up: the
+sign-in page has a **librarian** and a **member** button. The demo runs on a free server that sleeps
+when idle; the link wakes it and opens the app as soon as it answers, usually within a minute.
+Everything you change is reset every night.
+
+![A member searches the catalogue, opens a book, requests it and sees the request in My loans](docs/screenshots/member-journey.gif)
 
 **Stack:** Java 17 · Spring Boot 3.5 (Web, Data JPA, Security, Validation) · Flyway · MariaDB ·
-React 18 · Vite · React Router 6 · Bootstrap 5 / reactstrap.
+React 18 · Vite · React Router 7 · Bootstrap 5 / reactstrap · Playwright · Testcontainers.
 
-> Originally a job-interview assignment (simple CRUD). Since rewritten to be secure, tested and
-> closer to a real library system - see [Roadmap](docs/ROADMAP.md) for what comes next.
+## The story
+
+It started as a job-interview assignment: a simple CRUD app for books, authors, members and loans.
+A real library needs much more than that, so I kept going and rebuilt it around how a small public
+library actually works:
+
+- **A title is not a copy.** Popular books have several physical copies, each with a barcode. The
+  desk lends and takes back by scanning; when every copy is out, members join a first-come,
+  first-served queue and the next returned copy is set aside for them.
+- **Money and evidence.** Late returns charge a fee, which can be paid in parts or waived with a
+  reason. Every change to a loan is recorded, and a receipt can be printed or downloaded as a
+  bilingual PDF, signed so that anyone can check it was not altered.
+- **People, not records.** Library cards expire and are renewed at the desk; a lost card is replaced
+  without losing its history; two records for the same person can be merged. Members are reminded
+  before a book is due and before their card expires.
+- **Two languages, any screen.** Everything, including the server's error messages, is in English
+  and Bahasa Indonesia, and every page works at phone width.
+
+### Decisions worth a look
+
+| Decision | Why |
+|---|---|
+| Business rules live in the API, behind row locks | Two librarians lending the last copy at the same moment must not both succeed. Tested with two threads against real MariaDB. |
+| Receipts signed with Ed25519, verifiable from a public page and key | A printed receipt is evidence only if it cannot be edited. The README is clear that this is not a certified (PSrE) signature. |
+| No answer reveals who has an account | Registration, card linking and "forgot password" give the same reply whether or not someone exists, and every refusal is throttled. |
+| Translations are checked by tests | A test fails when a server message has no Indonesian text, or a translation is no longer used. |
+| Accessibility checked in the browser | axe (WCAG 2.1 AA) runs on every main page in the end-to-end tests; charts can be read by keyboard and as a table. |
+| The test list is the specification | [docs/TESTING.md](docs/TESTING.md) is generated from the test names, so it cannot drift from what is actually tested. |
+| Free hosting, honestly handled | The demo sleeps when idle, so the shared link is a tiny page on GitHub Pages that wakes it and opens it when ready (`wake/`). |
+
+**Tested:** 272 backend test methods, run on H2 and on MariaDB 11.4 in Docker; 179 frontend tests;
+16 end-to-end journeys in a real browser at desktop and phone size; all in CI on every pull request.
+
+## Screenshots
+
+**Catalogue (member):** search, filters kept in the address, live availability per copy.
+
+![The catalogue with search, filters and availability stamps](docs/screenshots/catalogue.png)
+
+**Reports (librarian):** totals for any period, books lent per week, returns per month (on time /
+late), the most borrowed books and most active members, CSV downloads.
+
+![Reports with totals, books lent per week and returns per month](docs/screenshots/reports.png)
+
+**Signed loan receipt:** the loan's full history, the library stamp, and a QR code that opens a
+public page re-checking the signature.
+
+![A loan receipt with QR code, library stamp, history and signature](docs/screenshots/receipt.png)
+
+**On a phone:** a member's loans, the librarian's loan list, and a library card to print at real
+size.
+
+![Three phone screens: a member's loans, the librarian's loan list and a printable card](docs/screenshots/phones.png)
+
+> Book covers come from Open Library; where a book has none, the app draws a spine instead, as in
+> these screenshots.
 
 ## Features
 
