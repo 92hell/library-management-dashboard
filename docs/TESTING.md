@@ -7,7 +7,7 @@ Run everything: `mvn clean verify` (backend; add `-Pmariadb` to run it on MariaD
 `cd frontend && npm test` (frontend), and after `mvn -Pfullstack package` also
 `cd e2e && npm test` (end-to-end, in a real browser); `node --test wake/*.test.mjs` (wake-up page).
 
-Totals: 261 backend test methods (parameterised ones run once per case), 171 frontend tests, 15 end-to-end journeys, 6 wake-up page tests.
+Totals: 272 backend test methods (parameterised ones run once per case), 179 frontend tests, 16 end-to-end journeys, 6 wake-up page tests.
 
 ## Backend (JUnit, `src/test/java`)
 
@@ -20,6 +20,24 @@ live in `support/`.
 
 - a generated password is shown on the console once, never written to the log files
 - on start-up the configured librarian is re-enabled and gets the configured password (recovery)
+
+### Password reset email
+`src/test/java/com/helmifr/library/account/PasswordResetMailTest.java`
+
+- is sent to the account's email with the link, the username and how long the link works
+- is not sent when the account has no email address
+
+### Password reset by email
+`src/test/java/com/helmifr/library/account/PasswordResetTest.java`
+
+- asking by username or by email sends a link; the answer is the same when no account matches
+- the link sets a new password once: the old password and the link stop working, and other sessions end
+- a link is valid for 30 minutes, and only the latest link works
+- only a hash of the link is stored, so a copy of the database cannot be used to reset a password
+- the new password must be at least 10 characters; the link still works after a refusal
+- disabled accounts get no link (the answer is still the same)
+- one network may ask 5 times an hour; one account gets at most 3 links an hour
+- the sign-in page is told that password reset is available
 
 ### Own profile
 `src/test/java/com/helmifr/library/account/ProfileTest.java`
@@ -174,6 +192,7 @@ live in `support/`.
 - demo accounts cannot change their password or profile
 - the demo librarian can still run the desk (catalogue, loans)
 - the session tells the UI which accounts are restricted demo accounts
+- password reset is off: the demo accounts are shared, and the demo sends no email
 - registration is off, so no real personal data ends up on a public demo
 - the nightly reset restores demo accounts and sample data, keeping the owner's account
 - the reset also clears loan histories and receipts that visitors created
@@ -785,6 +804,22 @@ live in `support/`.
 - members print their own card from their profile
 - reads in Bahasa Indonesia
 
+### `frontend/src/pages/PasswordResetPages.test.jsx`
+
+**Forgot password**
+
+- is offered on the sign-in page only when the library can send the email
+- asks for a link by username or email and shows the same answer whatever was entered
+- needs something to look for, and shows a refusal from the server
+- says to ask a librarian where email is not set up
+
+**Choosing a new password from the emailed link**
+
+- takes the token out of the address, then sets the new password with it
+- checks the password length and that both entries match before sending
+- offers a new link when the link has expired or was already used
+- reads in Bahasa Indonesia
+
 ### `frontend/src/pages/ReceiptPages.test.jsx`
 
 **Loan receipts**
@@ -861,6 +896,7 @@ creates its own uniquely named data through the API, then works through the UI.
 ### `e2e/tests/accessibility.spec.js`
 
 - the sign-in page is accessible in both languages
+- the password reset pages are accessible
 - customer pages are accessible
 - librarian pages are accessible
 

@@ -1,13 +1,6 @@
 package com.helmifr.library.security;
 
 import java.time.Clock;
-import java.time.Duration;
-import java.time.Instant;
-import java.util.ArrayDeque;
-import java.util.Deque;
-import java.util.Iterator;
-import java.util.LinkedHashMap;
-import java.util.Map;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
@@ -18,43 +11,17 @@ import org.springframework.stereotype.Component;
 @Component
 public class SignUpLimiter {
 
-    private static final Duration WINDOW = Duration.ofHours(1);
-    private static final int MAX_TRACKED = 10_000;
-
-    private final Clock clock;
-    private final int maxPerHour;
-    private final Map<String, Deque<Instant>> signUps = new LinkedHashMap<>(16, 0.75f, true) {
-        @Override
-        protected boolean removeEldestEntry(Map.Entry<String, Deque<Instant>> eldest) {
-            return size() > MAX_TRACKED;
-        }
-    };
+    private final HourlyCounter signUps;
 
     public SignUpLimiter(Clock clock, @Value("${library.security.max-signups-per-hour:3}") int maxPerHour) {
-        this.clock = clock;
-        this.maxPerHour = maxPerHour;
+        this.signUps = new HourlyCounter(clock, maxPerHour);
     }
 
-    public synchronized boolean isBlocked(String address) {
-        Deque<Instant> recent = recent(address);
-        return recent != null && recent.size() >= maxPerHour;
+    public boolean isBlocked(String address) {
+        return signUps.isBlocked(address);
     }
 
-    public synchronized void recordSignUp(String address) {
-        signUps.computeIfAbsent(address, a -> new ArrayDeque<>()).addLast(clock.instant());
-    }
-
-    private Deque<Instant> recent(String address) {
-        Deque<Instant> times = signUps.get(address);
-        if (times == null) {
-            return null;
-        }
-        Instant cutoff = clock.instant().minus(WINDOW);
-        for (Iterator<Instant> it = times.iterator(); it.hasNext(); ) {
-            if (it.next().isBefore(cutoff)) {
-                it.remove();
-            }
-        }
-        return times;
+    public void recordSignUp(String address) {
+        signUps.record(address);
     }
 }

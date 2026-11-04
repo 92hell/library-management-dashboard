@@ -1,4 +1,8 @@
 {
+  "Password reset is not available here. Ask a librarian.": "Atur ulang kata sandi tidak tersedia di sini. Tanyakan kepada pustakawan.",
+  "Too many requests. Please try again later.": "Terlalu banyak permintaan. Silakan coba lagi nanti.",
+  "If an account matches, we have sent a link to its email address. It works for 30 minutes.": "Jika ada akun yang cocok, kami telah mengirim tautan ke alamat emailnya. Tautan berlaku 30 menit.",
+  "This link is invalid or has expired. Ask for a new one.": "Tautan ini tidak valid atau sudah kedaluwarsa. Minta tautan baru.",
   "\"{0}\" came back {1} day late: a late fee of {2}. Please pay at the desk.": "\"{0}\" dikembalikan terlambat {1} hari: denda keterlambatan {2}. Silakan bayar di meja layanan.",
   "\"{0}\" came back {1} days late: a late fee of {2}. Please pay at the desk.": "\"{0}\" dikembalikan terlambat {1} hari: denda keterlambatan {2}. Silakan bayar di meja layanan.",
   "\"{0}\" is due on {1}.": "\"{0}\" jatuh tempo pada {1}.",

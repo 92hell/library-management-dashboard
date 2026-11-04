@@ -62,6 +62,27 @@ export default {
   'Your password was changed.': 'Kata sandi Anda telah diubah.',
   'Current password': 'Kata sandi saat ini',
   'New password': 'Kata sandi baru',
+  // Forgot password
+  'Forgot your password?': 'Lupa kata sandi?',
+  'Enter your username or email address.': 'Masukkan nama pengguna atau alamat email Anda.',
+  'Password reset by email is not available here. Ask a librarian to set a new password for you.':
+    'Atur ulang kata sandi lewat email tidak tersedia di sini. Minta pustakawan untuk membuatkan kata sandi baru.',
+  'No email? Check your spam folder, or ask again in a few minutes.':
+    'Tidak ada email? Periksa folder spam, atau minta lagi beberapa menit kemudian.',
+  'Enter your username or the email address on your account. We will email you a link to choose a new password.':
+    'Masukkan nama pengguna atau alamat email akun Anda. Kami akan mengirim tautan untuk membuat kata sandi baru.',
+  'Username or email': 'Nama pengguna atau email',
+  'Send me a link': 'Kirimkan tautan',
+  'Back to sign in': 'Kembali ke halaman masuk',
+  'Choose a new password': 'Buat kata sandi baru',
+  'The two passwords are not the same.': 'Kedua kata sandi tidak sama.',
+  'Your password was changed, and you were signed out everywhere else.':
+    'Kata sandi Anda telah diubah, dan Anda telah keluar dari semua perangkat lain.',
+  'Ask for a new link': 'Minta tautan baru',
+  'At least 10 characters.': 'Minimal 10 karakter.',
+  'New password again': 'Ulangi kata sandi baru',
+  'Save new password': 'Simpan kata sandi baru',
+  'This link is invalid or has expired. Ask for a new one.': 'Tautan ini tidak valid atau sudah kedaluwarsa. Minta tautan baru.',
 
   // Home
   'Welcome, {name}': 'Selamat datang, {name}',

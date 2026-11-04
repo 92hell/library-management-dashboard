@@ -22,6 +22,16 @@ test('the sign-in page is accessible in both languages', async ({ page }) => {
   await expectAccessible(page, 'login (Bahasa Indonesia)');
 });
 
+test('the password reset pages are accessible', async ({ page }) => {
+  await page.goto('/forgot-password');
+  await expect(page.getByRole('heading', { name: 'Forgot your password?' })).toBeVisible();
+  await expectAccessible(page, 'forgot password');
+  await page.goto('/reset-password?token=e2e-not-a-real-token');
+  await expect(page.getByLabel('New password', { exact: true })).toBeVisible();
+  await expect(page).toHaveURL(/\/reset-password$/);
+  await expectAccessible(page, 'reset password');
+});
+
 test('customer pages are accessible', async ({ page, baseURL }) => {
   const librarianApi = await apiAs(baseURL, LIBRARIAN.username, LIBRARIAN.password);
   const book = await createBook(librarianApi, `Laskar Pelangi ${unique()}`, { copies: 2 });

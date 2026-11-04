@@ -13,7 +13,7 @@ Items marked *(hook ready)* already have an extension point in the code.
    status tracking and retries.
 3. **Notification preferences** - let customers choose channels (in-app / email / SMS / WhatsApp)
    and opt out of reminders; respect quiet hours.
-4. **Password reset by email** and **email verification** on registration.
+4. **Email verification** on registration (password reset by email is done).
 
 ## Library operations
 

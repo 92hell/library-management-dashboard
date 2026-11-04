@@ -142,3 +142,8 @@ management:
     web:
       exposure:
         include: health
+  health:
+    # The health check (Render restarts the app when it fails) is about this app. An email server
+    # being unreachable must not take the library down; failed emails are logged instead.
+    mail:
+      enabled: false

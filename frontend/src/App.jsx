@@ -13,6 +13,7 @@ import BorrowedBookList from './pages/BorrowedBookList';
 import CardPrintPage from './pages/CardPrintPage';
 import Catalogue from './pages/Catalogue';
 import FineList from './pages/FineList';
+import ForgotPassword from './pages/ForgotPassword';
 import Home from './pages/Home';
 import Login from './pages/Login';
 import MemberEdit from './pages/MemberEdit';
@@ -23,6 +24,7 @@ import Profile from './pages/Profile';
 import ReceiptPage from './pages/ReceiptPage';
 import Register from './pages/Register';
 import ReportsPage from './pages/ReportsPage';
+import ResetPassword from './pages/ResetPassword';
 import Users from './pages/Users';
 import VerifyReceipt from './pages/VerifyReceipt';
 
@@ -42,6 +44,8 @@ export function AppRoutes() {
     <Routes>
       <Route path="/login" element={<Login />} />
       <Route path="/register" element={<Register />} />
+      <Route path="/forgot-password" element={<ForgotPassword />} />
+      <Route path="/reset-password" element={<ResetPassword />} />
       <Route path="/verify/:number" element={<VerifyReceipt />} />
       <Route
         element={
