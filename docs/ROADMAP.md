@@ -20,7 +20,6 @@ Items marked *(hook ready)* already have an extension point in the code.
 - Member language preference, so emails/SMS can be sent in Bahasa Indonesia too
 - Certified e-signature for receipts via a PSrE (BSrE / Privy) as a `ReceiptSigner`; key rotation UI
 - Fines: online payment (e.g. Midtrans / Xendit)
-- Card expiry reminder by email/SMS a month ahead (the profile already warns); printable member card
 - Fallback ISBN lookup (Google Books) when Open Library has no record
 - Reports: scheduled monthly report by email
 - Branches / locations and inter-branch transfers

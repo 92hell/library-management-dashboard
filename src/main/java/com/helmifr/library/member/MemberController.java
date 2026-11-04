@@ -4,6 +4,7 @@ import com.helmifr.library.common.PageResponse;
 import com.helmifr.library.common.Ref;
 import com.helmifr.library.loan.LoanResponse;
 import com.helmifr.library.member.MemberCardDtos.MergeRequest;
+import com.helmifr.library.member.MemberCardDtos.PrintableCard;
 import com.helmifr.library.member.MemberCardDtos.ReplaceCardRequest;
 import com.helmifr.library.member.MemberCardDtos.RetiredCardView;
 import com.helmifr.library.loan.LoanService;
@@ -64,6 +65,12 @@ public class MemberController {
     public List<RetiredCardView> cards(@PathVariable Long id) {
         memberService.require(id);
         return cards.history(id);
+    }
+
+    /** The member's card laid out for printing, with its barcode. */
+    @GetMapping("/{id}/card")
+    public PrintableCard card(@PathVariable Long id) {
+        return cards.printable(id);
     }
 
     @PostMapping("/{id}/card/renew")

@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { Badge, Button, Input, Label } from 'reactstrap';
 import { api } from '../api';
 import { formatDate, formatInstant } from '../format';
@@ -79,6 +80,9 @@ export default function MemberCardPanel({ member, onChanged }) {
         <Button color="secondary" outline size="sm" onClick={replace} disabled={action.pending}>
           {t('Replace card')}
         </Button>
+        <Link to={`/members/${member.id}/card`} className="btn btn-outline-secondary btn-sm">
+          {t('Print card')}
+        </Link>
       </div>
       <div role="status" aria-live="polite">
         {done && <div className="alert alert-success">{done}</div>}

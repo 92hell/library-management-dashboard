@@ -31,6 +31,10 @@ public class Member {
     @Column(name = "card_expires_on")
     private LocalDate cardExpiresOn;
 
+    /** The expiry date the "card expiring" reminder was sent for (so it is sent once per date). */
+    @Column(name = "card_reminder_sent_for")
+    private LocalDate cardReminderSentFor;
+
     @Column(name = "name", nullable = false)
     private String name;
 

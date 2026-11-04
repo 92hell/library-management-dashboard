@@ -7,7 +7,7 @@ Run everything: `mvn clean verify` (backend; add `-Pmariadb` to run it on MariaD
 `cd frontend && npm test` (frontend), and after `mvn -Pfullstack package` also
 `cd e2e && npm test` (end-to-end, in a real browser); `node --test wake/*.test.mjs` (wake-up page).
 
-Totals: 253 backend test methods (parameterised ones run once per case), 166 frontend tests, 15 end-to-end journeys, 6 wake-up page tests.
+Totals: 261 backend test methods (parameterised ones run once per case), 171 frontend tests, 15 end-to-end journeys, 6 wake-up page tests.
 
 ## Backend (JUnit, `src/test/java`)
 
@@ -178,6 +178,7 @@ live in `support/`.
 - the nightly reset restores demo accounts and sample data, keeping the owner's account
 - the reset also clears loan histories and receipts that visitors created
 - the reset also clears replaced and merged cards, and the demo has an expired card to renew
+- the demo member's card runs out in three weeks: they have the reminder and can print the card
 - receipts issued by the public demo say so: marked as demo and watermarked in the PDF
 
 ### Fine payments (in parts) and payment receipts
@@ -265,6 +266,17 @@ live in `support/`.
 - date rules: no future borrow date, return and due dates not before the borrow date
 - deleted books cannot be lent (404) and inactive members cannot borrow (400)
 - the list filters by status, including derived OVERDUE
+
+### Library cards: expiry reminders and the printable card
+`src/test/java/com/helmifr/library/member/CardRemindersAndPrintTest.java`
+
+- a member is reminded 30 days before the card expires, once, with a link to their profile
+- no reminder when the card expires later than 30 days from now, has already expired or never expires
+- after a renewal the member is reminded again before the new expiry date
+- deleted and deactivated members are not reminded
+- the printable card has the library name, the member, the expiry date (and whether it has passed) and a barcode of the card ID
+- a member prints their own card from their profile; librarians, who have no card, get none
+- only librarians print other members' cards, and not those of deleted members
 
 ### Members API (librarian only)
 `src/test/java/com/helmifr/library/member/MemberApiTest.java`
@@ -764,6 +776,14 @@ live in `support/`.
 - tells the member their card has expired
 - warns a month ahead, and not before
 - shows only the expiry date when it is far away
+
+**Printing a library card**
+
+- librarians open it from the member page and print it at real size, with a barcode of the card ID
+- warns before printing an expired card, so it is renewed first
+- draws one bar for each run of bars in the barcode
+- members print their own card from their profile
+- reads in Bahasa Indonesia
 
 ### `frontend/src/pages/ReceiptPages.test.jsx`
 

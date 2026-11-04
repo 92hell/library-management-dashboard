@@ -57,6 +57,7 @@ public class DemoDataSeeder {
     private final BookRepository books;
     private final MemberRepository members;
     private final MemberCards memberCards;
+    private final com.helmifr.library.member.MemberCardReminderJob cardReminders;
     private final com.helmifr.library.member.RetiredCardRepository retiredCards;
     private final LoanRepository loans;
     private final PasswordEncoder passwordEncoder;
@@ -104,6 +105,7 @@ public class DemoDataSeeder {
 
         if (books.count() == 0) {
             seedCatalogue(customer.getMember());
+            cardReminders.remind(LocalDate.now(clock));
             log.info("Seeded demo catalogue");
         }
     }
@@ -167,6 +169,8 @@ public class DemoDataSeeder {
         Member rina = member("Rina Wulandari", "rina@example.com", LocalDate.of(2001, 5, 21));
         // Her card ran out last week, so the members list shows an expired card to renew.
         rina.setCardExpiresOn(today.minusDays(5));
+        // The demo member's card runs out in three weeks: the profile warns and the reminder is in the inbox.
+        demoCustomer.setCardExpiresOn(today.plusDays(21));
         Book[] popular = {laskar, laskar, bumi, pemimpi, laskar, supernova, bumi, ronggeng, laskar, pemimpi, cantik, bumi};
         Member[] readers = {demoCustomer, walkIn, rina};
         for (int i = 0; i < popular.length; i++) {

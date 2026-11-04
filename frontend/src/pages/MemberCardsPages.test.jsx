@@ -177,3 +177,71 @@ describe('Library card on the profile (member)', () => {
     expect(screen.queryByText(/Renew it at the desk/)).not.toBeInTheDocument();
   });
 });
+
+const printable = {
+  libraryName: 'Community Library', name: 'Siti', libraryCardId: 'LIB-7KQ2XM', cardExpiresOn: '2027-11-03', cardExpired: false,
+  barcode: '11010010000101100010001000110100010001101',
+};
+
+describe('Printing a library card', () => {
+  it('librarians open it from the member page and print it at real size, with a barcode of the card ID', async () => {
+    const print = vi.spyOn(window, 'print').mockImplementation(() => {});
+    memberPage({ 'GET /api/members/7/card': printable });
+
+    renderApp('/members/7');
+    await userEvent.click(await screen.findByRole('link', { name: 'Print card' }));
+
+    const card = await screen.findByRole('region', { name: 'Library card' });
+    expect(within(card).getByText('Community Library')).toBeInTheDocument();
+    expect(within(card).getByText('Siti')).toBeInTheDocument();
+    expect(within(card).getByRole('img', { name: 'Barcode of card LIB-7KQ2XM' })).toBeInTheDocument();
+    expect(within(card).getByText('LIB-7KQ2XM')).toBeInTheDocument();
+    expect(within(card).getByText('Valid until Nov 3, 2027')).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', { name: 'Print' }));
+    expect(print).toHaveBeenCalled();
+  });
+
+  it('warns before printing an expired card, so it is renewed first', async () => {
+    signedInAs(librarian, { 'GET /api/members/7/card': { ...printable, cardExpiresOn: '2026-10-01', cardExpired: true } });
+
+    renderApp('/members/7/card');
+
+    expect(await screen.findByText('This card expired on Oct 1, 2026. Renew it first, so the printed date is current.'))
+      .toBeInTheDocument();
+  });
+
+  it('draws one bar for each run of bars in the barcode', async () => {
+    signedInAs(librarian, { 'GET /api/members/7/card': { ...printable, barcode: '1101' } });
+
+    renderApp('/members/7/card');
+
+    const barcode = await screen.findByRole('img', { name: 'Barcode of card LIB-7KQ2XM' });
+    // Modules "1101" after a 10-module quiet zone: bars at 10, 11 and 13.
+    expect(barcode.querySelector('path').getAttribute('d')).toBe('M10 0h1v40h-1zM11 0h1v40h-1zM13 0h1v40h-1z');
+  });
+
+  it('members print their own card from their profile', async () => {
+    signedInAs(customer, {
+      'GET /api/profile': profileWithCard({ cardExpiresOn: '2027-11-03', cardExpired: false }),
+      'GET /api/profile/card': printable,
+    });
+
+    renderApp('/profile');
+    await userEvent.click(await screen.findByRole('link', { name: 'Print my card' }));
+
+    expect(await screen.findByRole('img', { name: 'Barcode of card LIB-7KQ2XM' })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /My profile/ })).toHaveAttribute('href', '/profile');
+  });
+
+  it('reads in Bahasa Indonesia', async () => {
+    act(() => setLanguage('id'));
+    signedInAs(librarian, { 'GET /api/members/7/card': printable });
+
+    renderApp('/members/7/card');
+
+    expect(await screen.findByRole('heading', { name: 'Cetak kartu perpustakaan' })).toBeInTheDocument();
+    expect(screen.getByRole('img', { name: 'Kode batang kartu LIB-7KQ2XM' })).toBeInTheDocument();
+    expect(screen.getByText('Berlaku sampai 3 Nov 2027')).toBeInTheDocument();
+    act(() => setLanguage('en'));
+  });
+});

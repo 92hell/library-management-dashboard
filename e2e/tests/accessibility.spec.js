@@ -36,6 +36,7 @@ test('customer pages are accessible', async ({ page, baseURL }) => {
     [`/catalogue/${book.id}`, page.getByRole('heading', { name: book.title })],
     ['/my/loans', page.getByText('Requested')],
     ['/profile', page.getByRole('heading', { level: 1 })],
+    ['/profile/card', page.getByRole('img', { name: /Barcode of card/ })],
   ]) {
     await page.goto(path);
     await expect(ready).toBeVisible();

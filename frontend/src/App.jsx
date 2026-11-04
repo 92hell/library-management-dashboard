@@ -10,6 +10,7 @@ import BookEdit from './pages/BookEdit';
 import BookList from './pages/BookList';
 import BorrowedBookEdit from './pages/BorrowedBookEdit';
 import BorrowedBookList from './pages/BorrowedBookList';
+import CardPrintPage from './pages/CardPrintPage';
 import Catalogue from './pages/Catalogue';
 import FineList from './pages/FineList';
 import Home from './pages/Home';
@@ -51,6 +52,7 @@ export function AppRoutes() {
       >
         <Route index element={<Home />} />
         <Route path="profile" element={<Profile />} />
+        <Route path="profile/card" element={<CardPrintPage own />} />
         <Route path="notifications" element={<Notifications />} />
         <Route path="catalogue/:id" element={<BookDetail />} />
         <Route path="receipts/:number" element={<ReceiptPage />} />
@@ -69,6 +71,7 @@ export function AppRoutes() {
           <Route path="authors/:id" element={<AuthorEdit />} />
           <Route path="members" element={<MemberList />} />
           <Route path="members/:id" element={<MemberEdit />} />
+          <Route path="members/:id/card" element={<CardPrintPage />} />
           <Route path="fines" element={<FineList />} />
           <Route path="reports" element={<ReportsPage />} />
           <Route path="users" element={<Users />} />

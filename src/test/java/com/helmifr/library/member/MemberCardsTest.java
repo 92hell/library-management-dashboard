@@ -251,8 +251,8 @@ class MemberCardsTest {
     @Test
     @DisplayName("the card validity can be set to 0 months: cards then never expire")
     void neverExpire() {
-        MemberCardPolicy never = new MemberCardPolicy(0);
-        MemberCardPolicy yearly = new MemberCardPolicy(12);
+        MemberCardPolicy never = new MemberCardPolicy(0, 30);
+        MemberCardPolicy yearly = new MemberCardPolicy(12, 30);
 
         org.assertj.core.api.Assertions.assertThat(never.expiryFrom(TODAY)).isNull();
         org.assertj.core.api.Assertions.assertThat(yearly.expiryFrom(TODAY)).isEqualTo(TODAY.plusMonths(12));

@@ -156,6 +156,18 @@ class DemoModeTest {
     }
 
     @Test
+    @DisplayName("the demo member's card runs out in three weeks: they have the reminder and can print the card")
+    void demoCardReminder() throws Exception {
+        seeder.reset();
+
+        UserAccount customer = accounts.findByUsernameIgnoreCase(DemoDataSeeder.DEMO_CUSTOMER).orElseThrow();
+        assertThat(customer.getMember().getCardExpiresOn()).isEqualTo(java.time.LocalDate.now().plusDays(21));
+        api.as(customer).get("/api/notifications")
+                .andExpect(jsonPath("$.content[?(@.type == 'CARD_EXPIRING')]").exists());
+        api.as(customer).get("/api/profile/card").andExpect(status().isOk());
+    }
+
+    @Test
     @DisplayName("receipts issued by the public demo say so: marked as demo and watermarked in the PDF")
     void demoReceiptsMarked() throws Exception {
         var book = data.book("Demo receipt book");

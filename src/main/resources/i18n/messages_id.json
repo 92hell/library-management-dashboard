@@ -2,6 +2,8 @@
   "\"{0}\" came back {1} day late: a late fee of {2}. Please pay at the desk.": "\"{0}\" dikembalikan terlambat {1} hari: denda keterlambatan {2}. Silakan bayar di meja layanan.",
   "\"{0}\" came back {1} days late: a late fee of {2}. Please pay at the desk.": "\"{0}\" dikembalikan terlambat {1} hari: denda keterlambatan {2}. Silakan bayar di meja layanan.",
   "\"{0}\" is due on {1}.": "\"{0}\" jatuh tempo pada {1}.",
+  "You have no library card.": "Anda tidak punya kartu perpustakaan.",
+  "Your library card {0} expires on {1}. Renew it at the desk to keep borrowing.": "Kartu perpustakaan Anda {0} habis berlaku pada {1}. Perpanjang di meja layanan agar tetap bisa meminjam.",
   "\"{0}\" was due on {1}. Please return it as soon as possible.": "\"{0}\" sudah jatuh tempo pada {1}. Mohon kembalikan secepatnya.",
   "A copy of \"{0}\" is ready for pickup until {1}.": "Eksemplar \"{0}\" sudah disiapkan untuk Anda. Ambil paling lambat {1}.",
   "A loan cannot be moved to another book; record a new loan for it instead.": "Peminjaman tidak dapat dipindahkan ke buku lain; catat peminjaman baru untuk buku tersebut.",

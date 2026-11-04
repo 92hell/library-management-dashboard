@@ -48,6 +48,9 @@ export default {
     'Ini adalah akun demo bersama, jadi detail dan kata sandinya tidak dapat diubah.',
   'Library card': 'Kartu perpustakaan',
   'Born {date}': 'Lahir {date}',
+  'Print my card': 'Cetak kartu saya',
+  'Your card expired on {date}. Renew it at the desk first, so the printed date is current.':
+    'Kartu Anda habis berlaku pada {date}. Perpanjang dulu di meja layanan agar tanggal yang tercetak masih berlaku.',
   'Show this card ID at the desk to borrow in person.':
     'Tunjukkan nomor kartu ini di meja layanan untuk meminjam secara langsung.',
   'Signed in as {username} (librarian)': 'Masuk sebagai {username} (pustakawan)',

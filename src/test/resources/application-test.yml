@@ -22,6 +22,8 @@ library:
       password: librarian-test-pw
   loans:
     reminder-cron: "-"
+  members:
+    reminder-cron: "-"
   demo:
     enabled: false
     reset-cron: "-"
