@@ -54,6 +54,16 @@ jobs:
       - run: npm test
       - run: npm run build
 
+  wake-page:
+    # The page that wakes the sleeping demo (wake/): plain JavaScript, Node's own test runner.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --test wake/*.test.mjs
+
   e2e:
     # Whole user journeys in a real browser against the packaged app (React bundled into the jar).
     runs-on: ubuntu-latest

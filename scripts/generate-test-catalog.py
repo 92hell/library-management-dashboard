@@ -15,7 +15,7 @@ out = [
     "",
     "Run everything: `mvn clean verify` (backend; add `-Pmariadb` to run it on MariaDB in Docker),",
     "`cd frontend && npm test` (frontend), and after `mvn -Pfullstack package` also",
-    "`cd e2e && npm test` (end-to-end, in a real browser).",
+    "`cd e2e && npm test` (end-to-end, in a real browser); `node --test wake/*.test.mjs` (wake-up page).",
     "",
     "## Backend (JUnit, `src/test/java`)",
     "",
@@ -41,21 +41,33 @@ for path in sorted((ROOT / "src/test/java").rglob("*Test.java")):
     out += [f"- {t.replace(chr(92) + chr(34), chr(34))}" for t in tests]
     out.append("")
 
+def describe_it(paths):
+    """Appends describe/it names of JavaScript test files; returns how many tests there were."""
+    count = 0
+    for path in paths:
+        text = path.read_text()
+        out.append(f"### `{path.relative_to(ROOT).as_posix()}`")
+        out.append("")
+        for m in re.finditer(r"(describe|it)\(\s*'((?:[^'\\]|\\.)+)'", text):
+            kind, name = m.groups()
+            if kind == "describe":
+                if out[-1]:
+                    out.append("")  # otherwise Markdown reads the heading as part of the list above
+                out.append(f"**{name}**")
+                out.append("")
+            else:
+                count += 1
+                out.append(f"- {name}")
+        out.append("")
+    return count
+
+
 out += ["## Frontend (Vitest + Testing Library, `frontend/src`)", ""]
-frontend_count = 0
-for path in sorted((ROOT / "frontend/src").rglob("*.test.js*")):
-    text = path.read_text()
-    out.append(f"### `{path.relative_to(ROOT).as_posix()}`")
-    out.append("")
-    for m in re.finditer(r"(describe|it)\(\s*'((?:[^'\\]|\\.)+)'", text):
-        kind, name = m.groups()
-        if kind == "describe":
-            out.append(f"**{name}**")
-            out.append("")
-        else:
-            frontend_count += 1
-            out.append(f"- {name}")
-    out.append("")
+frontend_count = describe_it(sorted((ROOT / "frontend/src").rglob("*.test.js*")))
+
+out += ["## Wake-up page (Node test runner, `wake/`)", "",
+        "The static page that wakes the sleeping demo: `node --test wake/*.test.mjs`.", ""]
+wake_count = describe_it(sorted((ROOT / "wake").glob("*.test.mjs")))
 
 out += ["## End-to-end (Playwright, `e2e/tests`)", "",
         "Whole user journeys in Chromium against the real jar on an in-memory database; each test",
@@ -73,6 +85,7 @@ for path in sorted((ROOT / "e2e/tests").glob("*.spec.js")):
 at = next(i for i, line in enumerate(out) if line.startswith("`cd e2e")) + 1
 out.insert(at, "")
 out.insert(at + 1, f"Totals: {backend_count} backend test methods (parameterised ones run once per case), "
-              f"{frontend_count} frontend tests, {e2e_count} end-to-end journeys.")
+              f"{frontend_count} frontend tests, {e2e_count} end-to-end journeys, "
+              f"{wake_count} wake-up page tests.")
 (ROOT / "docs/TESTING.md").write_text("\n".join(out).rstrip() + "\n")
-print(f"docs/TESTING.md: {backend_count} backend, {frontend_count} frontend, {e2e_count} e2e")
+print(f"docs/TESTING.md: {backend_count} backend, {frontend_count} frontend, {e2e_count} e2e, {wake_count} wake")

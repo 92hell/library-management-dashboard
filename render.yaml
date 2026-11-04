@@ -18,6 +18,7 @@ services:
         - .github/**
         - src/test/**
         - e2e/**
+        - wake/**
         - "frontend/src/**/*.test.jsx"
         - "frontend/src/**/*.test.js"
         - frontend/src/test/**
