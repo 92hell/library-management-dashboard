@@ -13,6 +13,9 @@ test('a customer requests a book, the librarian approves and hands it over, the 
   await customerPage.getByRole('navigation').getByRole('link', { name: 'Catalogue' }).click();
   await customerPage.getByLabel('Search the catalogue').fill(title);
   await customerPage.getByRole('link', { name: title }).click();
+  // Wait for the book page itself: until it is ready the catalogue stays on screen, and its other
+  // books can carry the same "2 of 2 on shelf" stamp.
+  await expect(customerPage.getByRole('heading', { level: 1, name: title })).toBeVisible();
   await expect(customerPage.getByText('2 of 2 on shelf')).toBeVisible();
   await customerPage.getByRole('button', { name: 'Request this book' }).click();
   await expect(customerPage.getByRole('status').filter({ hasText: 'Request sent' })).toBeVisible();
