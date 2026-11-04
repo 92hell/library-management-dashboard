@@ -16,6 +16,12 @@ public interface UserAccountRepository extends JpaRepository<UserAccount, Long> 
     @EntityGraph(attributePaths = "member")
     Optional<UserAccount> findByUsernameIgnoreCase(String username);
 
+    /** Accounts with this username, or this email on the account or on its library card ("forgot password"). */
+    @Query("""
+            SELECT a FROM UserAccount a LEFT JOIN a.member m
+            WHERE LOWER(a.username) = LOWER(:id) OR LOWER(a.email) = LOWER(:id) OR LOWER(m.email) = LOWER(:id)""")
+    List<UserAccount> findByUsernameOrEmail(@Param("id") String identifier);
+
     boolean existsByUsernameIgnoreCase(String username);
 
     boolean existsByRole(Role role);

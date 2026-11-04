@@ -91,6 +91,11 @@ export default function Login() {
                 {t('Sign in')}
               </Button>
             </Form>
+            {demo?.passwordReset && (
+              <p className="text-center small mt-3 mb-0">
+                <Link to="/forgot-password">{t('Forgot your password?')}</Link>
+              </p>
+            )}
             {demo?.registrationOpen !== false && (
               <p className="text-center small mt-3 mb-0">
                 {t('New here?')} <Link to="/register">{t('Create an account')}</Link>

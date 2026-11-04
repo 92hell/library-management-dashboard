@@ -1,8 +1,11 @@
 package com.helmifr.library.security;
 
+import com.helmifr.library.account.AccountDtos.PasswordResetConfirmRequest;
+import com.helmifr.library.account.AccountDtos.PasswordResetRequest;
 import com.helmifr.library.account.AccountDtos.RegisterRequest;
 import com.helmifr.library.account.AccountDtos.SessionUser;
 import com.helmifr.library.account.AccountService;
+import com.helmifr.library.account.PasswordResets;
 import com.helmifr.library.common.Audit;
 import com.helmifr.library.common.FieldValidationException;
 import com.helmifr.library.common.Messages;
@@ -14,6 +17,7 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 import java.net.URI;
 import java.util.List;
+import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
@@ -44,8 +48,13 @@ public class AuthController {
 
     public record DemoAccount(String label, String username, String password) {}
 
-    /** @param registrationOpen false in demo mode */
-    public record DemoInfo(boolean enabled, boolean registrationOpen, List<DemoAccount> accounts) {}
+    /**
+     * What the sign-in page offers.
+     *
+     * @param registrationOpen false in demo mode
+     * @param passwordReset    "forgot password" works (email is set up and this is not the demo)
+     */
+    public record DemoInfo(boolean enabled, boolean registrationOpen, boolean passwordReset, List<DemoAccount> accounts) {}
 
     private final AuthenticationManager authenticationManager;
     private final SecurityContextRepository securityContextRepository;
@@ -57,6 +66,8 @@ public class AuthController {
     private final AccountService accountService;
     private final DemoProperties demo;
     private final Messages messages;
+    private final PasswordResets passwordResets;
+    private final PasswordResetLimiter resetLimiter;
     private final SecurityContextHolderStrategy contextHolder = SecurityContextHolder.getContextHolderStrategy();
 
     @GetMapping("/me")
@@ -141,13 +152,42 @@ public class AuthController {
         }
     }
 
+    /**
+     * "Forgot password": emails a link to the account with this username or email. The answer is
+     * the same whether or not an account matched; the email goes out after the response.
+     */
+    @PostMapping("/password-reset")
+    public ResponseEntity<?> requestPasswordReset(@Valid @RequestBody PasswordResetRequest body, HttpServletRequest request) {
+        if (!passwordResets.available()) {
+            return problem(HttpStatus.FORBIDDEN, "Password reset is not available here. Ask a librarian.");
+        }
+        String address = clientAddresses.of(request);
+        if (!resetLimiter.allowRequest(address)) {
+            Audit.event("PASSWORD_RESET_BLOCKED", "ip={}", address);
+            return problem(HttpStatus.TOO_MANY_REQUESTS, "Too many requests. Please try again later.");
+        }
+        passwordResets.request(body.identifier());
+        return ResponseEntity.accepted().body(Map.of("message", messages.get(
+                "If an account matches, we have sent a link to its email address. It works for 30 minutes.")));
+    }
+
+    /** Sets a new password with the token from the emailed link. Other sessions of the account end. */
+    @PostMapping("/password-reset/confirm")
+    public ResponseEntity<Void> confirmPasswordReset(@Valid @RequestBody PasswordResetConfirmRequest body) {
+        if (!passwordResets.available()) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+        }
+        passwordResets.reset(body.token(), body.newPassword());
+        return ResponseEntity.noContent().build();
+    }
+
     /** Lets the login page offer the demo accounts when the app runs in demo mode. */
     @GetMapping("/demo")
     public DemoInfo demo() {
         if (!demo.enabled()) {
-            return new DemoInfo(false, true, List.of());
+            return new DemoInfo(false, true, passwordResets.available(), List.of());
         }
-        return new DemoInfo(true, false, List.of(
+        return new DemoInfo(true, false, false, List.of(
                 new DemoAccount("Customer", demo.customerUsername(), demo.customerPassword()),
                 new DemoAccount("Librarian", demo.librarianUsername(), demo.librarianPassword())));
     }

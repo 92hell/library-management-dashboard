@@ -85,6 +85,15 @@ class DemoModeTest {
     }
 
     @Test
+    @DisplayName("password reset is off: the demo accounts are shared, and the demo sends no email")
+    void passwordResetOff() throws Exception {
+        api.anonymous().get("/api/auth/demo").andExpect(jsonPath("$.passwordReset").value(false));
+        api.anonymous().post("/api/auth/password-reset", "{\"identifier\": \"demo\"}").andExpect(status().isForbidden());
+        api.anonymous().post("/api/auth/password-reset/confirm", "{\"token\": \"x\", \"newPassword\": \"a-long-password\"}")
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
     @DisplayName("registration is off, so no real personal data ends up on a public demo")
     void registrationDisabled() throws Exception {
         api.anonymous().post("/api/auth/register", """

@@ -27,7 +27,8 @@ React 18 · Vite · React Router 6 · Bootstrap 5 / reactstrap.
 - Late fees: what an overdue book costs so far, the balance owed and the fee history
 - Notifications: hold ready for pickup, joined the waiting list, hold expired, request declined
   (with reason), book due soon, book overdue, late fee charged
-- Profile: contact details, library card ID, password change; print their own library card
+- Profile: contact details, library card ID, password change; print their own library card;
+  forgot password: a link by email to choose a new one (when email is set up)
 - Reminded a month before their library card expires (in the app, and by email/SMS where set up),
   once per expiry date; again before the new date after a renewal
 
@@ -255,6 +256,11 @@ are replaced so user input cannot forge log lines.
 - Registration does not reveal who is a member: card mismatches and "you already have a card" get one
   generic answer, every refused attempt (taken username included) counts towards the address's
   lockout, and at most 3 accounts can be created per address per hour (`library.security.max-signups-per-hour`)
+- "Forgot password" never says whether an account matched; the email goes out after the answer, so
+  the response time does not tell either. The link carries 32 random bytes, of which only a SHA-256
+  hash is stored; it works once, for 30 minutes, and asking again replaces it. Using it ends every
+  session of the account. 5 requests an hour per address, at most 3 links an hour per account.
+  Offered only when email is set up, and never in the demo (its accounts are shared)
 - Lending is consistent under concurrent requests: every change to a loan, its copy or its fee takes
   the book's (or fine's) row lock first and re-reads under it, at READ COMMITTED isolation (tested
   with two threads against real MariaDB)

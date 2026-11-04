@@ -41,6 +41,14 @@ public final class AccountDtos {
             @NotBlank String currentPassword,
             @NotBlank @Size(min = 10, max = 200) String newPassword) {}
 
+    /** "Forgot password": the username or the email address of the account. */
+    public record PasswordResetRequest(@NotBlank @Size(max = 200) String identifier) {}
+
+    /** The token from the emailed link, and the new password. */
+    public record PasswordResetConfirmRequest(
+            @NotBlank @Size(max = 200) String token,
+            @NotBlank @Size(min = 10, max = 200) String newPassword) {}
+
     public record EnabledRequest(@NotNull Boolean enabled) {}
 
     /** The signed-in user, as returned by /api/auth/me, login and registration. */
