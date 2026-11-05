@@ -1,6 +1,8 @@
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test } from '@playwright/test';
-import { apiAs, createBook, isoDaysFromToday, LIBRARIAN, PASSWORD, registerCustomer, signIn, unique } from './support.js';
+import {
+  apiAs, createBook, customerWithHistory, isoDaysFromToday, LIBRARIAN, myLoanTitles, PASSWORD, registerCustomer, signIn, unique,
+} from './support.js';
 
 /**
  * Runs in the "phone" project (Pixel 7 size). Every page must fit the screen: no sideways scrolling
@@ -59,6 +61,18 @@ test('a member can use every page on a phone', async ({ page, baseURL }) => {
   await expectAccessible(page, 'my loans on a phone');
 
   await librarianApi.dispose();
+});
+
+test('on a phone, My loans opens with the loan to renew and the request, history below', async ({ page, baseURL }) => {
+  const librarianApi = await apiAs(baseURL, LIBRARIAN.username, LIBRARIAN.password);
+  const { customer, onLoan, requested, returned } = await customerWithHistory(baseURL, librarianApi);
+  await librarianApi.dispose();
+
+  await signIn(page, customer.username, PASSWORD);
+  await page.goto('/my/loans');
+
+  expect((await myLoanTitles(page)).slice(0, 3)).toEqual([onLoan, requested, returned.at(-1)]);
+  await expect(page.locator('tr', { hasText: onLoan }).getByRole('button', { name: 'Renew' })).toBeInViewport();
 });
 
 test('a librarian can work the desk on a phone', async ({ page, baseURL }) => {

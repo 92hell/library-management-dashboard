@@ -80,8 +80,9 @@ size.
 - Browse and search the catalogue (title, author, publisher, category or ISBN) with live
   availability; filter by category, author or "on the shelf now" and sort by title, publication
   date or newest additions (filters live in the address, so a filtered list can be shared); each book has its own page with cover, description, shelf and queue; request books
-- *My loans*: pending requests, place in the queue, holds ready for pickup, books on loan with due
-  dates, overdue warnings, history; cancel a request or hold; renew a loan
+- *My loans*: what needs attention first (holds ready for pickup, overdue books, books on loan by
+  due date, pending requests and place in the queue), then history, newest first; cancel a request
+  or hold; renew a loan
 - Late fees: what an overdue book costs so far, the balance owed and the fee history
 - Notifications: hold ready for pickup, joined the waiting list, hold expired, request declined
   (with reason), book due soon, book overdue, late fee charged

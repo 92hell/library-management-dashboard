@@ -7,7 +7,7 @@ Run everything: `mvn clean verify` (backend; add `-Pmariadb` to run it on MariaD
 `cd frontend && npm test` (frontend), and after `mvn -Pfullstack package` also
 `cd e2e && npm test` (end-to-end, in a real browser); `node --test wake/*.test.mjs` (wake-up page).
 
-Totals: 272 backend test methods (parameterised ones run once per case), 179 frontend tests, 16 end-to-end journeys, 6 wake-up page tests.
+Totals: 275 backend test methods (parameterised ones run once per case), 179 frontend tests, 18 end-to-end journeys, 6 wake-up page tests.
 
 ## Backend (JUnit, `src/test/java`)
 
@@ -183,6 +183,7 @@ live in `support/`.
 `src/test/java/com/helmifr/library/demo/DemoDataTest.java`
 
 - seeding creates demo accounts, a sample catalogue and loans with their history, and is idempotent
+- the demo member's loans start with the book on loan and the request, above the returned ones
 - demo credentials are only advertised when demo mode is on (off in tests)
 
 ### Demo mode is safe to publish
@@ -274,6 +275,12 @@ live in `support/`.
 - a returned copy skips a member blocked by fines (they keep their place) and goes to the next in line
 - once a skipped member pays, the next free copy is set aside for them
 - a request from a member who is blocked by fines cannot be approved
+
+### My loans: what needs attention first
+`src/test/java/com/helmifr/library/loan/MyLoansOrderTest.java`
+
+- ready for pickup, overdue, on loan (due soonest first), requests, then history newest first
+- history on the same day lists the newest record first
 
 ### Walk-in loans recorded by a librarian
 `src/test/java/com/helmifr/library/loan/WalkInLoanTest.java`
@@ -902,6 +909,7 @@ creates its own uniquely named data through the API, then works through the UI.
 
 ### `e2e/tests/borrowing.spec.js`
 
+- My loans lists the book on loan and the request above the returned loans, newest return first
 - a customer requests a book, the librarian approves and hands it over, the customer renews it
 - when every copy is out, an approved request waits in the queue and gets the returned copy
 
@@ -921,6 +929,7 @@ creates its own uniquely named data through the API, then works through the UI.
 ### `e2e/tests/mobile.spec.js`
 
 - a member can use every page on a phone
+- on a phone, My loans opens with the loan to renew and the request, history below
 - a librarian can work the desk on a phone
 
 ### `e2e/tests/receipts.spec.js`

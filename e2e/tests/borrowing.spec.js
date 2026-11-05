@@ -1,5 +1,18 @@
 import { expect, test } from '@playwright/test';
-import { apiAs, createBook, LIBRARIAN, PASSWORD, registerCustomer, signIn, unique } from './support.js';
+import {
+  apiAs, createBook, customerWithHistory, LIBRARIAN, myLoanTitles, PASSWORD, registerCustomer, signIn, unique,
+} from './support.js';
+
+test('My loans lists the book on loan and the request above the returned loans, newest return first', async ({ page, baseURL }) => {
+  const librarianApi = await apiAs(baseURL, LIBRARIAN.username, LIBRARIAN.password);
+  const { customer, onLoan, requested, returned } = await customerWithHistory(baseURL, librarianApi);
+  await librarianApi.dispose();
+
+  await signIn(page, customer.username, PASSWORD);
+  await page.goto('/my/loans');
+
+  expect(await myLoanTitles(page)).toEqual([onLoan, requested, ...[...returned].reverse()]);
+});
 
 test('a customer requests a book, the librarian approves and hands it over, the customer renews it', async ({ browser, baseURL }) => {
   const librarianApi = await apiAs(baseURL, LIBRARIAN.username, LIBRARIAN.password);

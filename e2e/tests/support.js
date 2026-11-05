@@ -59,6 +59,44 @@ export async function registerCustomer(baseURL, name = 'Rina Wijaya') {
   return { username, memberId: body.memberId };
 }
 
+/**
+ * A customer with a book on loan, a pending request and `returned` past loans, recorded in that
+ * order, so the history is the newest record (it would come first if the list followed the records).
+ * Returns { customer, onLoan, requested, returned } with the book titles.
+ */
+export async function customerWithHistory(baseURL, librarianApi, returned = 5) {
+  const id = unique();
+  const customer = await registerCustomer(baseURL);
+  const onLoan = `On loan ${id}`;
+  const requested = `Requested ${id}`;
+  const lent = await createBook(librarianApi, onLoan);
+  await librarianApi.post('/api/borrowed-books', {
+    bookId: lent.id, memberId: customer.memberId, borrowDate: isoDaysFromToday(-3), dueDate: isoDaysFromToday(11),
+  });
+  const wanted = await createBook(librarianApi, requested);
+  const customerApi = await apiAs(baseURL, customer.username, PASSWORD);
+  await customerApi.post('/api/my/loans', { bookId: wanted.id });
+  await customerApi.dispose();
+  const history = [];
+  for (let i = 0; i < returned; i++) {
+    const title = `Returned ${i + 1} ${id}`;
+    const book = await createBook(librarianApi, title);
+    await librarianApi.post('/api/borrowed-books', {
+      bookId: book.id, memberId: customer.memberId,
+      borrowDate: isoDaysFromToday(-40 + i), dueDate: isoDaysFromToday(-26 + i), returnDate: isoDaysFromToday(-30 + i),
+    });
+    history.push(title);
+  }
+  return { customer, onLoan, requested, returned: history };
+}
+
+/** The book titles of the My loans rows, top to bottom. */
+export async function myLoanTitles(page) {
+  const rows = page.locator('main table').first().locator('tbody tr');
+  await expect(rows.first()).toBeVisible();
+  return rows.locator('.fw-semibold').allInnerTexts();
+}
+
 /** Signs in through the login form. */
 export async function signIn(page, username, password) {
   await page.goto('/login');
